@@ -63,10 +63,13 @@ The miniapp base invitation editor uses this endpoint to backfill all editable f
 Behavior:
 
 - Finds active invitation by `share_slug`.
+- Unknown or expired `shareSlug` returns HTTP 404 with a readable public message instead of leaking the raw service exception.
 - Records `invitation_visit_log`.
 - Returns invitation, banquet, referenced template, theme, resolved copywriting, parsed `basicFields`, `shareUrl` and standard `actionUrls`.
 - Returns `templatePresentation` with preset rendering information: `styleCode`, `headline`, `defaultGreeting`, `defaultScheduleText` and `fallbackCoverLabel`.
 - Standard action URLs cover RSVP, online gift, onsite QR gift and device selection, so miniapp/H5 pages do not need to rebuild entrance paths independently.
+- `shareUrl` is the miniapp public page path `/pages/invite/public/index?slug={shareSlug}`. `actionUrls.rsvp` includes `banquetId` and `invitationId`; `actionUrls.onlineGift` and `actionUrls.onsiteGift` include `banquetId` and `entrySource`; `actionUrls.device` includes `banquetId`.
+- If the invitation references a disabled or deleted template, `templateAvailable` is `false`, `templateMessage` explains the fallback, and `templatePresentation` is resolved from the banquet event type so the public page can continue rendering a base invitation.
 
 Supported base invitation fields inside `basicFields`:
 
@@ -78,7 +81,7 @@ Supported base invitation fields inside `basicFields`:
 - `showGiftEntry`
 - `showDeviceEntry`
 
-The miniapp public invitation page renders host/contact information, banquet time, venue, address detail, event schedule, gift entry buttons and device entry button from these fields. `showGiftEntry` and `showDeviceEntry` use `"0"` to hide the corresponding entry.
+The miniapp public invitation page renders host/contact information, banquet time, venue, address detail, event schedule, gift entry buttons and device entry button from these fields. `showGiftEntry` and `showDeviceEntry` use `"0"` to hide the corresponding action button and show a disabled-entry notice.
 
 If `greeting` or `scheduleText` is empty, the public page falls back to `templatePresentation.defaultGreeting` and `templatePresentation.defaultScheduleText`. If both invitation cover and template cover are empty, it renders a styled fallback cover using `templatePresentation.fallbackCoverLabel`.
 

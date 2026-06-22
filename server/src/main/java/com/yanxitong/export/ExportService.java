@@ -1,6 +1,8 @@
 package com.yanxitong.export;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.yanxitong.config.entity.ConfigItem;
+import com.yanxitong.config.mapper.ConfigItemMapper;
 import com.yanxitong.favor.entity.FavorContact;
 import com.yanxitong.favor.entity.FavorEntry;
 import com.yanxitong.favor.mapper.FavorContactMapper;
@@ -40,9 +42,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ExportService {
     private static final String RIGHT_CODE = "EXCEL_EXPORT";
-    private static final int MAX_ROWS = 10000;
+    private static final String MAX_ROWS_CONFIG_KEY = "export.max_rows";
+    private static final int DEFAULT_MAX_ROWS = 10000;
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    private final ConfigItemMapper configItemMapper;
     private final GiftRecordMapper giftRecordMapper;
     private final RsvpRecordMapper rsvpRecordMapper;
     private final FavorEntryMapper favorEntryMapper;
@@ -51,6 +55,7 @@ public class ExportService {
     private final OperationLogService operationLogService;
 
     public ExportService(
+            ConfigItemMapper configItemMapper,
             GiftRecordMapper giftRecordMapper,
             RsvpRecordMapper rsvpRecordMapper,
             FavorEntryMapper favorEntryMapper,
@@ -58,6 +63,7 @@ public class ExportService {
             PlanOrderService planOrderService,
             OperationLogService operationLogService
     ) {
+        this.configItemMapper = configItemMapper;
         this.giftRecordMapper = giftRecordMapper;
         this.rsvpRecordMapper = rsvpRecordMapper;
         this.favorEntryMapper = favorEntryMapper;
@@ -104,10 +110,12 @@ public class ExportService {
 
     private ExportTable giftTable(Long banquetId) {
         requireExportRight(banquetId);
+        int maxRows = maxRows();
         List<GiftRecord> records = giftRecordMapper.selectList(tenantScoped(new QueryWrapper<GiftRecord>())
                 .eq("banquet_id", banquetId)
                 .orderByDesc("received_at")
-                .last("LIMIT " + MAX_ROWS));
+                .last("LIMIT " + fetchLimit(maxRows)));
+        ensureWithinRowLimit("礼金记录", records.size(), maxRows);
         List<List<Object>> rows = new ArrayList<>();
         for (GiftRecord record : records) {
             rows.add(List.of(
@@ -120,15 +128,17 @@ public class ExportService {
                     value(record.receivedAt)
             ));
         }
-        return new ExportTable("gifts", "礼金记录", List.of("礼金ID", "宴席ID", "来源", "来宾姓名", "金额", "祝福/备注", "收礼时间"), rows);
+        return new ExportTable("gifts", "礼金记录", List.of("礼金ID", "宴席ID", "来源", "来宾姓名", "金额", "祝福/备注", "收礼时间"), rows, maxRows);
     }
 
     private ExportTable rsvpTable(Long banquetId) {
         requireExportRight(banquetId);
+        int maxRows = maxRows();
         List<RsvpRecord> records = rsvpRecordMapper.selectList(tenantScoped(new QueryWrapper<RsvpRecord>())
                 .eq("banquet_id", banquetId)
                 .orderByDesc("created_at")
-                .last("LIMIT " + MAX_ROWS));
+                .last("LIMIT " + fetchLimit(maxRows)));
+        ensureWithinRowLimit("回执记录", records.size(), maxRows);
         List<List<Object>> rows = new ArrayList<>();
         for (RsvpRecord record : records) {
             rows.add(List.of(
@@ -144,15 +154,17 @@ public class ExportService {
                     value(record.createdAt)
             ));
         }
-        return new ExportTable("rsvp", "回执 RSVP", List.of("回执ID", "宴席ID", "姓名", "手机", "出席状态", "用餐", "住宿", "人数", "留言", "提交时间"), rows);
+        return new ExportTable("rsvp", "回执 RSVP", List.of("回执ID", "宴席ID", "姓名", "手机", "出席状态", "用餐", "住宿", "人数", "留言", "提交时间"), rows, maxRows);
     }
 
     private ExportTable favorTable(Long banquetId) {
         requireExportRight(banquetId);
+        int maxRows = maxRows();
         List<FavorEntry> records = favorEntryMapper.selectList(tenantScoped(new QueryWrapper<FavorEntry>())
                 .eq("banquet_id", banquetId)
                 .orderByDesc("occurred_at")
-                .last("LIMIT " + MAX_ROWS));
+                .last("LIMIT " + fetchLimit(maxRows)));
+        ensureWithinRowLimit("人情账本", records.size(), maxRows);
         List<Long> contactIds = records.stream()
                         .map(record -> record.contactId)
                         .filter(id -> id != null)
@@ -178,7 +190,7 @@ public class ExportService {
                     value(record.note)
             ));
         }
-        return new ExportTable("favor", "人情账本", List.of("人情ID", "宴席ID", "联系人", "方向", "来源", "金额", "发生时间", "备注"), rows);
+        return new ExportTable("favor", "人情账本", List.of("人情ID", "宴席ID", "联系人", "方向", "来源", "金额", "发生时间", "备注"), rows, maxRows);
     }
 
     private ExportFile csvFile(Long banquetId, ExportTable table) {
@@ -255,6 +267,50 @@ public class ExportService {
         }
     }
 
+    private int maxRows() {
+        Long tenantId = TenantContext.getTenantId();
+        QueryWrapper<ConfigItem> query = new QueryWrapper<ConfigItem>()
+                .eq("config_key", MAX_ROWS_CONFIG_KEY)
+                .eq("enabled", 1);
+        if (tenantId != null) {
+            query.and(wrapper -> wrapper.eq("tenant_id", tenantId).or().isNull("tenant_id"));
+        } else {
+            query.isNull("tenant_id");
+        }
+        List<ConfigItem> items = configItemMapper.selectList(query);
+        if (items == null || items.isEmpty()) {
+            return DEFAULT_MAX_ROWS;
+        }
+        return items.stream()
+                .filter(item -> tenantId != null && tenantId.equals(item.tenantId))
+                .findFirst()
+                .or(() -> items.stream().filter(item -> item.tenantId == null).findFirst())
+                .map(item -> parseMaxRows(item.configValue))
+                .orElse(DEFAULT_MAX_ROWS);
+    }
+
+    private int parseMaxRows(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT_MAX_ROWS;
+        }
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            return parsed > 0 ? parsed : DEFAULT_MAX_ROWS;
+        } catch (NumberFormatException ex) {
+            return DEFAULT_MAX_ROWS;
+        }
+    }
+
+    private int fetchLimit(int maxRows) {
+        return maxRows + 1;
+    }
+
+    private void ensureWithinRowLimit(String exportName, int fetchedRows, int maxRows) {
+        if (fetchedRows > maxRows) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, exportName + "超过导出上限" + maxRows + "行，请缩小范围后重试");
+        }
+    }
+
     private <T> QueryWrapper<T> tenantScoped(QueryWrapper<T> query) {
         Long tenantId = TenantContext.getTenantId();
         if (tenantId != null) {
@@ -288,11 +344,11 @@ public class ExportService {
                 "format", format,
                 "type", table.type(),
                 "rowCount", table.rows().size(),
-                "maxRows", MAX_ROWS
+                "maxRows", table.maxRows()
         );
     }
 
-    private record ExportTable(String type, String sheetName, List<String> headers, List<List<Object>> rows) {
+    private record ExportTable(String type, String sheetName, List<String> headers, List<List<Object>> rows, int maxRows) {
     }
 
     private class CsvWriter {

@@ -16,19 +16,22 @@ public class PaymentService {
     private final OrderNoGenerator orderNoGenerator;
     private final OperationLogService operationLogService;
     private final PaymentProviderProperties properties;
+    private final PaymentProviderReadinessService readinessService;
 
     public PaymentService(
             PaymentOrderMapper paymentOrderMapper,
             PaymentAdapterRegistry paymentAdapterRegistry,
             OrderNoGenerator orderNoGenerator,
             OperationLogService operationLogService,
-            PaymentProviderProperties properties
+            PaymentProviderProperties properties,
+            PaymentProviderReadinessService readinessService
     ) {
         this.paymentOrderMapper = paymentOrderMapper;
         this.paymentAdapterRegistry = paymentAdapterRegistry;
         this.orderNoGenerator = orderNoGenerator;
         this.operationLogService = operationLogService;
         this.properties = properties;
+        this.readinessService = readinessService;
     }
 
     public PaymentOrderCreateResult createOrder(PaymentOrderCreateCommand command) {
@@ -38,6 +41,7 @@ public class PaymentService {
         }
 
         PaymentProvider defaultProvider = properties.getDefaultProvider();
+        readinessService.requireCreateReady(defaultProvider);
         PaymentOrder order = new PaymentOrder();
         order.tenantId = TenantContext.getTenantId();
         order.banquetId = command.banquetId();

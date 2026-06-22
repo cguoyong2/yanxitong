@@ -15,7 +15,7 @@ class AdminPaymentControllerTests {
     void launchReadinessGroupsMissingProviderConfiguration() {
         AdminPaymentController controller = new AdminPaymentController(
                 mock(PaymentCallbackService.class),
-                new PaymentProviderProperties()
+                new PaymentProviderReadinessService(new PaymentProviderProperties())
         );
 
         PaymentLaunchReadiness readiness = controller.launchReadiness(PaymentProvider.WECHAT_SERVICE_PROVIDER).data();
@@ -44,7 +44,7 @@ class AdminPaymentControllerTests {
         properties.setProviders(Map.of(PaymentProvider.WECHAT_SERVICE_PROVIDER, config));
         AdminPaymentController controller = new AdminPaymentController(
                 mock(PaymentCallbackService.class),
-                properties
+                new PaymentProviderReadinessService(properties)
         );
 
         PaymentLaunchReadiness readiness = controller.launchReadiness(PaymentProvider.WECHAT_SERVICE_PROVIDER).data();

@@ -15,6 +15,10 @@ Current MVP boundaries that drive P1:
 - Invitation templates are selectable and affect lightweight public rendering; public invitation now returns parsed basic fields, template presentation presets, share URL and standard action URLs, and the miniapp public page renders contact, address, schedule, fallback cover and entry visibility fields.
 - Admin, public invitation and confirm-screen smoke scripts generate screenshots and a machine-readable visual manifest under local acceptance artifacts.
 
+Active launch-hardening branch plan: `docs/p1-launch-hardening-plan.md`.
+
+Miniapp dependency audit status: `docs/miniapp-dependency-security-audit.md`.
+
 ## P1 Objective
 
 Turn the accepted MVP into a stronger pilot-ready version without disturbing the existing MVP business loop.

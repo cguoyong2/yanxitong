@@ -45,6 +45,10 @@ function invitationHtml(data) {
   const scheduleItems = String(basic.scheduleText || presentation.defaultScheduleText || '').split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
   const showGiftEntry = basic.showGiftEntry !== '0';
   const showDeviceEntry = basic.showDeviceEntry !== '0';
+  const disabledEntries = [
+    showGiftEntry ? '' : '<div class="notice">随礼入口暂未开放</div>',
+    showDeviceEntry ? '' : '<div class="notice">设备租赁入口暂未开放</div>'
+  ].join('');
   const primary = theme.primaryColor || '#b91c1c';
   const secondary = theme.secondaryColor || '#facc15';
   const cover = data.invitation?.coverUrl || template.coverUrl || '';
@@ -67,6 +71,8 @@ function invitationHtml(data) {
     .subtitle { margin: 0; line-height: 1.7; color: rgba(255,255,255,.92); }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 22px 0; }
     .section, .copy, .timeline, .share { padding: 18px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff; }
+    .notice { margin-top: 18px; padding: 14px 16px; border: 1px solid #dbeafe; border-radius: 8px; background: #eff6ff; color: #1e40af; }
+    .warning { border-color: #fde68a; background: #fffbeb; color: #92400e; }
     .label { display: block; margin-bottom: 8px; color: #64748b; font-size: 13px; }
     .value { line-height: 1.55; }
     .timeline { margin-bottom: 22px; }
@@ -104,6 +110,8 @@ function invitationHtml(data) {
     ${scheduleItems.length ? `<section class="timeline"><h2>宴席流程</h2>${scheduleItems.map((item) => `<div class="timeline-item">${escapeHtml(item)}</div>`).join('')}</section>` : ''}
     <section class="copy"><h2>${escapeHtml(copywriting.title || '心意文案')}</h2><div>${escapeHtml(copywriting.content || '')}</div></section>
     <section class="share">分享路径：${escapeHtml(data.shareUrl || '')}</section>
+    ${data.templateAvailable === false ? `<section class="notice warning">${escapeHtml(data.templateMessage || '原请柬模板已不可用，当前使用基础样式展示')}</section>` : ''}
+    ${disabledEntries}
     <section class="actions">
       <button>填写回执</button>
       ${showGiftEntry ? '<button class="secondary">线上随礼</button><button class="secondary">现场扫码</button>' : ''}
@@ -112,6 +120,55 @@ function invitationHtml(data) {
   </main>
 </body>
 </html>`;
+}
+
+function cloneData(data) {
+  return JSON.parse(JSON.stringify(data));
+}
+
+function addRenderChecks(results, data) {
+  const withoutCover = cloneData(data);
+  withoutCover.invitation = { ...(withoutCover.invitation || {}), coverUrl: '' };
+  withoutCover.template = { ...(withoutCover.template || {}), coverUrl: '' };
+  const fallbackHtml = invitationHtml(withoutCover);
+  const fallbackLabel = withoutCover.templatePresentation?.fallbackCoverLabel || '宴';
+  results.push({
+    name: 'fallback-cover-rendering',
+    ok: fallbackHtml.includes(fallbackLabel),
+    failures: fallbackHtml.includes(fallbackLabel) ? [] : ['fallback cover label missing']
+  });
+
+  const disabledEntries = cloneData(data);
+  disabledEntries.basicFields = {
+    ...(disabledEntries.basicFields || {}),
+    showGiftEntry: '0',
+    showDeviceEntry: '0'
+  };
+  const disabledHtml = invitationHtml(disabledEntries);
+  const disabledFailures = [];
+  for (const expected of ['随礼入口暂未开放', '设备租赁入口暂未开放']) {
+    if (!disabledHtml.includes(expected)) {
+      disabledFailures.push(`missing disabled entry notice: ${expected}`);
+    }
+  }
+  results.push({
+    name: 'disabled-entry-rendering',
+    ok: disabledFailures.length === 0,
+    failures: disabledFailures
+  });
+
+  const unavailableTemplate = cloneData(data);
+  unavailableTemplate.templateAvailable = false;
+  unavailableTemplate.template = null;
+  unavailableTemplate.templateMessage = '原请柬模板已下架，当前使用基础样式展示';
+  const unavailableHtml = invitationHtml(unavailableTemplate);
+  results.push({
+    name: 'unavailable-template-rendering',
+    ok: unavailableHtml.includes(unavailableTemplate.templateMessage),
+    failures: unavailableHtml.includes(unavailableTemplate.templateMessage)
+      ? []
+      : ['unavailable template notice missing']
+  });
 }
 
 async function main() {
@@ -151,6 +208,12 @@ async function main() {
           failures.push(`missing text: ${required}`);
         }
       }
+      if (!text.includes('宴') && !(body.data.invitation?.coverUrl || body.data.template?.coverUrl)) {
+        failures.push('fallback cover label missing');
+      }
+      if (body.data.basicFields?.showDeviceEntry === '0' && !text.includes('设备租赁入口暂未开放')) {
+        failures.push('disabled device entry notice missing');
+      }
       const screenshot = path.join(artifactsDir, `${viewport.name}.png`);
       await page.screenshot({ path: screenshot, fullPage: true });
       await page.close();
@@ -160,12 +223,26 @@ async function main() {
     await browser.close();
   }
 
+  addRenderChecks(results, body.data);
+
+  const missingResponse = await fetch(`${baseUrl}/api/invitations/public/${encodeURIComponent(`missing-${runId}`)}`);
+  const missingBody = await missingResponse.json().catch(() => null);
+  const missingSlugCheck = {
+    name: 'missing-public-invitation-slug',
+    ok: missingResponse.status === 404 && Boolean(missingBody?.message),
+    failures: [
+      missingResponse.status === 404 ? '' : `expected 404 for missing slug, got ${missingResponse.status}`,
+      missingBody?.message ? '' : 'missing readable 404 message'
+    ].filter(Boolean)
+  };
+  results.push(missingSlugCheck);
+
   const summary = {
     baseUrl,
     shareSlug,
     artifactsDir,
     html: htmlPath,
-    screenshots: results.map((item) => item.screenshot),
+    screenshots: results.map((item) => item.screenshot).filter(Boolean),
     total: results.length,
     passed: results.filter((item) => item.ok).length,
     failed: results.filter((item) => !item.ok).length,
@@ -181,7 +258,7 @@ async function main() {
   }
   console.log(`Public invitation smoke passed. Artifacts: ${artifactsDir}`);
   for (const result of results) {
-    console.log(`- ${result.name}: ${result.screenshot}`);
+    console.log(`- ${result.name}: ${result.screenshot || 'no screenshot'}`);
   }
 }
 
