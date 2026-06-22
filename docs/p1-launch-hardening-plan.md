@@ -72,7 +72,7 @@ Tasks:
 
 1. Add a launch checklist endpoint or admin checklist view for missing payment provider fields. Done through `/api/admin/payments/launch-readiness` and the admin payment page.
 2. Add tests for provider-disabled and provider-misconfigured create-payment failures. Misconfigured create-payment is covered in `PaymentServiceTests`; provider-disabled adapter behavior remains covered in `WechatServiceProviderAdapterTests`.
-3. Add callback fixture tests for invalid signature, duplicated event ID, amount mismatch and non-success trade state.
+3. Add callback fixture tests for invalid signature, duplicated event ID, amount mismatch and non-success trade state. Done in `PaymentCallbackServiceTests`.
 4. Keep Mock disabled by default outside local acceptance.
 5. Keep business services isolated from provider SDK classes.
 6. Prepare a staging callback sample folder after real WeChat onboarding.

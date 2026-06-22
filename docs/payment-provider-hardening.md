@@ -117,6 +117,15 @@ Callback logs use:
 
 All failed callback paths remain visible in admin payment callback logs and can be manually resolved.
 
+Callback regression tests now cover:
+
+- verification/signature parse failure: `verifyStatus=FAILED`, `processStatus=FAILED`
+- duplicate successful provider event id: `processStatus=IGNORED`
+- amount mismatch: `processStatus=FAILED`
+- non-success provider trade state: `processStatus=IGNORED`
+- duplicate callback for an already paid order: `processStatus=IGNORED`
+- paid order with conflicting provider trade number: `processStatus=FAILED`
+
 ## Idempotency And Consistency
 
 P1-A6 hardens the paid callback path with both database constraints and service-level checks:
