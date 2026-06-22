@@ -47,14 +47,14 @@ Acceptance:
 
 ### P1-H2 Export Production Hardening
 
-Current status: CSV/XLSX export exists behind `EXCEL_EXPORT`, with a 10,000-row cap and operation logs.
+Current status: CSV/XLSX export exists behind `EXCEL_EXPORT`, with a 10,000-row cap, explicit oversize rejection and operation logs.
 
 Tasks:
 
-1. Add automated tests for the export row cap.
-2. Add tests for entitlement denial on all CSV/XLSX endpoints.
-3. Add tests that operation logs include export format, export type and row count.
-4. Add admin UI empty-state and error-state handling for export failures.
+1. Add automated tests for the export row cap. Done in `ExportServiceTests`.
+2. Add tests for entitlement denial on all CSV/XLSX endpoints. Done in `ExportServiceTests`.
+3. Add tests that operation logs include export format, export type and row count. Done in `ExportServiceTests`.
+4. Add admin UI empty-state and error-state handling for export failures. Export failure handling and per-file loading states are done in `BusinessView`.
 5. Decide whether row cap should be configurable through `config_item` or application properties.
 
 Acceptance:

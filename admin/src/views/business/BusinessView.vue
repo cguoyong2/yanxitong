@@ -18,8 +18,8 @@
           <el-button type="primary" @click="loadGifts">查询</el-button>
           <el-button @click="resetGiftFilters">重置</el-button>
           <el-button @click="openOfflineGift">现金记礼</el-button>
-          <el-button :disabled="!giftFilters.banquetId" @click="downloadExport('gifts', 'csv', giftFilters.banquetId)">导出CSV</el-button>
-          <el-button :disabled="!giftFilters.banquetId" @click="downloadExport('gifts', 'xlsx', giftFilters.banquetId)">导出XLSX</el-button>
+          <el-button :disabled="!giftFilters.banquetId" :loading="isExporting('gifts', 'csv')" @click="downloadExport('gifts', 'csv', giftFilters.banquetId)">导出CSV</el-button>
+          <el-button :disabled="!giftFilters.banquetId" :loading="isExporting('gifts', 'xlsx')" @click="downloadExport('gifts', 'xlsx', giftFilters.banquetId)">导出XLSX</el-button>
         </section>
         <section class="metric-grid">
           <article class="metric">
@@ -79,8 +79,8 @@
           <el-button type="primary" @click="loadRsvp">查询</el-button>
           <el-button @click="resetRsvpFilters">重置</el-button>
           <el-button :disabled="!rsvpFilters.banquetId" @click="loadRsvpStats">统计</el-button>
-          <el-button :disabled="!rsvpFilters.banquetId" @click="downloadExport('rsvp', 'csv', rsvpFilters.banquetId)">导出CSV</el-button>
-          <el-button :disabled="!rsvpFilters.banquetId" @click="downloadExport('rsvp', 'xlsx', rsvpFilters.banquetId)">导出XLSX</el-button>
+          <el-button :disabled="!rsvpFilters.banquetId" :loading="isExporting('rsvp', 'csv')" @click="downloadExport('rsvp', 'csv', rsvpFilters.banquetId)">导出CSV</el-button>
+          <el-button :disabled="!rsvpFilters.banquetId" :loading="isExporting('rsvp', 'xlsx')" @click="downloadExport('rsvp', 'xlsx', rsvpFilters.banquetId)">导出XLSX</el-button>
         </section>
         <section class="metric-grid">
           <article class="metric">
@@ -134,8 +134,8 @@
           <el-button type="primary" @click="loadFavorContacts">查询</el-button>
           <el-button @click="resetFavorFilters">重置</el-button>
           <el-button @click="openFavorManual">手动补录</el-button>
-          <el-button :disabled="!favorExportBanquetId" @click="downloadExport('favor', 'csv', favorExportBanquetId)">导出CSV</el-button>
-          <el-button :disabled="!favorExportBanquetId" @click="downloadExport('favor', 'xlsx', favorExportBanquetId)">导出XLSX</el-button>
+          <el-button :disabled="!favorExportBanquetId" :loading="isExporting('favor', 'csv')" @click="downloadExport('favor', 'csv', favorExportBanquetId)">导出CSV</el-button>
+          <el-button :disabled="!favorExportBanquetId" :loading="isExporting('favor', 'xlsx')" @click="downloadExport('favor', 'xlsx', favorExportBanquetId)">导出XLSX</el-button>
         </section>
         <section class="metric-grid">
           <article class="metric">
@@ -320,6 +320,7 @@ const giftFilters = reactive({ banquetId: String(route.query.banquetId || ''), s
 const rsvpFilters = reactive({ banquetId: String(route.query.banquetId || ''), status: '', keyword: '' });
 const offlineGiftForm = reactive({ banquetId: '', guestName: '', amount: 100, blessing: '' });
 const favorForm = reactive({ contactName: '', phone: '', direction: 'RECEIVED', banquetId: '', amount: 100, note: '' });
+const exportLoading = reactive<Record<string, boolean>>({});
 
 const giftSummary = computed<GiftSummary>(() => {
   const summary = {
@@ -447,21 +448,54 @@ async function downloadExport(kind: 'gifts' | 'rsvp' | 'favor', format: 'csv' | 
     ElMessage.warning('请先填写宴席 ID');
     return;
   }
-  const response = await http.get(`/admin/exports/banquets/${encodeURIComponent(banquetId)}/${kind}.${format}`, {
-    responseType: 'blob'
-  });
-  const contentDisposition = String(response.headers['content-disposition'] || '');
-  const matched = contentDisposition.match(/filename="?([^"]+)"?/i);
-  const filename = matched?.[1] || `banquet-${banquetId}-${kind}.${format}`;
-  const url = URL.createObjectURL(response.data as Blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-  ElMessage.success('导出文件已生成');
+  const key = exportKey(kind, format);
+  exportLoading[key] = true;
+  try {
+    const response = await http.get(`/admin/exports/banquets/${encodeURIComponent(banquetId)}/${kind}.${format}`, {
+      responseType: 'blob'
+    });
+    const contentDisposition = String(response.headers['content-disposition'] || '');
+    const matched = contentDisposition.match(/filename="?([^"]+)"?/i);
+    const filename = matched?.[1] || `banquet-${banquetId}-${kind}.${format}`;
+    const url = URL.createObjectURL(response.data as Blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    ElMessage.success('导出文件已生成');
+  } catch (error) {
+    ElMessage.error(await exportErrorMessage(error));
+  } finally {
+    exportLoading[key] = false;
+  }
+}
+
+function exportKey(kind: 'gifts' | 'rsvp' | 'favor', format: 'csv' | 'xlsx') {
+  return `${kind}:${format}`;
+}
+
+function isExporting(kind: 'gifts' | 'rsvp' | 'favor', format: 'csv' | 'xlsx') {
+  return Boolean(exportLoading[exportKey(kind, format)]);
+}
+
+async function exportErrorMessage(error: unknown): Promise<string> {
+  const responseData = (error as { response?: { data?: unknown } })?.response?.data;
+  if (responseData instanceof Blob) {
+    const text = await responseData.text();
+    try {
+      const body = JSON.parse(text) as { message?: string };
+      return body.message || '导出失败';
+    } catch {
+      return text || '导出失败';
+    }
+  }
+  if (error instanceof Error) {
+    return error.message || '导出失败';
+  }
+  return '导出失败';
 }
 
 function openOfflineGift() {

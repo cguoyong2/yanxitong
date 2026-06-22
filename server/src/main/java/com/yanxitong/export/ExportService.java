@@ -41,6 +41,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ExportService {
     private static final String RIGHT_CODE = "EXCEL_EXPORT";
     private static final int MAX_ROWS = 10000;
+    private static final int FETCH_LIMIT = MAX_ROWS + 1;
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final GiftRecordMapper giftRecordMapper;
@@ -107,7 +108,8 @@ public class ExportService {
         List<GiftRecord> records = giftRecordMapper.selectList(tenantScoped(new QueryWrapper<GiftRecord>())
                 .eq("banquet_id", banquetId)
                 .orderByDesc("received_at")
-                .last("LIMIT " + MAX_ROWS));
+                .last("LIMIT " + FETCH_LIMIT));
+        ensureWithinRowLimit("礼金记录", records.size());
         List<List<Object>> rows = new ArrayList<>();
         for (GiftRecord record : records) {
             rows.add(List.of(
@@ -128,7 +130,8 @@ public class ExportService {
         List<RsvpRecord> records = rsvpRecordMapper.selectList(tenantScoped(new QueryWrapper<RsvpRecord>())
                 .eq("banquet_id", banquetId)
                 .orderByDesc("created_at")
-                .last("LIMIT " + MAX_ROWS));
+                .last("LIMIT " + FETCH_LIMIT));
+        ensureWithinRowLimit("回执记录", records.size());
         List<List<Object>> rows = new ArrayList<>();
         for (RsvpRecord record : records) {
             rows.add(List.of(
@@ -152,7 +155,8 @@ public class ExportService {
         List<FavorEntry> records = favorEntryMapper.selectList(tenantScoped(new QueryWrapper<FavorEntry>())
                 .eq("banquet_id", banquetId)
                 .orderByDesc("occurred_at")
-                .last("LIMIT " + MAX_ROWS));
+                .last("LIMIT " + FETCH_LIMIT));
+        ensureWithinRowLimit("人情账本", records.size());
         List<Long> contactIds = records.stream()
                         .map(record -> record.contactId)
                         .filter(id -> id != null)
@@ -252,6 +256,12 @@ public class ExportService {
         RightsCheckResult result = planOrderService.checkBanquetRight(banquetId, RIGHT_CODE);
         if (!result.allowed()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "当前宴席版本不支持导出");
+        }
+    }
+
+    private void ensureWithinRowLimit(String exportName, int fetchedRows) {
+        if (fetchedRows > MAX_ROWS) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, exportName + "超过导出上限" + MAX_ROWS + "行，请缩小范围后重试");
         }
     }
 
