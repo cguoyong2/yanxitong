@@ -55,7 +55,7 @@ Tasks:
 2. Add tests for entitlement denial on all CSV/XLSX endpoints. Done in `ExportServiceTests`.
 3. Add tests that operation logs include export format, export type and row count. Done in `ExportServiceTests`.
 4. Add admin UI empty-state and error-state handling for export failures. Export failure handling and per-file loading states are done in `BusinessView`.
-5. Decide whether row cap should be configurable through `config_item` or application properties.
+5. Decide whether row cap should be configurable through `config_item` or application properties. Done: `config_item` key `export.max_rows`, seeded by `V20__seed_export_row_limit_config.sql`.
 
 Acceptance:
 

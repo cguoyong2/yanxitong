@@ -5,6 +5,14 @@
       <el-button @click="loadAll">刷新</el-button>
     </header>
 
+    <el-alert
+      class="export-notice"
+      type="info"
+      :closable="false"
+      show-icon
+      title="导出超过配置上限会被拒绝；上限由配置中心 export.max_rows 维护。"
+    />
+
     <el-tabs>
       <el-tab-pane label="礼金记录">
         <section class="toolbar">
@@ -621,6 +629,10 @@ header {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+}
+
+.export-notice {
+  margin-bottom: 14px;
 }
 
 h1 {

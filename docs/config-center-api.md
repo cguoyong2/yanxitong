@@ -40,3 +40,4 @@ Each endpoint supports:
 - Copywriting priority remains: banquet custom copywriting, theme copywriting, event type default copywriting, system default copywriting.
 - Operation logs are written for create, update and delete operations on configuration resources.
 - CSV/XLSX export is enabled through `EXCEL_EXPORT`; config and rights remain backend-maintained.
+- Export row cap is maintained through generic config item `export.max_rows`; default value is `10000`.

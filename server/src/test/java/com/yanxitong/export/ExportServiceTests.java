@@ -11,6 +11,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.yanxitong.config.entity.ConfigItem;
+import com.yanxitong.config.mapper.ConfigItemMapper;
 import com.yanxitong.favor.entity.FavorContact;
 import com.yanxitong.favor.entity.FavorEntry;
 import com.yanxitong.favor.mapper.FavorContactMapper;
@@ -37,6 +39,7 @@ import org.springframework.web.server.ResponseStatusException;
 class ExportServiceTests {
     private static final Long BANQUET_ID = 12L;
 
+    private final ConfigItemMapper configItemMapper = mock(ConfigItemMapper.class);
     private final GiftRecordMapper giftRecordMapper = mock(GiftRecordMapper.class);
     private final RsvpRecordMapper rsvpRecordMapper = mock(RsvpRecordMapper.class);
     private final FavorEntryMapper favorEntryMapper = mock(FavorEntryMapper.class);
@@ -44,6 +47,7 @@ class ExportServiceTests {
     private final PlanOrderService planOrderService = mock(PlanOrderService.class);
     private final OperationLogService operationLogService = mock(OperationLogService.class);
     private final ExportService service = new ExportService(
+            configItemMapper,
             giftRecordMapper,
             rsvpRecordMapper,
             favorEntryMapper,
@@ -101,6 +105,23 @@ class ExportServiceTests {
         assertEquals(413, ex.getStatusCode().value());
         assertTrue(ex.getReason().contains("超过导出上限10000行"));
         verify(operationLogService, never()).record(eq(OperationModule.EXPORT), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void usesConfiguredRowCapWhenEnabledConfigItemExists() {
+        allowExport();
+        ConfigItem config = new ConfigItem();
+        config.configKey = "export.max_rows";
+        config.configValue = "2";
+        config.valueType = "NUMBER";
+        config.enabled = 1;
+        when(configItemMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of(config));
+        when(giftRecordMapper.selectList(any(QueryWrapper.class))).thenReturn(giftRows(3));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.exportGiftsXlsx(BANQUET_ID));
+
+        assertEquals(413, ex.getStatusCode().value());
+        assertTrue(ex.getReason().contains("超过导出上限2行"));
     }
 
     @Test
