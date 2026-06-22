@@ -1,0 +1,678 @@
+<template>
+  <main class="page">
+    <header>
+      <h1>业务数据</h1>
+      <el-button @click="loadAll">刷新</el-button>
+    </header>
+
+    <el-tabs>
+      <el-tab-pane label="礼金记录">
+        <section class="toolbar">
+          <el-input v-model="giftFilters.banquetId" clearable placeholder="宴席 ID" />
+          <el-select v-model="giftFilters.source" clearable placeholder="来源">
+            <el-option label="线上随礼" value="ONLINE_GIFT" />
+            <el-option label="现场扫码" value="ONSITE_QR" />
+            <el-option label="现金记礼" value="CASH" />
+          </el-select>
+          <el-input v-model="giftFilters.keyword" clearable placeholder="来宾姓名" />
+          <el-button type="primary" @click="loadGifts">查询</el-button>
+          <el-button @click="resetGiftFilters">重置</el-button>
+          <el-button @click="openOfflineGift">现金记礼</el-button>
+          <el-button :disabled="!giftFilters.banquetId" @click="downloadExport('gifts', 'csv', giftFilters.banquetId)">导出CSV</el-button>
+          <el-button :disabled="!giftFilters.banquetId" @click="downloadExport('gifts', 'xlsx', giftFilters.banquetId)">导出XLSX</el-button>
+        </section>
+        <section class="metric-grid">
+          <article class="metric">
+            <span>礼金笔数</span>
+            <strong>{{ giftSummary.count }}</strong>
+          </article>
+          <article class="metric">
+            <span>礼金总额</span>
+            <strong>{{ formatMoney(giftSummary.totalAmount) }}</strong>
+          </article>
+          <article class="metric">
+            <span>线上随礼</span>
+            <strong>{{ formatMoney(giftSummary.onlineAmount) }}</strong>
+          </article>
+          <article class="metric">
+            <span>现场扫码</span>
+            <strong>{{ formatMoney(giftSummary.onsiteAmount) }}</strong>
+          </article>
+          <article class="metric">
+            <span>现金记礼</span>
+            <strong>{{ formatMoney(giftSummary.cashAmount) }}</strong>
+          </article>
+        </section>
+        <el-table v-loading="loading.gifts" :data="gifts" border stripe empty-text="暂无礼金记录">
+          <el-table-column prop="id" label="ID" width="90" />
+          <el-table-column prop="banquetId" label="宴席ID" width="100" />
+          <el-table-column label="来源" width="130">
+            <template #default="{ row }"><el-tag :type="tagType(row.giftSource)">{{ displayLabel(row.giftSource) }}</el-tag></template>
+          </el-table-column>
+          <el-table-column prop="guestName" label="来宾" min-width="150" />
+          <el-table-column label="金额" width="120">
+            <template #default="{ row }">{{ formatMoney(row.amount) }}</template>
+          </el-table-column>
+          <el-table-column prop="blessing" label="祝福/备注" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="paymentOrderId" label="支付订单ID" width="120" />
+          <el-table-column label="收礼时间" min-width="170">
+            <template #default="{ row }">{{ formatDateTime(row.receivedAt) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="110" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="goBanquet(row.banquetId as number)">宴席视图</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="回执 RSVP">
+        <section class="toolbar">
+          <el-input v-model="rsvpFilters.banquetId" clearable placeholder="宴席 ID" />
+          <el-select v-model="rsvpFilters.status" clearable placeholder="状态">
+            <el-option label="出席" value="ATTEND" />
+            <el-option label="出席（兼容）" value="ATTENDING" />
+            <el-option label="待定" value="PENDING" />
+            <el-option label="婉拒" value="DECLINED" />
+          </el-select>
+          <el-input v-model="rsvpFilters.keyword" clearable placeholder="姓名/手机号" />
+          <el-button type="primary" @click="loadRsvp">查询</el-button>
+          <el-button @click="resetRsvpFilters">重置</el-button>
+          <el-button :disabled="!rsvpFilters.banquetId" @click="loadRsvpStats">统计</el-button>
+          <el-button :disabled="!rsvpFilters.banquetId" @click="downloadExport('rsvp', 'csv', rsvpFilters.banquetId)">导出CSV</el-button>
+          <el-button :disabled="!rsvpFilters.banquetId" @click="downloadExport('rsvp', 'xlsx', rsvpFilters.banquetId)">导出XLSX</el-button>
+        </section>
+        <section class="metric-grid">
+          <article class="metric">
+            <span>回执记录</span>
+            <strong>{{ effectiveRsvpStats.totalRecords }}</strong>
+          </article>
+          <article class="metric">
+            <span>确认出席</span>
+            <strong>{{ effectiveRsvpStats.attendingRecords }}</strong>
+          </article>
+          <article class="metric">
+            <span>预计人数</span>
+            <strong>{{ effectiveRsvpStats.totalGuests }}</strong>
+          </article>
+          <article class="metric">
+            <span>需要用餐</span>
+            <strong>{{ effectiveRsvpStats.mealRequiredGuests }}</strong>
+          </article>
+          <article class="metric">
+            <span>需要住宿</span>
+            <strong>{{ effectiveRsvpStats.accommodationRequiredGuests }}</strong>
+          </article>
+        </section>
+        <el-table v-loading="loading.rsvp" :data="rsvpRows" border stripe empty-text="暂无 RSVP">
+          <el-table-column prop="id" label="ID" width="90" />
+          <el-table-column prop="banquetId" label="宴席ID" width="100" />
+          <el-table-column prop="guestName" label="姓名" min-width="140" />
+          <el-table-column prop="phone" label="手机号" min-width="140" />
+          <el-table-column label="状态" width="110">
+            <template #default="{ row }"><el-tag :type="tagType(row.attendanceStatus)">{{ displayLabel(row.attendanceStatus) }}</el-tag></template>
+          </el-table-column>
+          <el-table-column prop="guestCount" label="人数" width="90" />
+          <el-table-column prop="mealRequired" label="用餐" width="90" />
+          <el-table-column prop="accommodationRequired" label="住宿" width="90" />
+          <el-table-column prop="message" label="留言" min-width="220" show-overflow-tooltip />
+          <el-table-column label="提交时间" min-width="170">
+            <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="110" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="goBanquet(row.banquetId as number)">宴席视图</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <el-tab-pane label="人情账本">
+        <section class="toolbar">
+          <el-input v-model="favorKeyword" clearable placeholder="联系人姓名" />
+          <el-input v-model="favorExportBanquetId" clearable placeholder="导出宴席 ID" />
+          <el-button type="primary" @click="loadFavorContacts">查询</el-button>
+          <el-button @click="resetFavorFilters">重置</el-button>
+          <el-button @click="openFavorManual">手动补录</el-button>
+          <el-button :disabled="!favorExportBanquetId" @click="downloadExport('favor', 'csv', favorExportBanquetId)">导出CSV</el-button>
+          <el-button :disabled="!favorExportBanquetId" @click="downloadExport('favor', 'xlsx', favorExportBanquetId)">导出XLSX</el-button>
+        </section>
+        <section class="metric-grid">
+          <article class="metric">
+            <span>联系人</span>
+            <strong>{{ favorSummary.count }}</strong>
+          </article>
+          <article class="metric">
+            <span>收礼合计</span>
+            <strong>{{ formatMoney(favorSummary.receivedAmount) }}</strong>
+          </article>
+          <article class="metric">
+            <span>回礼合计</span>
+            <strong>{{ formatMoney(favorSummary.givenAmount) }}</strong>
+          </article>
+          <article class="metric">
+            <span>当前差额</span>
+            <strong :class="balanceClass(favorSummary.balance)">{{ formatMoney(favorSummary.balance) }}</strong>
+            <small>{{ balanceText(favorSummary.balance) }}</small>
+          </article>
+        </section>
+        <el-table v-loading="loading.favor" :data="favorContacts" border stripe empty-text="暂无人情联系人">
+          <el-table-column prop="contactId" label="联系人ID" width="110" />
+          <el-table-column prop="contactName" label="联系人" min-width="160" />
+          <el-table-column label="收礼合计" width="130">
+            <template #default="{ row }">{{ formatMoney(row.receivedAmount) }}</template>
+          </el-table-column>
+          <el-table-column label="回礼合计" width="130">
+            <template #default="{ row }">{{ formatMoney(row.givenAmount) }}</template>
+          </el-table-column>
+          <el-table-column label="差额" width="130">
+            <template #default="{ row }">
+              <span :class="balanceClass(row.balance)">{{ formatMoney(row.balance) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="差额说明" min-width="150">
+            <template #default="{ row }">{{ balanceText(row.balance) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openFavorDetail(row.contactId as number)">明细</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+    </el-tabs>
+
+    <el-dialog v-model="offlineGiftVisible" title="现金记礼" width="520px">
+      <el-form label-width="110px">
+        <el-form-item label="宴席 ID" required>
+          <el-input v-model="offlineGiftForm.banquetId" />
+        </el-form-item>
+        <el-form-item label="来宾姓名" required>
+          <el-input v-model="offlineGiftForm.guestName" />
+        </el-form-item>
+        <el-form-item label="金额" required>
+          <el-input-number v-model="offlineGiftForm.amount" :min="0.01" :precision="2" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="offlineGiftForm.blessing" type="textarea" :rows="3" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="offlineGiftVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitOfflineGift">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="favorManualVisible" title="人情补录" width="560px">
+      <el-form label-width="110px">
+        <el-form-item label="联系人" required>
+          <el-input v-model="favorForm.contactName" />
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="favorForm.phone" />
+        </el-form-item>
+        <el-form-item label="方向" required>
+          <el-select v-model="favorForm.direction">
+            <el-option label="收到" value="RECEIVED" />
+            <el-option label="给出" value="GIVEN" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="宴席 ID">
+          <el-input v-model="favorForm.banquetId" />
+        </el-form-item>
+        <el-form-item label="金额" required>
+          <el-input-number v-model="favorForm.amount" :min="0.01" :precision="2" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="favorForm.note" type="textarea" :rows="3" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="favorManualVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitFavorManual">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-drawer v-model="favorDetailVisible" title="人情明细" size="560px">
+      <template v-if="favorDetail">
+        <section class="detail-summary">
+          <h2>{{ favorDetail.contact.contactName }}</h2>
+          <span>收 {{ formatMoney(favorDetail.receivedAmount) }}</span>
+          <span>给 {{ formatMoney(favorDetail.givenAmount) }}</span>
+          <span :class="balanceClass(favorDetail.balance)">差额 {{ formatMoney(favorDetail.balance) }}</span>
+          <span>{{ balanceText(favorDetail.balance) }}</span>
+        </section>
+        <el-table :data="favorDetail.entries" border stripe empty-text="暂无明细">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column label="方向" width="100">
+            <template #default="{ row }"><el-tag :type="tagType(row.direction)">{{ displayLabel(row.direction) }}</el-tag></template>
+          </el-table-column>
+          <el-table-column label="来源" width="120">
+            <template #default="{ row }">{{ displayLabel(row.sourceType) }}</template>
+          </el-table-column>
+          <el-table-column label="金额" width="110">
+            <template #default="{ row }">{{ formatMoney(row.amount) }}</template>
+          </el-table-column>
+          <el-table-column prop="banquetId" label="宴席ID" width="100" />
+          <el-table-column prop="note" label="备注" min-width="180" show-overflow-tooltip />
+          <el-table-column label="时间" min-width="170">
+            <template #default="{ row }">{{ formatDateTime(row.occurredAt) }}</template>
+          </el-table-column>
+        </el-table>
+      </template>
+    </el-drawer>
+  </main>
+</template>
+
+<script setup lang="ts">
+import { ElMessage } from 'element-plus';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { http, recordsOf, type ApiResponse, type PageResult } from '../../api/client';
+import { displayLabel, formatDateTime, formatMoney, tagType } from '../../utils/display';
+
+interface RsvpStats {
+  totalRecords: number;
+  attendingRecords: number;
+  totalGuests: number;
+  mealRequiredGuests: number;
+  accommodationRequiredGuests: number;
+}
+
+interface GiftSummary {
+  count: number;
+  totalAmount: number;
+  onlineAmount: number;
+  onsiteAmount: number;
+  cashAmount: number;
+}
+
+interface FavorSummary {
+  count: number;
+  receivedAmount: number;
+  givenAmount: number;
+  balance: number;
+}
+
+interface FavorDetail {
+  contact: { contactName: string };
+  receivedAmount: number;
+  givenAmount: number;
+  balance: number;
+  entries: Record<string, unknown>[];
+}
+
+const gifts = ref<Record<string, unknown>[]>([]);
+const route = useRoute();
+const router = useRouter();
+const rsvpRows = ref<Record<string, unknown>[]>([]);
+const favorContacts = ref<Record<string, unknown>[]>([]);
+const favorDetail = ref<FavorDetail | null>(null);
+const rsvpStats = ref<RsvpStats | null>(null);
+const favorKeyword = ref('');
+const favorExportBanquetId = ref(String(route.query.banquetId || ''));
+const offlineGiftVisible = ref(false);
+const favorManualVisible = ref(false);
+const favorDetailVisible = ref(false);
+const loading = reactive({ gifts: false, rsvp: false, favor: false });
+
+const giftFilters = reactive({ banquetId: String(route.query.banquetId || ''), source: '', keyword: '' });
+const rsvpFilters = reactive({ banquetId: String(route.query.banquetId || ''), status: '', keyword: '' });
+const offlineGiftForm = reactive({ banquetId: '', guestName: '', amount: 100, blessing: '' });
+const favorForm = reactive({ contactName: '', phone: '', direction: 'RECEIVED', banquetId: '', amount: 100, note: '' });
+
+const giftSummary = computed<GiftSummary>(() => {
+  const summary = {
+    count: gifts.value.length,
+    totalAmount: 0,
+    onlineAmount: 0,
+    onsiteAmount: 0,
+    cashAmount: 0
+  };
+  gifts.value.forEach((row) => {
+    const amount = toNumber(row.amount);
+    summary.totalAmount += amount;
+    if (row.giftSource === 'ONLINE_GIFT') {
+      summary.onlineAmount += amount;
+    }
+    if (row.giftSource === 'ONSITE_QR') {
+      summary.onsiteAmount += amount;
+    }
+    if (row.giftSource === 'CASH') {
+      summary.cashAmount += amount;
+    }
+  });
+  return summary;
+});
+
+const localRsvpStats = computed<RsvpStats>(() => {
+  const attending = rsvpRows.value.filter((row) => ['ATTEND', 'ATTENDING'].includes(String(row.attendanceStatus)));
+  return {
+    totalRecords: rsvpRows.value.length,
+    attendingRecords: attending.length,
+    totalGuests: sum(attending.map((row) => row.guestCount)),
+    mealRequiredGuests: sum(attending.filter((row) => Boolean(row.mealRequired)).map((row) => row.guestCount)),
+    accommodationRequiredGuests: sum(attending.filter((row) => Boolean(row.accommodationRequired)).map((row) => row.guestCount))
+  };
+});
+
+const effectiveRsvpStats = computed<RsvpStats>(() => rsvpStats.value || localRsvpStats.value);
+
+const favorSummary = computed<FavorSummary>(() => {
+  const receivedAmount = sum(favorContacts.value.map((row) => row.receivedAmount));
+  const givenAmount = sum(favorContacts.value.map((row) => row.givenAmount));
+  return {
+    count: favorContacts.value.length,
+    receivedAmount,
+    givenAmount,
+    balance: receivedAmount - givenAmount
+  };
+});
+
+function query(params: Record<string, string>) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      search.set(key, value);
+    }
+  });
+  return search.toString() ? `?${search}` : '';
+}
+
+async function loadGifts() {
+  loading.gifts = true;
+  try {
+    const response = await http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/gifts${query({ ...giftFilters, pageSize: '100' })}`);
+    gifts.value = recordsOf(response.data.data);
+  } finally {
+    loading.gifts = false;
+  }
+}
+
+async function loadRsvp() {
+  loading.rsvp = true;
+  try {
+    const response = await http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/rsvp${query({ ...rsvpFilters, pageSize: '100' })}`);
+    rsvpRows.value = recordsOf(response.data.data);
+  } finally {
+    loading.rsvp = false;
+  }
+}
+
+async function loadRsvpStats() {
+  if (!rsvpFilters.banquetId) {
+    return;
+  }
+  const response = await http.get<ApiResponse<RsvpStats>>(`/admin/rsvp/stats?banquetId=${encodeURIComponent(rsvpFilters.banquetId)}`);
+  rsvpStats.value = response.data.data;
+}
+
+async function loadFavorContacts() {
+  loading.favor = true;
+  try {
+    const response = await http.get<ApiResponse<Record<string, unknown>[]>>(`/admin/favor/contacts${query({ keyword: favorKeyword.value })}`);
+    favorContacts.value = response.data.data || [];
+  } finally {
+    loading.favor = false;
+  }
+}
+
+async function loadAll() {
+  await Promise.all([loadGifts(), loadRsvp(), loadFavorContacts()]);
+}
+
+function resetGiftFilters() {
+  giftFilters.banquetId = String(route.query.banquetId || '');
+  giftFilters.source = '';
+  giftFilters.keyword = '';
+  loadGifts();
+}
+
+function resetRsvpFilters() {
+  rsvpFilters.banquetId = String(route.query.banquetId || '');
+  rsvpFilters.status = '';
+  rsvpFilters.keyword = '';
+  rsvpStats.value = null;
+  loadRsvp();
+}
+
+function resetFavorFilters() {
+  favorKeyword.value = '';
+  favorExportBanquetId.value = String(route.query.banquetId || '');
+  loadFavorContacts();
+}
+
+async function downloadExport(kind: 'gifts' | 'rsvp' | 'favor', format: 'csv' | 'xlsx', banquetId: string) {
+  if (!banquetId) {
+    ElMessage.warning('请先填写宴席 ID');
+    return;
+  }
+  const response = await http.get(`/admin/exports/banquets/${encodeURIComponent(banquetId)}/${kind}.${format}`, {
+    responseType: 'blob'
+  });
+  const contentDisposition = String(response.headers['content-disposition'] || '');
+  const matched = contentDisposition.match(/filename="?([^"]+)"?/i);
+  const filename = matched?.[1] || `banquet-${banquetId}-${kind}.${format}`;
+  const url = URL.createObjectURL(response.data as Blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+  ElMessage.success('导出文件已生成');
+}
+
+function openOfflineGift() {
+  offlineGiftForm.banquetId = giftFilters.banquetId;
+  offlineGiftForm.guestName = '';
+  offlineGiftForm.amount = 100;
+  offlineGiftForm.blessing = '';
+  offlineGiftVisible.value = true;
+}
+
+async function submitOfflineGift() {
+  if (!offlineGiftForm.banquetId || !offlineGiftForm.guestName) {
+    ElMessage.warning('请填写宴席 ID 和来宾姓名');
+    return;
+  }
+  if (!Number(offlineGiftForm.banquetId) || Number(offlineGiftForm.banquetId) <= 0) {
+    ElMessage.warning('请输入有效宴席 ID');
+    return;
+  }
+  if (!Number(offlineGiftForm.amount) || Number(offlineGiftForm.amount) <= 0) {
+    ElMessage.warning('请输入有效金额');
+    return;
+  }
+  await http.post('/admin/gifts/offline', {
+    banquetId: Number(offlineGiftForm.banquetId),
+    guestName: offlineGiftForm.guestName,
+    amount: offlineGiftForm.amount,
+    blessing: offlineGiftForm.blessing
+  });
+  ElMessage.success('现金记礼已保存');
+  offlineGiftVisible.value = false;
+  await Promise.all([loadGifts(), loadFavorContacts()]);
+}
+
+function openFavorManual() {
+  favorForm.contactName = '';
+  favorForm.phone = '';
+  favorForm.direction = 'RECEIVED';
+  favorForm.banquetId = '';
+  favorForm.amount = 100;
+  favorForm.note = '';
+  favorManualVisible.value = true;
+}
+
+async function submitFavorManual() {
+  if (!favorForm.contactName) {
+    ElMessage.warning('请填写联系人');
+    return;
+  }
+  if (!Number(favorForm.amount) || Number(favorForm.amount) <= 0) {
+    ElMessage.warning('请输入有效金额');
+    return;
+  }
+  if (favorForm.banquetId && (!Number(favorForm.banquetId) || Number(favorForm.banquetId) <= 0)) {
+    ElMessage.warning('请输入有效宴席 ID');
+    return;
+  }
+  await http.post('/admin/favor/manual', {
+    contactName: favorForm.contactName,
+    phone: favorForm.phone || undefined,
+    banquetId: favorForm.banquetId ? Number(favorForm.banquetId) : undefined,
+    direction: favorForm.direction,
+    amount: favorForm.amount,
+    note: favorForm.note
+  });
+  ElMessage.success('人情补录已保存');
+  favorManualVisible.value = false;
+  await loadFavorContacts();
+}
+
+async function openFavorDetail(contactId: number) {
+  const response = await http.get<ApiResponse<FavorDetail>>(`/admin/favor/contacts/${contactId}`);
+  favorDetail.value = response.data.data;
+  favorDetailVisible.value = true;
+}
+
+async function goBanquet(banquetId: number) {
+  await router.push({ path: '/banquets', query: { banquetId } });
+}
+
+function toNumber(value: unknown): number {
+  return Number(value || 0);
+}
+
+function sum(values: unknown[]): number {
+  return values.reduce((total: number, value) => total + toNumber(value), 0);
+}
+
+function balanceText(value: unknown) {
+  const amount = toNumber(value);
+  if (amount > 0) {
+    return '对方累计送入更多';
+  }
+  if (amount < 0) {
+    return '我方累计送出更多';
+  }
+  return '双方往来持平';
+}
+
+function balanceClass(value: unknown) {
+  const amount = toNumber(value);
+  if (amount > 0) {
+    return 'positive';
+  }
+  if (amount < 0) {
+    return 'negative';
+  }
+  return 'neutral';
+}
+
+onMounted(loadAll);
+</script>
+
+<style scoped>
+.page {
+  min-height: 100vh;
+  padding: 24px;
+  background: #f6f7f9;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(136px, max-content));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.toolbar .el-input,
+.toolbar .el-select {
+  width: 150px;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.metric {
+  display: grid;
+  gap: 6px;
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.metric span,
+.metric small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.metric strong {
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.summary,
+.detail-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  color: #374151;
+}
+
+.detail-summary {
+  align-items: baseline;
+}
+
+.detail-summary h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.positive {
+  color: #b91c1c !important;
+}
+
+.negative {
+  color: #2563eb !important;
+}
+
+.neutral {
+  color: #64748b !important;
+}
+
+@media (max-width: 860px) {
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar .el-input,
+  .toolbar .el-select {
+    width: 100%;
+  }
+}
+</style>

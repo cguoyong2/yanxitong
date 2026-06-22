@@ -1,0 +1,20 @@
+{
+  "pages": [
+    { "path": "pages/home/index/index", "style": { "navigationBarTitleText": "宴席通" } },
+    { "path": "pages/banquet/create/index", "style": { "navigationBarTitleText": "创建宴席" } },
+    { "path": "pages/banquet/detail/index", "style": { "navigationBarTitleText": "宴席管理台" } },
+    { "path": "pages/invite/public/index", "style": { "navigationBarTitleText": "请柬" } },
+    { "path": "pages/invite/edit-basic/index", "style": { "navigationBarTitleText": "基础请柬编辑" } },
+    { "path": "pages/rsvp/submit/index", "style": { "navigationBarTitleText": "填写回执" } },
+    { "path": "pages/rsvp/stats/index", "style": { "navigationBarTitleText": "回执统计" } },
+    { "path": "pages/order/plan/index", "style": { "navigationBarTitleText": "选择版本" } },
+    { "path": "pages/device/select/index", "style": { "navigationBarTitleText": "设备选择" } },
+    { "path": "pages/gift/pay/index", "style": { "navigationBarTitleText": "线上随礼" } },
+    { "path": "pages/gift/success/index", "style": { "navigationBarTitleText": "支付成功" } },
+    { "path": "pages/gift/list/index", "style": { "navigationBarTitleText": "收礼记录" } },
+    { "path": "pages/gift/offline/index", "style": { "navigationBarTitleText": "线下记礼" } },
+    { "path": "pages/favor/index/index", "style": { "navigationBarTitleText": "人情账本" } },
+    { "path": "pages/favor/detail/index", "style": { "navigationBarTitleText": "人情详情" } }
+  ]
+}
+
