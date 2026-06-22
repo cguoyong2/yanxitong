@@ -1,0 +1,49 @@
+{
+  "description": "Redacted shape for a verified WeChat service-provider payment success callback.",
+  "request": {
+    "method": "POST",
+    "path": "/api/payments/callbacks/wechat-service-provider",
+    "headers": {
+      "Wechatpay-Timestamp": "1790000000",
+      "Wechatpay-Nonce": "REDACTED_NONCE",
+      "Wechatpay-Signature": "REDACTED_SIGNATURE",
+      "Wechatpay-Serial": "REDACTED_SERIAL",
+      "Wechatpay-Request-Id": "REDACTED_REQUEST_ID"
+    },
+    "rawBody": {
+      "id": "EVT_REDACTED_SUCCESS",
+      "create_time": "2026-06-22T12:00:00+08:00",
+      "event_type": "TRANSACTION.SUCCESS",
+      "resource_type": "encrypt-resource",
+      "resource": {
+        "algorithm": "AEAD_AES_256_GCM",
+        "ciphertext": "REDACTED_CIPHERTEXT",
+        "associated_data": "REDACTED_ASSOCIATED_DATA",
+        "nonce": "REDACTED_RESOURCE_NONCE"
+      }
+    }
+  },
+  "decryptedBodyShape": {
+    "sp_mchid": "SP_MERCHANT_ID_SHAPE",
+    "sub_mchid": "SUB_MERCHANT_ID_SHAPE",
+    "out_trade_no": "GP_TEST_ORDER_NO",
+    "transaction_id": "WX_TXN_REDACTED",
+    "trade_state": "SUCCESS",
+    "amount": {
+      "total": 1,
+      "payer_total": 1,
+      "currency": "CNY",
+      "payer_currency": "CNY"
+    },
+    "payer": {
+      "sp_openid": "REDACTED_OPENID",
+      "sub_openid": "REDACTED_OPENID"
+    }
+  },
+  "expectedParserResult": {
+    "verifyStatus": "VERIFIED",
+    "processStatus": "SUCCESS",
+    "success": true,
+    "paidAmount": "0.01"
+  }
+}

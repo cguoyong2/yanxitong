@@ -105,6 +105,7 @@ Remaining production validation:
 
 - verify prepay and callback with a real WeChat service-provider merchant/sub-merchant environment
 - collect one successful callback sample and one failed verification sample for regression fixtures without storing secrets
+- fixture capture and redaction rules are defined in `docs/wechat-callback-fixture-policy.md`
 
 ## Failure Handling
 
@@ -125,6 +126,12 @@ Callback regression tests now cover:
 - non-success provider trade state: `processStatus=IGNORED`
 - duplicate callback for an already paid order: `processStatus=IGNORED`
 - paid order with conflicting provider trade number: `processStatus=FAILED`
+
+Redacted fixture placeholders live under:
+
+```text
+server/src/test/resources/payment/wechat-callback-fixtures/
+```
 
 ## Idempotency And Consistency
 

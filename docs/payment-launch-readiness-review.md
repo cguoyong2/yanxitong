@@ -27,6 +27,7 @@ The payment flow is not production-ready until all of these are true:
 6. At least one real low-value payment has completed successfully.
 7. At least one callback replay has been verified in a non-production environment.
 8. A failed verification sample has been captured without storing secrets.
+9. Callback sample redaction follows `docs/wechat-callback-fixture-policy.md`.
 
 ## Admin Launch Gates
 
@@ -120,5 +121,6 @@ Admin suggested actions:
 ## Residual Risks
 
 - No real WeChat merchant callback has been verified in this environment yet.
+- Current callback fixtures are structural placeholders until real onboarding.
 - OpenID ownership must be confirmed with the actual app mode before production traffic.
 - Public callback reachability and TLS validity must be tested from outside the local network.

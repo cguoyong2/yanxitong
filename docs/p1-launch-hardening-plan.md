@@ -75,7 +75,7 @@ Tasks:
 3. Add callback fixture tests for invalid signature, duplicated event ID, amount mismatch and non-success trade state. Done in `PaymentCallbackServiceTests`.
 4. Keep Mock disabled by default outside local acceptance.
 5. Keep business services isolated from provider SDK classes.
-6. Prepare a staging callback sample folder after real WeChat onboarding.
+6. Prepare a staging callback sample folder after real WeChat onboarding. Done: placeholder fixtures live in `server/src/test/resources/payment/wechat-callback-fixtures/`; redaction policy is `docs/wechat-callback-fixture-policy.md`.
 
 Acceptance:
 

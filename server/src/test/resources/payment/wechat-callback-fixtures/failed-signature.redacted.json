@@ -1,0 +1,31 @@
+{
+  "description": "Redacted shape for a WeChat service-provider callback that fails signature verification.",
+  "request": {
+    "method": "POST",
+    "path": "/api/payments/callbacks/wechat-service-provider",
+    "headers": {
+      "Wechatpay-Timestamp": "1790000001",
+      "Wechatpay-Nonce": "REDACTED_NONCE",
+      "Wechatpay-Signature": "REDACTED_INVALID_SIGNATURE",
+      "Wechatpay-Serial": "REDACTED_SERIAL",
+      "Wechatpay-Request-Id": "REDACTED_REQUEST_ID"
+    },
+    "rawBody": {
+      "id": "EVT_REDACTED_FAILED_SIGNATURE",
+      "create_time": "2026-06-22T12:01:00+08:00",
+      "event_type": "TRANSACTION.SUCCESS",
+      "resource_type": "encrypt-resource",
+      "resource": {
+        "algorithm": "AEAD_AES_256_GCM",
+        "ciphertext": "REDACTED_CIPHERTEXT",
+        "associated_data": "REDACTED_ASSOCIATED_DATA",
+        "nonce": "REDACTED_RESOURCE_NONCE"
+      }
+    }
+  },
+  "expectedParserResult": {
+    "verifyStatus": "FAILED",
+    "processStatus": "FAILED",
+    "errorCategory": "SIGNATURE_OR_DECRYPTION_FAILURE"
+  }
+}
