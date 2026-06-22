@@ -1,5 +1,12 @@
 <template>
-  <view class="page" v-if="data" :class="templateClass" :style="pageStyle">
+  <view class="page state-page" v-if="pageState !== 'ready'">
+    <view class="state-card">
+      <text class="state-title">{{ stateTitle }}</text>
+      <text class="state-text">{{ stateText }}</text>
+      <button v-if="pageState === 'error'" @click="loadInvitation">重新加载</button>
+    </view>
+  </view>
+  <view class="page" v-else-if="data" :class="templateClass" :style="pageStyle">
     <view class="hero">
       <image v-if="coverUrl" class="cover" :src="coverUrl" mode="aspectFill" />
       <view v-else class="cover-fallback">
@@ -10,6 +17,9 @@
         <text class="title">{{ data.invitation.title }}</text>
         <text class="subtitle">{{ greeting }}</text>
       </view>
+    </view>
+    <view class="notice warning" v-if="data.templateAvailable === false">
+      <text>{{ data.templateMessage || '原请柬模板已不可用，当前使用基础样式展示' }}</text>
     </view>
     <view class="meta-grid">
       <view class="section" v-if="basicFields.hostName">
@@ -50,6 +60,9 @@
     <view class="share-line" v-if="data.shareUrl">
       <text>分享路径：{{ data.shareUrl }}</text>
     </view>
+    <view class="notice" v-if="disabledEntryMessages.length">
+      <text v-for="item in disabledEntryMessages" :key="item">{{ item }}</text>
+    </view>
     <view class="actions">
       <button type="primary" @click="openRsvp">填写回执</button>
       <button v-if="showGiftEntry" @click="openGift('ONLINE_GIFT')">线上随礼</button>
@@ -57,7 +70,6 @@
       <button v-if="showDeviceEntry" @click="openDevice">设备租赁</button>
     </view>
   </view>
-  <view class="page" v-else>加载中</view>
 </template>
 
 <script setup lang="ts">
@@ -116,9 +128,14 @@ interface PublicInvitation {
     onsiteGift?: string;
     device?: string;
   };
+  templateAvailable?: boolean;
+  templateMessage?: string;
 }
 
 const data = ref<PublicInvitation>();
+const slug = ref('');
+const pageState = ref<'loading' | 'ready' | 'error'>('loading');
+const errorMessage = ref('');
 const basicFields = computed(() => {
   if (data.value?.basicFields) {
     return data.value.basicFields;
@@ -140,6 +157,28 @@ const scheduleItems = computed(() => (basicFields.value.scheduleText || data.val
   .filter(Boolean));
 const showGiftEntry = computed(() => basicFields.value.showGiftEntry !== '0');
 const showDeviceEntry = computed(() => basicFields.value.showDeviceEntry !== '0');
+const disabledEntryMessages = computed(() => {
+  const messages: string[] = [];
+  if (!showGiftEntry.value) {
+    messages.push('随礼入口暂未开放');
+  }
+  if (!showDeviceEntry.value) {
+    messages.push('设备租赁入口暂未开放');
+  }
+  return messages;
+});
+const stateTitle = computed(() => {
+  if (pageState.value === 'loading') {
+    return '请柬加载中';
+  }
+  return '请柬无法打开';
+});
+const stateText = computed(() => {
+  if (pageState.value === 'loading') {
+    return '正在读取分享信息';
+  }
+  return errorMessage.value || '请确认分享链接是否完整';
+});
 const coverUrl = computed(() => data.value?.invitation.coverUrl || data.value?.template?.coverUrl || '');
 const templateClass = computed(() => {
   const style = data.value?.templatePresentation?.styleCode || '';
@@ -187,13 +226,29 @@ function openDevice() {
   uni.navigateTo({ url: data.value.actionUrls?.device || `/pages/device/select/index?banquetId=${data.value.banquet.id}` });
 }
 
+async function loadInvitation() {
+  if (!slug.value) {
+    pageState.value = 'error';
+    errorMessage.value = '分享链接缺少 slug 参数';
+    return;
+  }
+  pageState.value = 'loading';
+  errorMessage.value = '';
+  try {
+    data.value = await request<PublicInvitation>(`/invitations/public/${encodeURIComponent(slug.value)}`);
+    pageState.value = 'ready';
+  } catch (error) {
+    data.value = undefined;
+    pageState.value = 'error';
+    errorMessage.value = error instanceof Error ? error.message : '请柬不存在或已失效';
+  }
+}
+
 onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
-  const slug = current.options?.slug;
-  if (slug) {
-    data.value = await request<PublicInvitation>(`/invitations/public/${slug}`);
-  }
+  slug.value = current.options?.slug || '';
+  await loadInvitation();
 });
 </script>
 
@@ -203,6 +258,51 @@ onMounted(async () => {
   padding: 28rpx;
   background: #f8fafc;
   color: #111827;
+}
+
+.state-page {
+  display: grid;
+  place-items: center;
+}
+
+.state-card {
+  display: grid;
+  gap: 18rpx;
+  width: 100%;
+  padding: 48rpx 34rpx;
+  border: 1rpx solid #e5e7eb;
+  border-radius: 8rpx;
+  background: #fff;
+  text-align: center;
+}
+
+.state-title {
+  color: #111827;
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.state-text {
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.notice {
+  display: grid;
+  gap: 8rpx;
+  margin-top: 20rpx;
+  padding: 20rpx 24rpx;
+  border: 1rpx solid #dbeafe;
+  border-radius: 8rpx;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 24rpx;
+}
+
+.notice.warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
 }
 
 .hero {

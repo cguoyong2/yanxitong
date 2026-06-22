@@ -108,9 +108,9 @@ Current status: public invitation by slug, RSVP entry and gift entry exist.
 
 Tasks:
 
-1. Add explicit invalid-slug and disabled-template UI states in miniapp.
-2. Add share parameter documentation for `shareSlug`, `banquetId` and public action URLs.
-3. Add public-page smoke coverage for missing cover, unpublished template and disabled entry states.
+1. Done: add explicit invalid-slug and disabled-template UI states in miniapp.
+2. Done: add share parameter documentation for `shareSlug`, `banquetId` and public action URLs.
+3. Done: add public-page smoke coverage for missing cover, unpublished template and disabled entry states.
 4. Keep template rendering preset-based; do not start a full visual editor in this phase.
 
 Acceptance:
