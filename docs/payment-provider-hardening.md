@@ -62,6 +62,30 @@ The production template is `deploy/.env.production.example`. It is a template on
 
 Returns provider enablement and masked merchant/app/certificate fields. Callback secrets are never returned; the response only exposes whether a secret is configured.
 
+The provider status and launch-readiness endpoints are backed by `PaymentProviderReadinessService`, which is also used by payment order creation for real providers.
+
+## Create-Payment Readiness Gate
+
+`PaymentService` checks the default provider before creating a new external payment order.
+
+- `MOCK` remains available for local acceptance.
+- Real providers such as `WECHAT_SERVICE_PROVIDER` must pass provider readiness before adapter `createPayment` is called.
+- Missing provider configuration returns `503` with the missing field list.
+- No `payment_order` row is inserted when the real provider is not ready.
+
+Required WeChat service-provider fields for create-payment readiness:
+
+- `enabled`
+- `merchantId`
+- `appId`
+- `serviceProviderId`
+- `subMerchantId`
+- `certificateSerialNo`
+- `privateKeyPath`
+- `apiV3Key`
+- `notifyUrl`
+- certificate-mode-specific verification material when applicable
+
 ## Callback Verification
 
 Current local verification uses HMAC-SHA256 over the raw callback body and compares it with the submitted `signature` field.

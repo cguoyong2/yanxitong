@@ -66,12 +66,12 @@ Acceptance:
 
 ### P1-H3 Payment Production Readiness
 
-Current status: Provider/Adapter boundary exists; Mock is local; WeChat service-provider adapter and SDK boundary are prepared but still need real-account validation.
+Current status: Provider/Adapter boundary exists; Mock is local; WeChat service-provider adapter and SDK boundary are prepared but still need real-account validation. Real providers now pass through `PaymentProviderReadinessService` before order creation, so missing configuration fails before adapter calls or `payment_order` insertion.
 
 Tasks:
 
-1. Add a launch checklist endpoint or admin checklist view for missing payment provider fields.
-2. Add tests for provider-disabled and provider-misconfigured create-payment failures.
+1. Add a launch checklist endpoint or admin checklist view for missing payment provider fields. Done through `/api/admin/payments/launch-readiness` and the admin payment page.
+2. Add tests for provider-disabled and provider-misconfigured create-payment failures. Misconfigured create-payment is covered in `PaymentServiceTests`; provider-disabled adapter behavior remains covered in `WechatServiceProviderAdapterTests`.
 3. Add callback fixture tests for invalid signature, duplicated event ID, amount mismatch and non-success trade state.
 4. Keep Mock disabled by default outside local acceptance.
 5. Keep business services isolated from provider SDK classes.
