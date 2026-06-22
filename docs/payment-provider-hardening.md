@@ -62,6 +62,30 @@ The production template is `deploy/.env.production.example`. It is a template on
 
 Returns provider enablement and masked merchant/app/certificate fields. Callback secrets are never returned; the response only exposes whether a secret is configured.
 
+The provider status and launch-readiness endpoints are backed by `PaymentProviderReadinessService`, which is also used by payment order creation for real providers.
+
+## Create-Payment Readiness Gate
+
+`PaymentService` checks the default provider before creating a new external payment order.
+
+- `MOCK` remains available for local acceptance.
+- Real providers such as `WECHAT_SERVICE_PROVIDER` must pass provider readiness before adapter `createPayment` is called.
+- Missing provider configuration returns `503` with the missing field list.
+- No `payment_order` row is inserted when the real provider is not ready.
+
+Required WeChat service-provider fields for create-payment readiness:
+
+- `enabled`
+- `merchantId`
+- `appId`
+- `serviceProviderId`
+- `subMerchantId`
+- `certificateSerialNo`
+- `privateKeyPath`
+- `apiV3Key`
+- `notifyUrl`
+- certificate-mode-specific verification material when applicable
+
 ## Callback Verification
 
 Current local verification uses HMAC-SHA256 over the raw callback body and compares it with the submitted `signature` field.
@@ -81,6 +105,7 @@ Remaining production validation:
 
 - verify prepay and callback with a real WeChat service-provider merchant/sub-merchant environment
 - collect one successful callback sample and one failed verification sample for regression fixtures without storing secrets
+- fixture capture and redaction rules are defined in `docs/wechat-callback-fixture-policy.md`
 
 ## Failure Handling
 
@@ -92,6 +117,21 @@ Callback logs use:
 - `verifyStatus=VERIFIED`, `processStatus=IGNORED`: callback is not a successful payment event
 
 All failed callback paths remain visible in admin payment callback logs and can be manually resolved.
+
+Callback regression tests now cover:
+
+- verification/signature parse failure: `verifyStatus=FAILED`, `processStatus=FAILED`
+- duplicate successful provider event id: `processStatus=IGNORED`
+- amount mismatch: `processStatus=FAILED`
+- non-success provider trade state: `processStatus=IGNORED`
+- duplicate callback for an already paid order: `processStatus=IGNORED`
+- paid order with conflicting provider trade number: `processStatus=FAILED`
+
+Redacted fixture placeholders live under:
+
+```text
+server/src/test/resources/payment/wechat-callback-fixtures/
+```
 
 ## Idempotency And Consistency
 

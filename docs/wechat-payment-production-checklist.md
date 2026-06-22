@@ -57,6 +57,7 @@ Do not configure private keys, API v3 keys, or platform certificates through adm
 6. Confirm confirm-screen and cloud-speaker broadcast logs are generated from the same paid event path.
 7. Replay the same successful callback once in a non-production environment.
 8. Confirm the replayed callback is marked `IGNORED` and does not create a second `gift_record` or `favor_entry`.
+9. Create a redacted callback fixture from the successful sample following `docs/wechat-callback-fixture-policy.md`.
 
 ## Failure Checks
 
@@ -68,6 +69,7 @@ Do not configure private keys, API v3 keys, or platform certificates through adm
 6. Add a handling remark and mark the callback as `HANDLED` or `IGNORED`.
 7. Confirm the operation is recorded in `operation_log`.
 8. Use callback retry only after fixing the root cause, then confirm a new callback log is created.
+9. Create a redacted failed-verification fixture following `docs/wechat-callback-fixture-policy.md`.
 
 ## Idempotency Checks
 

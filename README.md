@@ -128,6 +128,10 @@ For the MVP release-readiness gates, see `docs/mvp-release-readiness.md`.
 
 For the recommended P1 roadmap, see `docs/p1-roadmap.md`.
 
+For the active P1 launch-hardening branch plan, see `docs/p1-launch-hardening-plan.md`.
+
+For miniapp dependency audit status, see `docs/miniapp-dependency-security-audit.md`.
+
 For P1-A payment production design, see `docs/p1-payment-production-design.md`.
 
 For production operation steps, see `docs/production-operations-runbook.md`.

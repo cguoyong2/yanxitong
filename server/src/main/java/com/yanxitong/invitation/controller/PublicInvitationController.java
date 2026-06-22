@@ -20,6 +20,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -64,16 +66,23 @@ public class PublicInvitationController {
             invitation = invitationService.requireByShareSlug(shareSlug);
         } catch (IllegalArgumentException ex) {
             publicRateLimitService.check(request, "invitation-public-missing", 12, Duration.ofMinutes(5), shareSlug);
-            throw ex;
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "请柬不存在或已失效");
         }
         invitationService.recordVisit(invitation, request);
         Banquet banquet = banquetMapper.selectById(invitation.banquetId);
+        if (banquet == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "宴席不存在或已失效");
+        }
         Theme theme = themeMapper.selectOne(new QueryWrapper<Theme>()
                 .eq("theme_code", banquet.themeCode)
                 .last("LIMIT 1"));
-        InvitationTemplate template = invitation.templateId == null
+        InvitationTemplate rawTemplate = invitation.templateId == null
                 ? null
                 : invitationTemplateMapper.selectById(invitation.templateId);
+        boolean templateAvailable = rawTemplate == null
+                ? invitation.templateId == null
+                : "ACTIVE".equals(rawTemplate.status);
+        InvitationTemplate template = templateAvailable ? rawTemplate : null;
         String shareUrl = "/pages/invite/public/index?slug=" + invitation.shareSlug;
         return ApiResponse.ok(new PublicInvitationResult(
                 invitation,
@@ -89,7 +98,9 @@ public class PublicInvitationController {
                         "onlineGift", "/pages/gift/pay/index?banquetId=" + banquet.id + "&entrySource=ONLINE_GIFT",
                         "onsiteGift", "/pages/gift/pay/index?banquetId=" + banquet.id + "&entrySource=ONSITE_QR",
                         "device", "/pages/device/select/index?banquetId=" + banquet.id
-                )
+                ),
+                templateAvailable,
+                templateAvailable ? "" : "原请柬模板已下架，当前使用基础样式展示"
         ));
     }
 

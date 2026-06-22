@@ -112,6 +112,49 @@ class PaymentCallbackServiceTests {
         verify(giftService, never()).fulfillPaidPaymentOrder(any());
     }
 
+    @Test
+    void invalidSignatureOrParseFailureIsRecordedAsVerificationFailure() {
+        PaymentOrderMapper orderMapper = mock(PaymentOrderMapper.class);
+        PaymentCallbackLogMapper callbackLogMapper = callbackLogMapper(5L);
+        GiftService giftService = mock(GiftService.class);
+        PaymentCallbackService service = serviceWithThrowingAdapter(
+                orderMapper,
+                callbackLogMapper,
+                giftService,
+                new IllegalArgumentException("mock callback signature verification failed")
+        );
+
+        PaymentCallbackLog log = service.handleProviderCallback(envelope());
+
+        assertEquals("FAILED", log.verifyStatus);
+        assertEquals("FAILED", log.processStatus);
+        assertEquals("mock callback signature verification failed", log.errorMessage);
+        verify(orderMapper, never()).selectOne(any(Wrapper.class));
+        verify(giftService, never()).fulfillPaidPaymentOrder(any());
+    }
+
+    @Test
+    void nonSuccessTradeStateIsIgnoredBeforeOrderLookup() {
+        PaymentOrderMapper orderMapper = mock(PaymentOrderMapper.class);
+        PaymentCallbackLogMapper callbackLogMapper = callbackLogMapper(6L);
+        when(callbackLogMapper.selectCount(any(Wrapper.class))).thenReturn(0L);
+        GiftService giftService = mock(GiftService.class);
+        PaymentCallbackService service = service(
+                orderMapper,
+                callbackLogMapper,
+                giftService,
+                callbackResult("GP001", "WX001", false, "event-6")
+        );
+
+        PaymentCallbackLog log = service.handleProviderCallback(envelope());
+
+        assertEquals("VERIFIED", log.verifyStatus);
+        assertEquals("IGNORED", log.processStatus);
+        assertEquals("callback is not a success payment event", log.errorMessage);
+        verify(orderMapper, never()).selectOne(any(Wrapper.class));
+        verify(giftService, never()).fulfillPaidPaymentOrder(any());
+    }
+
     private PaymentCallbackService service(
             PaymentOrderMapper orderMapper,
             PaymentCallbackLogMapper callbackLogMapper,
@@ -132,6 +175,38 @@ class PaymentCallbackServiceTests {
             @Override
             public PaymentCallbackResult verifyAndParseCallback(PaymentCallbackEnvelope envelope) {
                 return callbackResult;
+            }
+        };
+        return new PaymentCallbackService(
+                orderMapper,
+                callbackLogMapper,
+                new PaymentAdapterRegistry(List.of(adapter)),
+                giftService,
+                mock(OperationLogService.class),
+                new ObjectMapper()
+        );
+    }
+
+    private PaymentCallbackService serviceWithThrowingAdapter(
+            PaymentOrderMapper orderMapper,
+            PaymentCallbackLogMapper callbackLogMapper,
+            GiftService giftService,
+            RuntimeException failure
+    ) {
+        PaymentAdapter adapter = new PaymentAdapter() {
+            @Override
+            public PaymentProvider provider() {
+                return PaymentProvider.MOCK;
+            }
+
+            @Override
+            public PaymentCreateResult createPayment(PaymentCreateCommand command) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public PaymentCallbackResult verifyAndParseCallback(PaymentCallbackEnvelope envelope) {
+                throw failure;
             }
         };
         return new PaymentCallbackService(

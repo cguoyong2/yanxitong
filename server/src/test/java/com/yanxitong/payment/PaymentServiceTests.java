@@ -1,6 +1,7 @@
 package com.yanxitong.payment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -17,8 +18,10 @@ import com.yanxitong.tenant.TenantContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.server.ResponseStatusException;
 
 class PaymentServiceTests {
     @AfterEach
@@ -64,6 +67,34 @@ class PaymentServiceTests {
         verify(mapper).insert(any(PaymentOrder.class));
     }
 
+    @Test
+    void realProviderMissingConfigurationFailsBeforeInsertOrAdapterCall() {
+        TenantContext.setTenantId(1L);
+        PaymentOrderMapper mapper = mock(PaymentOrderMapper.class);
+        when(mapper.selectOne(any(Wrapper.class))).thenReturn(null);
+        CapturingAdapter adapter = new CapturingAdapter(PaymentProvider.WECHAT_SERVICE_PROVIDER);
+        PaymentProviderProperties properties = new PaymentProviderProperties();
+        properties.setDefaultProvider(PaymentProvider.WECHAT_SERVICE_PROVIDER);
+        PaymentProviderProperties.ProviderConfig config = new PaymentProviderProperties.ProviderConfig();
+        config.setEnabled(true);
+        config.setAppId("wx-app");
+        properties.setProviders(Map.of(PaymentProvider.WECHAT_SERVICE_PROVIDER, config));
+        PaymentService service = new PaymentService(
+                mapper,
+                new PaymentAdapterRegistry(List.of(adapter)),
+                new OrderNoGenerator(),
+                mock(OperationLogService.class),
+                properties,
+                new PaymentProviderReadinessService(properties)
+        );
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.createOrder(command("gift-request-3")));
+
+        assertEquals(503, ex.getStatusCode().value());
+        assertEquals(0, adapter.createCalls);
+        verify(mapper, never()).insert(any(PaymentOrder.class));
+    }
+
     private PaymentService service(PaymentOrderMapper mapper, PaymentAdapter adapter) {
         PaymentProviderProperties properties = new PaymentProviderProperties();
         properties.setDefaultProvider(PaymentProvider.MOCK);
@@ -72,7 +103,8 @@ class PaymentServiceTests {
                 new PaymentAdapterRegistry(List.of(adapter)),
                 new OrderNoGenerator(),
                 mock(OperationLogService.class),
-                properties
+                properties,
+                new PaymentProviderReadinessService(properties)
         );
     }
 
@@ -107,10 +139,19 @@ class PaymentServiceTests {
 
     private static class CapturingAdapter implements PaymentAdapter {
         private int createCalls;
+        private final PaymentProvider provider;
+
+        private CapturingAdapter() {
+            this(PaymentProvider.MOCK);
+        }
+
+        private CapturingAdapter(PaymentProvider provider) {
+            this.provider = provider;
+        }
 
         @Override
         public PaymentProvider provider() {
-            return PaymentProvider.MOCK;
+            return provider;
         }
 
         @Override

@@ -16,6 +16,8 @@ public record PublicInvitationResult(
         ResolvedCopywriting giftSuccessCopywriting,
         Map<String, String> basicFields,
         String shareUrl,
-        Map<String, String> actionUrls
+        Map<String, String> actionUrls,
+        Boolean templateAvailable,
+        String templateMessage
 ) {
 }

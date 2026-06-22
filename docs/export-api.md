@@ -10,7 +10,8 @@ P1 enables banquet business data export through admin-only CSV and native `.xlsx
 - Current implementation is synchronous CSV and XLSX download.
 - CSV is encoded as UTF-8 with BOM so spreadsheet software can open Chinese text directly.
 - XLSX uses native workbook files with Chinese sheet names, header styles, column widths and money/date formats.
-- Current row cap is 10,000 rows per export file.
+- Current row cap defaults to 10,000 rows per export file and is configurable through `config_item` key `export.max_rows`.
+- The service fetches one extra row to detect oversize exports and fails before file generation instead of silently truncating data.
 - Each successful export writes an `operation_log` record with module `EXPORT` and detail containing format, type and row count.
 - CSV and XLSX reuse the same entitlement check and export table query/mapping boundary.
 
@@ -82,6 +83,36 @@ If the banquet's current active plan does not include `EXCEL_EXPORT`, the API re
 
 Seed migration `V14__activate_export_rights.sql` activates `EXCEL_EXPORT` for the plans that already had the reserved P1 right.
 
+## Row Cap Behavior
+
+If an export result would exceed the configured row cap, the API returns `413` and no success operation log is written:
+
+```json
+{
+  "code": 413,
+  "message": "礼金记录超过导出上限10000行，请缩小范围后重试",
+  "data": null
+}
+```
+
+The message prefix varies by export type:
+
+- `礼金记录`
+- `回执记录`
+- `人情账本`
+
+The default row cap is seeded by migration `V20__seed_export_row_limit_config.sql`:
+
+```text
+config_key = export.max_rows
+config_value = 10000
+value_type = NUMBER
+```
+
 ## Admin UI
 
 The admin business page provides CSV and XLSX export buttons for gift records, RSVP records and favor entries. Gift and RSVP exports use the current banquet ID filter; favor exports use the dedicated export banquet ID input.
+
+Each export button shows a per-file loading state. Permission and row-cap failures are displayed as admin-facing error messages.
+
+The admin business page also shows that the export cap is maintained through `export.max_rows` in the configuration center.
