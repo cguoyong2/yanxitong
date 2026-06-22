@@ -2,6 +2,13 @@
 
 宴席通 MVP 多目录单仓库。
 
+## Repository
+
+- GitHub: `https://github.com/cguoyong2/yanxitong.git`
+- Main branch: `main`
+- Development branch: `develop`
+- MVP baseline tag: `v0.1.0-mvp-baseline`
+
 ## Modules
 
 - `server`: Java 17 + Spring Boot 3 + MyBatis-Plus + MySQL 8 + Redis
@@ -11,6 +18,14 @@
 - `docs`: product, architecture, API, database and change notes
 - `deploy`: Docker, Nginx, MySQL, Redis deployment assets
 
+## Prerequisites
+
+- JDK 17
+- Maven 3.9+
+- Node.js 20+
+- Docker Desktop or Docker Engine with Compose
+- MySQL and Redis are started by the local Docker Compose file unless you provide external services.
+
 ## MVP Order
 
 1. Engineering skeleton and configuration center
@@ -18,6 +33,30 @@
 3. Plan rights and lightweight device order flow
 4. RSVP, unified online gift payment, gift records and favor ledger
 5. Confirm screen and simulated cloud speaker logs
+
+## Fresh Clone Verification
+
+Use this path to verify a new machine or server can retrieve and build the repository:
+
+```bash
+git clone https://github.com/cguoyong2/yanxitong.git
+cd yanxitong
+git checkout main
+
+bash deploy/scripts/release-readiness.sh
+```
+
+If the WeChat miniapp toolchain is not required for a backend/admin-only check:
+
+```bash
+SKIP_MINIAPP_BUILD=1 bash deploy/scripts/release-readiness.sh
+```
+
+For a full local product loop after dependencies are installed:
+
+```bash
+bash deploy/scripts/local-acceptance.sh
+```
 
 ## Local Run
 
@@ -64,6 +103,18 @@ Default admin account:
 
 - username: `admin`
 - password: `admin123`
+
+## Production Environment Template
+
+Production-style environment variables are documented in `deploy/.env.production.example`.
+
+Create a real deployment env file from the template and replace every placeholder:
+
+```bash
+cp deploy/.env.production.example deploy/.env.production
+```
+
+Never commit `deploy/.env.production`. The tracked template keeps only placeholder values.
 
 See `docs/admin-auth.md` for the MVP authentication boundary.
 
