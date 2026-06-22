@@ -5,7 +5,7 @@
       <text class="status-title">当前版本：{{ entitlements.currentPlan.name }}</text>
       <text class="meta">状态：{{ entitlements.freeDefault ? '默认基础版' : '已开通' }}</text>
       <text class="meta">设备权益：{{ hasDeviceRight ? '已包含' : '未包含' }}</text>
-      <text class="meta">Excel 导出：{{ hasExportRight ? 'P1 预留' : '未包含' }}</text>
+      <text class="meta">Excel 导出：{{ hasExportRight ? '已包含' : '未包含' }}</text>
     </view>
     <view v-if="pendingOrder" class="status">
       <text class="status-title">待支付订单：{{ pendingOrder.orderNo }}</text>

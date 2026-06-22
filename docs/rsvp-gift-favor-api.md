@@ -66,7 +66,7 @@ MVP behavior:
 5. writes `favor_entry`
 6. writes simulated `broadcast_log`
 
-Real provider callback handling remains for payment adapter integration.
+Real provider callback handling is implemented behind the Payment Provider/Adapter boundary. Formal WeChat service-provider validation still requires real merchant onboarding and provider-side callback samples.
 
 The blessing submitted when creating the payment order is persisted on `payment_order.blessing` and copied into `gift_record.blessing` after payment success.
 

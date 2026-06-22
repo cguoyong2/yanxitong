@@ -404,24 +404,48 @@ Verification:
 
 ### P1-A3: WeChat Prepay
 
-- Implement `WechatServiceProviderAdapter.createPayment`.
-- Return `prepayId` and `payPayload`.
-- Save prepay fields to `payment_order`.
-- Add tests with mocked SDK/client boundary.
+Status: Done.
+
+Delivered:
+
+- Implemented `WechatServiceProviderAdapter.createPayment`.
+- Builds service-provider JSAPI `PrepayRequest` through the adapter layer.
+- Returns `prepayId` and client `payPayload`.
+- Saves prepay fields to `payment_order`.
+- Added mocked SDK/client boundary tests through `WechatServiceProviderAdapterTests`.
+
+Remaining production validation:
+
+- Verify prepay behavior with a real WeChat service-provider/sub-merchant account.
+- Confirm payer OpenID ownership for the selected miniapp app mode before production traffic.
 
 ### P1-A4: WeChat Callback
 
-- Add raw WeChat callback endpoint.
-- Implement SDK notification verification/decryption.
-- Populate enriched callback log fields.
-- Add replay/idempotency tests.
+Status: Done locally; pending real provider validation.
+
+Delivered:
+
+- Added raw WeChat service-provider callback endpoint.
+- Implemented SDK notification verification/decryption behind `WechatNotificationParserClient`.
+- Populates enriched callback log fields: request ID, headers, decrypted body, provider event ID, event type, resource type and provider serial number.
+- Added replay, duplicate event, amount mismatch, non-success state and provider trade number mismatch tests.
+- Added redacted fixture policy and placeholder fixture folder.
+
+Remaining production validation:
+
+- Capture one successful real callback sample and one failed-verification sample after formal WeChat onboarding.
+- Re-run duplicate callback replay against the provider-shaped sample in a non-production environment.
 
 ### P1-A5: Acceptance And Documentation
 
-- Update `payment-provider-hardening.md`.
-- Update deployment environment variables.
-- Add targeted smoke or integration script for provider-disabled/provider-mock behavior.
-- Run full `local-acceptance.sh`.
+Status: Done for local/pilot readiness; production merchant validation remains.
+
+Delivered:
+
+- Updated `payment-provider-hardening.md`, `payment-launch-readiness-review.md`, production deployment docs and WeChat checklist.
+- Added provider readiness and disabled/misconfigured provider tests.
+- Preserved `PAYMENT_DEFAULT_PROVIDER=MOCK` for local acceptance.
+- Full `local-acceptance.sh` and `release-readiness.sh` pass with the mock provider.
 
 ## Rollback Plan
 

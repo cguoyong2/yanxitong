@@ -16,7 +16,7 @@
       <text class="panel-title">版本与设备</text>
       <text class="meta">当前版本：{{ entitlements.currentPlan?.name || '基础版' }}</text>
       <text class="meta">设备租赁：{{ hasDeviceRight ? '已开通' : '未开通' }}</text>
-      <text class="meta">Excel 导出：{{ hasExportRight ? 'P1 预留' : '未包含' }}</text>
+      <text class="meta">Excel 导出：{{ hasExportRight ? '已包含' : '未包含' }}</text>
       <button size="mini" @click="openPlan">选择版本</button>
       <button size="mini" @click="openDevice">设备选择</button>
     </view>

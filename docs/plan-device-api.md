@@ -32,7 +32,7 @@ Behavior:
 
 Available only when `PAYMENT_MOCK_SUCCESS_ENABLED=true`.
 
-MVP uses this to close the version purchase loop before real payment integration.
+MVP uses this to close the version purchase loop in local acceptance. Real provider payment is routed through the shared payment adapter boundary when enabled and configured.
 It changes `pay_status` to `PAID`; paid plan orders become the banquet's active entitlement source.
 
 ### Banquet entitlements
@@ -97,7 +97,7 @@ Returns lightweight device orders for the banquet.
 
 Available only when `PAYMENT_MOCK_SUCCESS_ENABLED=true`.
 
-MVP uses this to close the device order loop before real payment integration.
+MVP uses this to close the device order loop in local acceptance. Real provider payment is routed through the shared payment adapter boundary when enabled and configured.
 It changes `pay_status` to `PAID` and `order_status` to `CONFIRMED`.
 
 ## Admin Orders
@@ -141,7 +141,7 @@ The admin order page can also call the mock-success endpoints above to handle MV
 
 ## MVP Boundary
 
-- No real payment integration yet.
+- Real payment provider code exists behind the Payment Provider/Adapter boundary, but formal merchant validation is still required before production use.
 - No complex stock scheduling.
 - No deposit.
 - No repair flow.

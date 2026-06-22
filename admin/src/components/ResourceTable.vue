@@ -80,7 +80,7 @@ async function remove(row: Record<string, unknown>) {
 }
 
 function showExportReserved() {
-  ElMessage.info('MVP 阶段暂不开放正式 Excel 导出，当前仅预留权益入口，P1 开发');
+  ElMessage.info('业务数据 CSV/XLSX 导出已在业务数据页提供，此处仅保留配置列表入口提示');
 }
 
 function statusType(value: unknown) {

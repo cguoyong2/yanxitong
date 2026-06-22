@@ -88,7 +88,7 @@ Required WeChat service-provider fields for create-payment readiness:
 
 ## Callback Verification
 
-Current local verification uses HMAC-SHA256 over the raw callback body and compares it with the submitted `signature` field.
+The mock provider still uses a local callback signature path for acceptance. The WeChat service-provider path uses the official WeChat Pay Java SDK notification parser behind `WechatNotificationParserClient`.
 
 For real WeChat service-provider integration:
 
