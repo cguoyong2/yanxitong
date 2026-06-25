@@ -109,6 +109,57 @@ Coverage:
 - document-level horizontal overflow
 - console errors and failed frontend/API requests
 
+## Production Database Backup
+
+`production-db-backup.sh` creates a compressed MySQL dump on the production server, plus a SHA-256 checksum and JSON manifest.
+
+```bash
+bash deploy/scripts/production-db-backup.sh
+```
+
+Environment variables:
+
+- `SSH_TARGET`: SSH target, default `root@115.29.229.188`
+- `MYSQL_CONTAINER`: MySQL container name, default `yanxitong-mysql`
+- `DATABASE`: database name, default `yanxitong`
+- `REMOTE_BACKUP_DIR`: remote backup directory, default `/opt/backups/yanxitong/mysql`
+- `BACKUP_BASENAME`: optional backup filename, default `<database>-<timestamp>.sql.gz`
+- `RETENTION_DAYS`: optional remote deletion window for old `.sql.gz` files and sidecars
+- `LOCAL_COPY_DIR`: optional local directory to copy the `.sql.gz`, `.sha256` and manifest files into
+
+Example with local copy:
+
+```bash
+LOCAL_COPY_DIR=/tmp/yanxitong-db-backups bash deploy/scripts/production-db-backup.sh
+```
+
+## Production Database Restore
+
+`production-db-restore.sh` restores a remote backup file into a target database. By default it restores into a new `yanxitong_restore_<timestamp>` database so production data is not overwritten.
+
+```bash
+BACKUP_FILE=/opt/backups/yanxitong/mysql/yanxitong-20260625181512.sql.gz bash deploy/scripts/production-db-restore.sh
+```
+
+Environment variables:
+
+- `SSH_TARGET`: SSH target, default `root@115.29.229.188`
+- `MYSQL_CONTAINER`: MySQL container name, default `yanxitong-mysql`
+- `BACKUP_FILE`: required remote `.sql.gz` path
+- `RESTORE_DATABASE`: restore target, default `yanxitong_restore_<timestamp>`
+- `DROP_TARGET_FIRST`: set to `1` to recreate the target database first
+- `CONFIRM_RESTORE`: required as `RESTORE_PRODUCTION_YANXITONG` when restoring directly into `yanxitong`
+
+Production overwrite example, only after an explicit rollback decision:
+
+```bash
+BACKUP_FILE=/opt/backups/yanxitong/mysql/<backup>.sql.gz \
+RESTORE_DATABASE=yanxitong \
+DROP_TARGET_FIRST=1 \
+CONFIRM_RESTORE=RESTORE_PRODUCTION_YANXITONG \
+bash deploy/scripts/production-db-restore.sh
+```
+
 ## Smoke Test
 
 `smoke-test.sh` verifies the MVP chain after the backend is running.

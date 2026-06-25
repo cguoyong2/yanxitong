@@ -301,14 +301,47 @@ These are needed for reconciliation and audit.
 
 ## Backup Notes
 
-Before formal pilot traffic, add an automated backup policy. Manual backup command pattern:
+Before formal pilot traffic, add an automated backup policy. The repository now includes repeatable backup and restore scripts.
+
+Create a production backup on the server:
 
 ```bash
-ssh root@115.29.229.188 'mkdir -p /opt/backups/yanxitong'
-ssh root@115.29.229.188 'docker exec yanxitong-mysql sh -c "mysqldump -uroot -p\"$MYSQL_ROOT_PASSWORD\" yanxitong" > /opt/backups/yanxitong/yanxitong-$(date +%Y%m%d%H%M%S).sql'
+bash deploy/scripts/production-db-backup.sh
 ```
 
-Verify restore on a separate environment before relying on backups.
+Create a backup and also copy it to a local directory:
+
+```bash
+LOCAL_COPY_DIR=/tmp/yanxitong-db-backups bash deploy/scripts/production-db-backup.sh
+```
+
+Verify a backup by restoring into a temporary database:
+
+```bash
+BACKUP_FILE=/opt/backups/yanxitong/mysql/<backup>.sql.gz \
+RESTORE_DATABASE=yanxitong_restore_verify_$(date +%Y%m%d%H%M%S) \
+DROP_TARGET_FIRST=1 \
+bash deploy/scripts/production-db-restore.sh
+```
+
+Only restore into the production `yanxitong` database after an explicit rollback decision:
+
+```bash
+BACKUP_FILE=/opt/backups/yanxitong/mysql/<backup>.sql.gz \
+RESTORE_DATABASE=yanxitong \
+DROP_TARGET_FIRST=1 \
+CONFIRM_RESTORE=RESTORE_PRODUCTION_YANXITONG \
+bash deploy/scripts/production-db-restore.sh
+```
+
+Verification run on 2026-06-25:
+
+- Backup generated: `/opt/backups/yanxitong/mysql/yanxitong-20260625181512.sql.gz`
+- Checksum verification: passed
+- Temporary restore database: restored 30 tables
+- Temporary restore database was removed after verification
+
+Verify restore on a separate environment before relying on backups for formal pilot traffic.
 
 ## Known Boundaries
 

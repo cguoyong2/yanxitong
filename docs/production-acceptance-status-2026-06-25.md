@@ -176,3 +176,15 @@ Validation run on 2026-06-25:
 The API acceptance script does not call mock-success endpoints. It creates a payment order when the current provider allows order creation, but does not simulate payment completion.
 
 The actual server deployment and rollback steps are recorded in `docs/production-server-runbook-yxt-yqej-cn.md`.
+
+Database backup and restore scripts have also been added:
+
+- `deploy/scripts/production-db-backup.sh`
+- `deploy/scripts/production-db-restore.sh`
+
+Validation run on 2026-06-25:
+
+- Backup generated at `/opt/backups/yanxitong/mysql/yanxitong-20260625181512.sql.gz`
+- SHA-256 verification passed
+- Restore verification recovered 30 tables into a temporary database
+- Temporary verification database was removed after the test
