@@ -188,3 +188,14 @@ Validation run on 2026-06-25:
 - SHA-256 verification passed
 - Restore verification recovered 30 tables into a temporary database
 - Temporary verification database was removed after the test
+
+Minimal production operations check has been added:
+
+- `deploy/scripts/production-ops-check.sh`
+
+Validation run on 2026-06-25:
+
+- Failures: `0`
+- Warnings: `1`
+- Warning reason: readiness `BLOCKED`, expected before real payment launch
+- Containers, disk, Nginx config, MySQL, Redis, latest backup checksum and recent logs passed

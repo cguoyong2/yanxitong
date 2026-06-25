@@ -160,6 +160,28 @@ CONFIRM_RESTORE=RESTORE_PRODUCTION_YANXITONG \
 bash deploy/scripts/production-db-restore.sh
 ```
 
+## Production Ops Check
+
+`production-ops-check.sh` runs a minimal production operations check across public endpoints, remote containers, disk usage, Nginx config, MySQL, Redis, latest backup and recent logs.
+
+```bash
+bash deploy/scripts/production-ops-check.sh
+```
+
+Environment variables:
+
+- `SSH_TARGET`: SSH target, default `root@115.29.229.188`
+- `BASE_URL`: public deployment base URL, default `https://yxt.yqej.cn`
+- `BACKUP_DIR`: remote backup directory, default `/opt/backups/yanxitong/mysql`
+- `MAX_BACKUP_AGE_HOURS`: latest backup age threshold, default `24`
+- `DISK_WARN_PERCENT`: disk warning threshold, default `80`
+- `DISK_FAIL_PERCENT`: disk failure threshold, default `90`
+- `LOG_SINCE`: Docker log lookback window, default `1h`
+- `LOG_ERROR_FAIL`: set to `1` to fail on backend ERROR/Exception logs
+- `REQUIRE_READINESS_READY`: set to `1` to fail unless `/api/health/readiness` is `READY`
+
+Current staging-before-payment mode should leave `REQUIRE_READINESS_READY=0`; readiness `BLOCKED` is reported as a warning until real WeChat payment is configured.
+
 ## Smoke Test
 
 `smoke-test.sh` verifies the MVP chain after the backend is running.

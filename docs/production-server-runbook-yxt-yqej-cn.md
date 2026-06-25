@@ -241,6 +241,43 @@ ADMIN_PASSWORD='<admin-password>' BASE_URL=https://yxt.yqej.cn SHARE_SLUG='<shar
 
 The production API acceptance script intentionally does not call mock-success endpoints.
 
+## Operations Check
+
+Run the minimal production operations check after deployments and before manual acceptance:
+
+```bash
+bash deploy/scripts/production-ops-check.sh
+```
+
+This checks:
+
+- public health, admin login, confirm-screen bind and edge health endpoints
+- readiness status
+- required Yanxitong containers
+- disk usage for `/`, `/opt` and `/var/lib/docker`
+- `yanxitong-web` and `global-edge-nginx` config syntax
+- MySQL and Redis ping
+- latest database backup age and checksum
+- recent backend `ERROR`/`Exception` lines
+- recent Nginx 5xx responses
+
+Current pre-payment-launch behavior:
+
+- `GET /api/health/readiness` is expected to be `BLOCKED`.
+- Leave `REQUIRE_READINESS_READY=0` during technical deployment validation.
+- Set `REQUIRE_READINESS_READY=1` only when formal real-payment launch gates must pass.
+
+Verification run on 2026-06-25:
+
+- Failures: `0`
+- Warnings: `1`
+- Warning reason: readiness `BLOCKED`, expected before real payment launch
+- Containers: all Yanxitong containers running
+- Disk usage: 17% on checked paths
+- Latest backup checksum: passed
+- Recent backend errors: 0 in last 1 hour
+- Recent Nginx 5xx: 0 in last 1 hour
+
 ## Readiness Gate
 
 Current expected readiness before real WeChat credentials are configured:
