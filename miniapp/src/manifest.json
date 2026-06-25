@@ -1,15 +1,14 @@
 {
   "name": "宴席通",
-  "appid": "",
+  "appid": "wx5cbc30150256d707",
   "description": "宴席通小程序 MVP",
   "versionName": "0.0.1",
   "versionCode": "1",
   "mp-weixin": {
-    "appid": "",
+    "appid": "wx5cbc30150256d707",
     "setting": {
-      "urlCheck": false
+      "urlCheck": true
     },
     "usingComponents": true
   }
 }
-

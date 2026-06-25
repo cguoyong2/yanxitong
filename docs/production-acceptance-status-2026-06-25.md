@@ -225,4 +225,6 @@ Miniapp production preparation has been added:
 - `miniapp/.env.example` documents the configurable API base URL.
 - Local production build verified `miniapp/dist/build/mp-weixin` contains `https://yxt.yqej.cn/api`.
 - Deployment notes are recorded in `docs/miniapp-production-deployment.md`.
-- Formal public release remains blocked until real WeChat payment is enabled and miniapp AppID/domain settings are completed.
+- Miniapp AppID `wx5cbc30150256d707` has been configured in `miniapp/src/manifest.json`.
+- WeChat request legal domain `https://yxt.yqej.cn` has been configured in the WeChat console by the owner.
+- Formal public release remains blocked until real WeChat payment is enabled.

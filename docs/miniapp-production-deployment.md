@@ -47,12 +47,14 @@ Import this directory into WeChat DevTools.
 
 Before preview, upload or experience-version testing:
 
-1. Fill the real miniapp AppID in `miniapp/src/manifest.json`.
+1. Confirm the miniapp AppID in `miniapp/src/manifest.json`: `wx5cbc30150256d707`.
 2. In WeChat Mini Program console, add request legal domain:
 
 ```text
 https://yxt.yqej.cn
 ```
+
+Current status: configured by owner.
 
 3. Confirm the server TLS certificate is valid for `yxt.yqej.cn`.
 4. Do not enable "ignore domain verification" for production or review builds.
@@ -93,7 +95,7 @@ Therefore miniapp mock-success buttons are hidden in production. Users may creat
 Before experience-version testing:
 
 - `cd miniapp && npm run build` passes.
-- `miniapp/src/manifest.json` contains the real AppID.
+- `miniapp/src/manifest.json` contains the real AppID `wx5cbc30150256d707`.
 - WeChat request legal domain includes `https://yxt.yqej.cn`.
 - `bash deploy/scripts/production-api-acceptance.sh` passes.
 - `bash deploy/scripts/production-browser-smoke.sh` passes.
