@@ -278,6 +278,57 @@ Verification run on 2026-06-25:
 - Recent backend errors: 0 in last 1 hour
 - Recent Nginx 5xx: 0 in last 1 hour
 
+## Scheduled Operations
+
+Server-side cron is installed for automatic backups and operations checks.
+
+Install or refresh schedules from the repository:
+
+```bash
+bash deploy/scripts/production-install-schedules.sh
+```
+
+Current installed crontab block:
+
+```cron
+# BEGIN YANXITONG OPS
+10 3 * * * OPS_DIR=/opt/apps/yanxitong/ops BACKUP_DIR=/opt/backups/yanxitong/mysql LOG_DIR=/opt/backups/yanxitong/ops-logs MYSQL_CONTAINER=yanxitong-mysql DATABASE=yanxitong BACKUP_RETENTION_DAYS=14 LOG_RETENTION_DAYS=14 /opt/apps/yanxitong/ops/run-backup-cron.sh
+*/30 * * * * OPS_DIR=/opt/apps/yanxitong/ops BACKUP_DIR=/opt/backups/yanxitong/mysql LOG_DIR=/opt/backups/yanxitong/ops-logs BASE_URL=https://yxt.yqej.cn MAX_BACKUP_AGE_HOURS=26 DISK_WARN_PERCENT=80 DISK_FAIL_PERCENT=90 LOG_SINCE=1h LOG_RETENTION_DAYS=14 /opt/apps/yanxitong/ops/run-ops-check-cron.sh
+# END YANXITONG OPS
+```
+
+Installed helper scripts:
+
+```text
+/opt/apps/yanxitong/ops/backup-mysql.sh
+/opt/apps/yanxitong/ops/ops-check.sh
+/opt/apps/yanxitong/ops/run-backup-cron.sh
+/opt/apps/yanxitong/ops/run-ops-check-cron.sh
+```
+
+Cron logs:
+
+```text
+/opt/backups/yanxitong/ops-logs/backup-mysql-YYYYMMDD.log
+/opt/backups/yanxitong/ops-logs/ops-check-YYYYMMDD.log
+```
+
+Manual validation commands:
+
+```bash
+ssh root@115.29.229.188 '/opt/apps/yanxitong/ops/run-ops-check-cron.sh'
+ssh root@115.29.229.188 '/opt/apps/yanxitong/ops/run-backup-cron.sh'
+ssh root@115.29.229.188 'crontab -l | sed -n "/BEGIN YANXITONG OPS/,/END YANXITONG OPS/p"'
+```
+
+Validation run on 2026-06-25:
+
+- Cron service: active
+- Ops check runner: passed with readiness warning only
+- Backup runner: generated `/opt/backups/yanxitong/mysql/yanxitong-20260625182542.sql.gz`
+- Log retention: 14 days
+- Backup retention: 14 days
+
 ## Readiness Gate
 
 Current expected readiness before real WeChat credentials are configured:

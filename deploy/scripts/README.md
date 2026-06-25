@@ -182,6 +182,32 @@ Environment variables:
 
 Current staging-before-payment mode should leave `REQUIRE_READINESS_READY=0`; readiness `BLOCKED` is reported as a warning until real WeChat payment is configured.
 
+## Production Schedule Install
+
+`production-install-schedules.sh` installs server-side cron jobs and helper scripts under `/opt/apps/yanxitong/ops`.
+
+```bash
+bash deploy/scripts/production-install-schedules.sh
+```
+
+Default cron schedule:
+
+- MySQL backup: daily at `03:10`
+- Ops check: every 30 minutes
+
+Environment variables:
+
+- `SSH_TARGET`: SSH target, default `root@115.29.229.188`
+- `OPS_DIR`: remote helper script directory, default `/opt/apps/yanxitong/ops`
+- `BACKUP_DIR`: remote backup directory, default `/opt/backups/yanxitong/mysql`
+- `LOG_DIR`: remote cron log directory, default `/opt/backups/yanxitong/ops-logs`
+- `BACKUP_CRON`: cron expression for database backup, default `10 3 * * *`
+- `OPS_CHECK_CRON`: cron expression for ops checks, default `*/30 * * * *`
+- `BACKUP_RETENTION_DAYS`: default `14`
+- `LOG_RETENTION_DAYS`: default `14`
+
+The installer replaces only the crontab block between `# BEGIN YANXITONG OPS` and `# END YANXITONG OPS`, preserving unrelated cron entries.
+
 ## Smoke Test
 
 `smoke-test.sh` verifies the MVP chain after the backend is running.

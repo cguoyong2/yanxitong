@@ -199,3 +199,12 @@ Validation run on 2026-06-25:
 - Warnings: `1`
 - Warning reason: readiness `BLOCKED`, expected before real payment launch
 - Containers, disk, Nginx config, MySQL, Redis, latest backup checksum and recent logs passed
+
+Automatic server-side schedules have been installed:
+
+- MySQL backup daily at `03:10`
+- Operations check every 30 minutes
+- Helper scripts installed under `/opt/apps/yanxitong/ops`
+- Logs stored under `/opt/backups/yanxitong/ops-logs`
+- Backup and log retention: 14 days
+- Manual validation generated `/opt/backups/yanxitong/mysql/yanxitong-20260625182542.sql.gz`
