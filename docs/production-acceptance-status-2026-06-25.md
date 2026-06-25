@@ -174,3 +174,5 @@ Validation run on 2026-06-25:
 | `production-browser-smoke.sh` | Passed | Admin pages, confirm-screen bind page and public invitation API all loaded with zero runtime failures. |
 
 The API acceptance script does not call mock-success endpoints. It creates a payment order when the current provider allows order creation, but does not simulate payment completion.
+
+The actual server deployment and rollback steps are recorded in `docs/production-server-runbook-yxt-yqej-cn.md`.
