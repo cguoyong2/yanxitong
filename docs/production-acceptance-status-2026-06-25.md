@@ -228,3 +228,34 @@ Miniapp production preparation has been added:
 - Miniapp AppID `wx5cbc30150256d707` has been configured in `miniapp/src/manifest.json`.
 - WeChat request legal domain `https://yxt.yqej.cn` has been configured in the WeChat console by the owner.
 - Formal public release remains blocked until real WeChat payment is enabled.
+
+## Non-Payment Pilot Validation
+
+Non-payment production validation was run on 2026-06-25 after the miniapp AppID and request legal domain were configured.
+
+API flow result: passed.
+
+- Health and readiness endpoints responded.
+- Readiness remains `BLOCKED`, as expected before real payment launch.
+- Admin token access to config APIs is valid.
+- Created banquet `4` and invitation `4`.
+- Public invitation share slug: `6ac6130046eb4cc6`.
+- RSVP submit and RSVP stats passed.
+- Offline cash gift record and gift summary passed.
+- Confirm-screen bind code `NP-CS-20260625185704` was bound successfully.
+- Admin gift, RSVP and operation-log readback passed.
+
+Browser smoke result: passed.
+
+- Admin dashboard, config, event types, themes, templates, devices, banquets, business, broadcast logs and operation logs loaded.
+- Confirm-screen bind page loaded.
+- Public invitation API for share slug `6ac6130046eb4cc6` returned `200`.
+- Browser smoke failures: `0`.
+
+Miniapp build result: passed.
+
+- `npm run build` under `miniapp` completed.
+- `miniapp/dist/build/mp-weixin/project.config.json` contains AppID `wx5cbc30150256d707`.
+- `miniapp/dist/build/mp-weixin/api/client.js` contains `https://yxt.yqej.cn/api`.
+
+Scope note: online payment order creation currently returns an order under the configured mock provider, but no payment-success simulation was run and no real payment was completed. User-facing pilot testing should stay on banquet creation, invitation sharing, RSVP, offline gift recording, confirm-screen binding and admin review until the real WeChat payment provider is enabled.
