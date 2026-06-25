@@ -1,6 +1,10 @@
 <template>
   <view class="page">
     <text class="title">{{ pageTitle }}</text>
+    <view v-if="!paymentEntryEnabled" class="notice">
+      <text>线上随礼和现场扫码暂未开放，请先使用线下记礼流程。</text>
+    </view>
+    <template v-else>
     <text class="hint">{{ pageHint }}</text>
     <input v-model="form.guestName" class="input" placeholder="姓名" />
     <view class="quick-amounts">
@@ -30,12 +34,13 @@
       <view class="input">入口：{{ selectedSourceLabel }}</view>
     </picker>
     <button type="primary" :loading="submitting" @click="submit">{{ submitText }}</button>
+    </template>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { request } from '../../../api/client';
+import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 
 const sources = [
   { label: '线上随礼', value: 'ONLINE_GIFT' },
@@ -45,6 +50,7 @@ const selectedIndex = ref(0);
 const banquetId = ref('');
 const submitting = ref(false);
 const clientRequestId = ref('');
+const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const quickAmounts = [66, 88, 100, 188, 288, 520, 666, 888];
 const blessingTemplates = ['祝福满满，喜乐长久', '百年好合，万事顺意', '福寿安康，阖家欢乐', '学业有成，前程似锦'];
 const form = reactive({
@@ -55,6 +61,7 @@ const form = reactive({
 });
 const selectedSourceLabel = computed(() => sources[selectedIndex.value].label);
 const isOnsiteQr = computed(() => form.entrySource === 'ONSITE_QR');
+const paymentEntryEnabled = computed(() => features.value.mockPaymentEnabled);
 const pageTitle = computed(() => isOnsiteQr.value ? '现场扫码随礼' : '线上随礼');
 const pageHint = computed(() => isOnsiteQr.value
   ? '现场扫码与线上随礼共用同一支付能力，到账后会推送确认屏并模拟云喇叭播报。'
@@ -71,6 +78,10 @@ function selectAmount(amount: number) {
 }
 
 async function submit() {
+  if (!paymentEntryEnabled.value) {
+    uni.showToast({ title: '支付入口暂未开放', icon: 'none' });
+    return;
+  }
   if (!validate()) {
     return;
   }
@@ -109,7 +120,7 @@ function validate() {
   return true;
 }
 
-onMounted(() => {
+onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
   banquetId.value = current.options?.banquetId || '';
@@ -120,6 +131,7 @@ onMounted(() => {
   if (!form.blessing) {
     form.blessing = isOnsiteQr.value ? '现场祝福，万事顺遂' : '祝福满满，喜乐长久';
   }
+  features.value = await loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false }));
 });
 </script>
 
@@ -133,4 +145,5 @@ onMounted(() => {
 .quick-amounts button, .blessing-list button { margin: 0; border: 1px solid #e5e7eb; background: #fff; }
 .quick-amounts button.active { border-color: #b91c1c; color: #b91c1c; }
 .blessing-list { grid-template-columns: repeat(2, 1fr); }
+.notice { margin-bottom: 20rpx; padding: 20rpx; border: 1px solid #fed7aa; border-radius: 8rpx; background: #fff7ed; color: #9a3412; line-height: 1.6; }
 </style>

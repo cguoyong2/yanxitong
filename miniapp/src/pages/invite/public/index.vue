@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { request } from '../../../api/client';
+import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 
 interface PublicInvitation {
   invitation: {
@@ -133,6 +133,7 @@ interface PublicInvitation {
 }
 
 const data = ref<PublicInvitation>();
+const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const slug = ref('');
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
 const errorMessage = ref('');
@@ -155,7 +156,7 @@ const scheduleItems = computed(() => (basicFields.value.scheduleText || data.val
   .split(/\r?\n/)
   .map((item) => item.trim())
   .filter(Boolean));
-const showGiftEntry = computed(() => basicFields.value.showGiftEntry !== '0');
+const showGiftEntry = computed(() => basicFields.value.showGiftEntry !== '0' && features.value.mockPaymentEnabled);
 const showDeviceEntry = computed(() => basicFields.value.showDeviceEntry !== '0');
 const disabledEntryMessages = computed(() => {
   const messages: string[] = [];
@@ -235,7 +236,12 @@ async function loadInvitation() {
   pageState.value = 'loading';
   errorMessage.value = '';
   try {
-    data.value = await request<PublicInvitation>(`/invitations/public/${encodeURIComponent(slug.value)}`);
+    const [runtimeFeatures, invitation] = await Promise.all([
+      loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
+      request<PublicInvitation>(`/invitations/public/${encodeURIComponent(slug.value)}`)
+    ]);
+    features.value = runtimeFeatures;
+    data.value = invitation;
     pageState.value = 'ready';
   } catch (error) {
     data.value = undefined;

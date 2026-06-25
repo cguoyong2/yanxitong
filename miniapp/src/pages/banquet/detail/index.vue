@@ -23,8 +23,9 @@
     <view class="panel">
       <text class="panel-title">回执与收礼</text>
       <button size="mini" @click="openRsvpStats">回执统计</button>
-      <button size="mini" @click="openGiftPay('ONLINE_GIFT')">线上随礼</button>
-      <button size="mini" @click="openGiftPay('ONSITE_QR')">现场扫码</button>
+      <text v-if="!paymentEntryEnabled" class="meta">线上随礼和现场扫码暂未开放</text>
+      <button v-if="paymentEntryEnabled" size="mini" @click="openGiftPay('ONLINE_GIFT')">线上随礼</button>
+      <button v-if="paymentEntryEnabled" size="mini" @click="openGiftPay('ONSITE_QR')">现场扫码</button>
       <button size="mini" @click="openOfflineGift">线下记礼</button>
       <button size="mini" @click="openGiftList">收礼记录</button>
       <button size="mini" @click="openFavor">人情账本</button>
@@ -39,7 +40,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { request } from '../../../api/client';
+import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 
 interface BanquetDetail {
   banquet: {
@@ -67,19 +68,26 @@ interface Entitlements {
 }
 
 const detail = ref<BanquetDetail>();
+const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
 const hasDeviceRight = computed(() => Boolean(entitlements.rightValues.DEVICE_RENTAL));
 const hasExportRight = computed(() => Boolean(entitlements.rightValues.EXCEL_EXPORT));
+const paymentEntryEnabled = computed(() => features.value.mockPaymentEnabled);
 const invitationShareUrl = computed(() => {
   const slug = detail.value?.invitation?.shareSlug;
   return slug ? `/pages/invite/public/index?slug=${slug}` : '-';
 });
 
 async function load(id: string) {
-  detail.value = await request<BanquetDetail>(`/banquets/${id}`);
-  const result = await request<Entitlements>(`/plans/banquets/${id}/entitlements`);
+  const [runtimeFeatures, banquetDetail, result] = await Promise.all([
+    loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
+    request<BanquetDetail>(`/banquets/${id}`),
+    request<Entitlements>(`/plans/banquets/${id}/entitlements`)
+  ]);
+  features.value = runtimeFeatures;
+  detail.value = banquetDetail;
   entitlements.currentPlan = result.currentPlan;
   entitlements.rightValues = result.rightValues || {};
 }
