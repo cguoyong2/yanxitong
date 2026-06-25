@@ -208,3 +208,13 @@ Automatic server-side schedules have been installed:
 - Logs stored under `/opt/backups/yanxitong/ops-logs`
 - Backup and log retention: 14 days
 - Manual validation generated `/opt/backups/yanxitong/mysql/yanxitong-20260625182542.sql.gz`
+
+Pilot security hardening has been applied:
+
+- Edge security headers enabled, including HSTS and CSP
+- Edge rate limits enabled for public invitation, RSVP, gift order, offline gift and login
+- Backup directories restricted to `700 root:root`
+- Yanxitong containers are not directly published to public host ports
+- `production-security-check.sh` passed with one unrelated shared-server port warning
+
+Details are recorded in `docs/production-security-hardening-2026-06-25.md`.

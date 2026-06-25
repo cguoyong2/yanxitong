@@ -278,6 +278,30 @@ Verification run on 2026-06-25:
 - Recent backend errors: 0 in last 1 hour
 - Recent Nginx 5xx: 0 in last 1 hour
 
+## Security Check
+
+Run the pilot security baseline check:
+
+```bash
+bash deploy/scripts/production-security-check.sh
+```
+
+Current applied hardening:
+
+- Edge security headers, including HSTS and CSP.
+- Edge rate limits for public invitation, RSVP, gift payment order, offline gift and admin login.
+- Backup and cron log directories restricted to `700 root:root`.
+- Yanxitong app/data containers have no direct public host ports.
+
+Validation run on 2026-06-25:
+
+- Failures: `0`
+- Warning: unrelated shared-server ports `19031/19032` are public.
+- `production-browser-smoke.sh` passed after CSP/security headers.
+- `production-api-acceptance.sh` passed after edge hardening.
+
+Detailed notes are recorded in `docs/production-security-hardening-2026-06-25.md`.
+
 ## Scheduled Operations
 
 Server-side cron is installed for automatic backups and operations checks.

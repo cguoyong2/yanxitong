@@ -182,6 +182,30 @@ Environment variables:
 
 Current staging-before-payment mode should leave `REQUIRE_READINESS_READY=0`; readiness `BLOCKED` is reported as a warning until real WeChat payment is configured.
 
+## Production Security Check
+
+`production-security-check.sh` verifies the current pilot security baseline.
+
+```bash
+bash deploy/scripts/production-security-check.sh
+```
+
+Environment variables:
+
+- `SSH_TARGET`: SSH target, default `root@115.29.229.188`
+- `BASE_URL`: public deployment base URL, default `https://yxt.yqej.cn`
+- `BACKUP_ROOT`: remote backup root, default `/opt/backups/yanxitong`
+- `EDGE_CONF`: remote edge config path, default `/opt/apps/_edge/conf.d/yanxitong.conf`
+
+Coverage:
+
+- HTTPS security headers
+- public 80/443 listeners
+- no direct public Yanxitong app/data container ports
+- edge rate-limit and security header config tokens
+- restricted backup directory permissions
+- edge Nginx syntax
+
 ## Production Schedule Install
 
 `production-install-schedules.sh` installs server-side cron jobs and helper scripts under `/opt/apps/yanxitong/ops`.
