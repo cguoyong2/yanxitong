@@ -218,3 +218,11 @@ Pilot security hardening has been applied:
 - `production-security-check.sh` passed with one unrelated shared-server port warning
 
 Details are recorded in `docs/production-security-hardening-2026-06-25.md`.
+
+Miniapp production preparation has been added:
+
+- `miniapp/src/api/client.ts` now reads `VITE_API_BASE_URL`.
+- `miniapp/.env.example` documents the configurable API base URL.
+- Local production build verified `miniapp/dist/build/mp-weixin` contains `https://yxt.yqej.cn/api`.
+- Deployment notes are recorded in `docs/miniapp-production-deployment.md`.
+- Formal public release remains blocked until real WeChat payment is enabled and miniapp AppID/domain settings are completed.
