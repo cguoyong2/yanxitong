@@ -153,7 +153,24 @@ Interpretation:
 
 Continue with a production hardening pass that does not require WeChat credentials:
 
-1. Add a repeatable production browser smoke script for admin and confirm-screen.
-2. Add a production acceptance script that verifies the already-tested API path without exposing secrets.
-3. Document the current deployment commands and rollback steps for the actual server path.
-4. Keep real payment provider enablement as a separate gated launch task.
+1. Document the current deployment commands and rollback steps for the actual server path.
+2. Add scheduled or manual runbook steps for the repeatable production smoke scripts.
+3. Keep real payment provider enablement as a separate gated launch task.
+
+## Repeatable Production Checks
+
+Two repeatable production checks have been added:
+
+```bash
+ADMIN_PASSWORD='<admin-password>' BASE_URL=https://yxt.yqej.cn bash deploy/scripts/production-api-acceptance.sh
+ADMIN_PASSWORD='<admin-password>' BASE_URL=https://yxt.yqej.cn SHARE_SLUG='<share-slug>' bash deploy/scripts/production-browser-smoke.sh
+```
+
+Validation run on 2026-06-25:
+
+| Script | Result | Evidence |
+| --- | --- | --- |
+| `production-api-acceptance.sh` | Passed | Created banquet `2`, invitation `2`, share slug `6e430af01957488d`, bind code `PROD-CS-20260625180503`, payment order `GP202606251005075449`. |
+| `production-browser-smoke.sh` | Passed | Admin pages, confirm-screen bind page and public invitation API all loaded with zero runtime failures. |
+
+The API acceptance script does not call mock-success endpoints. It creates a payment order when the current provider allows order creation, but does not simulate payment completion.
