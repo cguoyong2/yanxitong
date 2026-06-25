@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 export const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/confirm-screen/'),
   routes: [
     { path: '/', redirect: '/standby' },
     { path: '/bind', component: () => import('../views/bind/BindView.vue') },
@@ -10,4 +10,3 @@ export const router = createRouter({
     { path: '/offline', component: () => import('../views/offline/OfflineView.vue') }
   ]
 });
-
