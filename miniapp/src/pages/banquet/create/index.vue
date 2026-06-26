@@ -19,7 +19,7 @@
         :key="option.value"
         size="mini"
         :class="{ active: templateFilter === option.value }"
-        @click="templateFilter = option.value"
+        @tap="setTemplateFilter(option.value)"
       >
         {{ option.label }}
       </button>
@@ -30,7 +30,7 @@
         :key="item.id"
         class="template-card"
         :class="{ selected: form.templateId === item.id }"
-        @click="selectTemplate(item)"
+        @tap="selectTemplate(item)"
       >
         <view class="template-cover" :style="templateCoverStyle(item)">
           <image v-if="item.coverUrl" :src="item.coverUrl" mode="aspectFill" />
@@ -39,7 +39,7 @@
         <text class="template-name">{{ item.name }}</text>
         <text class="template-desc">{{ item.presentation?.headline || '诚挚邀请' }}</text>
         <text class="template-price">{{ templatePrice(item) }}</text>
-        <button size="mini" class="preview-btn" @click.stop="openTemplatePreview(item)">预览</button>
+        <button size="mini" class="preview-btn" @tap.stop="openTemplatePreview(item)">预览</button>
       </view>
     </scroll-view>
     <view v-if="selectedTemplate" class="selected-template">
@@ -49,9 +49,10 @@
     <input v-model="form.banquetTime" class="input" placeholder="宴席时间，例如 2026-10-01T18:00:00" />
     <input v-model="form.location" class="input" placeholder="宴席地点" />
     <textarea v-model="customGiftSuccess" class="textarea" placeholder="自定义收礼成功文案，可选" />
-    <button type="primary" :loading="submitting" @click="submit">创建</button>
-    <view v-if="previewTemplate" class="preview-mask" @click="closeTemplatePreview">
-      <view class="preview-panel" @click.stop>
+    <button class="quick-fill" @tap="fillDemoData">填入体验数据</button>
+    <button type="primary" :loading="submitting" @tap="submit">创建</button>
+    <view v-if="previewTemplate" class="preview-mask" @tap="closeTemplatePreview">
+      <view class="preview-panel" @tap.stop>
         <view class="preview-hero" :style="templateCoverStyle(previewTemplate)">
           <image v-if="previewTemplate.coverUrl" :src="previewTemplate.coverUrl" mode="aspectFill" />
           <text v-else>{{ previewTemplate.presentation?.fallbackCoverLabel || '宴' }}</text>
@@ -63,8 +64,8 @@
           <view class="preview-schedule">
             <text v-for="item in scheduleItems(previewTemplate)" :key="item">{{ item }}</text>
           </view>
-          <button type="primary" @click="choosePreviewTemplate">选择此模板</button>
-          <button @click="closeTemplatePreview">关闭</button>
+          <button type="primary" @tap="choosePreviewTemplate">选择此模板</button>
+          <button @tap="closeTemplatePreview">关闭</button>
         </view>
       </view>
     </view>
@@ -110,10 +111,10 @@ const previewTemplate = ref<InvitationTemplate | null>(null);
 const submitting = ref(false);
 const customGiftSuccess = ref('');
 const form = reactive({
-  name: '',
+  name: defaultBanquetName(),
   eventTypeCode: '',
-  banquetTime: '',
-  location: '',
+  banquetTime: '2026-10-01T18:00:00',
+  location: '体验宴会厅',
   templateId: undefined as number | undefined
 });
 
@@ -139,6 +140,27 @@ const filteredTemplates = computed(() => {
   }
   return rows;
 });
+
+function defaultBanquetName() {
+  const now = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+  return `体验宴席 ${stamp}`;
+}
+
+function fillDemoData() {
+  form.name = defaultBanquetName();
+  form.banquetTime = '2026-10-01T18:00:00';
+  form.location = '体验宴会厅';
+  if (!form.eventTypeCode && eventTypes.value.length > 0) {
+    form.eventTypeCode = eventTypes.value[0].eventTypeCode;
+  }
+  pickDefaultTemplate();
+  uni.showToast({ title: '已填入体验数据', icon: 'none' });
+}
+
+function setTemplateFilter(value: string) {
+  templateFilter.value = value;
+}
 
 function onTypeChange(event: { detail: { value: number | string } }) {
   selectedIndex.value = Number(event.detail.value);
@@ -213,12 +235,16 @@ function templateCoverStyle(item: InvitationTemplate) {
 }
 
 async function loadEventTypes() {
-  eventTypes.value = await request<EventType[]>('/meta/event-types');
-  if (eventTypes.value.length > 0) {
-    form.eventTypeCode = eventTypes.value[0].eventTypeCode;
+  try {
+    eventTypes.value = await request<EventType[]>('/meta/event-types');
+    if (eventTypes.value.length > 0) {
+      form.eventTypeCode = eventTypes.value[0].eventTypeCode;
+    }
+    templates.value = await request<InvitationTemplate[]>('/meta/invitation-templates');
+    pickDefaultTemplate();
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '加载创建配置失败', icon: 'none' });
   }
-  templates.value = await request<InvitationTemplate[]>('/meta/invitation-templates');
-  pickDefaultTemplate();
 }
 
 async function submit() {
@@ -239,6 +265,8 @@ async function submit() {
       }
     });
     uni.navigateTo({ url: `/pages/banquet/detail/index?id=${result.banquet.id}` });
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '创建失败', icon: 'none' });
   } finally {
     submitting.value = false;
   }
@@ -372,6 +400,13 @@ onMounted(loadEventTypes);
 .preview-btn {
   width: calc(100% - 28rpx);
   margin: 0 14rpx 14rpx;
+}
+
+.quick-fill {
+  margin: 0 0 20rpx;
+  border: 1px solid #e5e7eb;
+  color: #7c2d12;
+  background: #fff7ed;
 }
 
 .selected-template {
