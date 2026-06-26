@@ -1,13 +1,27 @@
 <template>
-  <view class="page">
+  <view class="page" :style="{ background: pageBackground }">
     <text class="title">创建宴席</text>
     <input v-model="form.name" class="input" placeholder="宴席名称" />
-    <picker :range="eventTypes" range-key="name" @change="onTypeChange">
-      <view class="input">{{ selectedTypeName }}</view>
-    </picker>
-    <view v-if="selectedType" class="theme-preview" :style="{ borderColor: selectedType.primaryColor || '#ddd' }">
+
+    <view class="field-title">宴席类型</view>
+    <view class="event-type-grid">
+      <view
+        v-for="(item, index) in eventTypes"
+        :key="item.eventTypeCode"
+        class="event-type-card"
+        :class="{ active: form.eventTypeCode === item.eventTypeCode }"
+        :style="eventTypeCardStyle(item)"
+        @tap="selectEventType(index)"
+      >
+        <text class="event-type-name">{{ item.name }}</text>
+        <text class="event-type-theme">{{ item.defaultThemeName }}</text>
+      </view>
+    </view>
+
+    <view v-if="selectedType" class="theme-preview" :style="themePreviewStyle">
       <view class="swatch" :style="{ background: selectedType.primaryColor || '#b91c1c' }"></view>
       <view>
+        <text class="selected-type-name">{{ selectedTypeName }}</text>
         <text class="theme-name">{{ selectedType.defaultThemeName }}</text>
         <text class="theme-copy">{{ selectedType.defaultCopywriting }}</text>
       </view>
@@ -121,6 +135,13 @@ const form = reactive({
 const selectedTypeName = computed(() => eventTypes.value[selectedIndex.value]?.name || '请选择宴席类型');
 const selectedType = computed(() => eventTypes.value[selectedIndex.value]);
 const selectedTemplate = computed(() => templates.value.find((item) => item.id === form.templateId));
+const activePrimaryColor = computed(() => selectedType.value?.primaryColor || '#b91c1c');
+const activeSecondaryColor = computed(() => selectedType.value?.secondaryColor || '#facc15');
+const pageBackground = computed(() => `linear-gradient(180deg, ${softColor(activePrimaryColor.value)} 0%, #fffaf4 220rpx, #fffaf4 100%)`);
+const themePreviewStyle = computed(() => ({
+  borderColor: activePrimaryColor.value,
+  background: `linear-gradient(135deg, ${softColor(activePrimaryColor.value)}, ${softColor(activeSecondaryColor.value)})`
+}));
 const filterOptions = computed(() => [
   { label: '推荐', value: 'RECOMMENDED' },
   { label: '免费', value: 'FREE' },
@@ -162,11 +183,31 @@ function setTemplateFilter(value: string) {
   templateFilter.value = value;
 }
 
-function onTypeChange(event: { detail: { value: number | string } }) {
-  selectedIndex.value = Number(event.detail.value);
+function selectEventType(index: number) {
+  selectedIndex.value = index;
   form.eventTypeCode = eventTypes.value[selectedIndex.value]?.eventTypeCode || '';
   templateFilter.value = 'RECOMMENDED';
   pickDefaultTemplate();
+}
+
+function eventTypeCardStyle(item: EventType) {
+  const selected = form.eventTypeCode === item.eventTypeCode;
+  return {
+    borderColor: selected ? item.primaryColor || '#b91c1c' : '#eadfd3',
+    background: selected
+      ? `linear-gradient(135deg, ${item.primaryColor || '#b91c1c'}, ${item.secondaryColor || '#facc15'})`
+      : '#fff'
+  };
+}
+
+function softColor(color: string) {
+  const hex = color.replace('#', '');
+  if (hex.length !== 6) return '#fff4ed';
+  const value = Number.parseInt(hex, 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red}, ${green}, ${blue}, 0.12)`;
 }
 
 function selectTemplate(item: InvitationTemplate) {
@@ -238,6 +279,7 @@ async function loadEventTypes() {
   try {
     eventTypes.value = await request<EventType[]>('/meta/event-types');
     if (eventTypes.value.length > 0) {
+      selectedIndex.value = 0;
       form.eventTypeCode = eventTypes.value[0].eventTypeCode;
     }
     templates.value = await request<InvitationTemplate[]>('/meta/invitation-templates');
@@ -277,6 +319,8 @@ onMounted(loadEventTypes);
 
 <style scoped>
 .page {
+  box-sizing: border-box;
+  min-height: 100vh;
   padding: 24rpx;
 }
 
@@ -315,6 +359,47 @@ onMounted(loadEventTypes);
   margin: 12rpx 0 14rpx;
   color: #111827;
   font-weight: 600;
+}
+
+.event-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14rpx;
+  margin-bottom: 20rpx;
+}
+
+.event-type-card {
+  box-sizing: border-box;
+  min-height: 104rpx;
+  padding: 18rpx;
+  border: 2rpx solid #eadfd3;
+  border-radius: 8rpx;
+  color: #172033;
+}
+
+.event-type-card.active {
+  color: #fff;
+  box-shadow: 0 12rpx 28rpx rgba(127, 43, 27, 0.18);
+}
+
+.event-type-card:active {
+  opacity: 0.78;
+}
+
+.event-type-name,
+.event-type-theme {
+  display: block;
+}
+
+.event-type-name {
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.event-type-theme {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  opacity: 0.88;
 }
 
 .template-tabs {
@@ -428,11 +513,19 @@ onMounted(loadEventTypes);
 }
 
 .theme-name,
-.theme-copy {
+.theme-copy,
+.selected-type-name {
   display: block;
 }
 
+.selected-type-name {
+  color: #111827;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
 .theme-name {
+  margin-top: 6rpx;
   font-weight: 600;
 }
 
