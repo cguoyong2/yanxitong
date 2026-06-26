@@ -1,14 +1,17 @@
 <template>
   <view class="page" :style="{ background: activeDesign.pageBg }">
     <view class="hero" :style="{ background: activeDesign.heroBg }">
+      <text class="hero-pattern hero-pattern-left">{{ activeDesign.mark }}</text>
+      <text class="hero-pattern hero-pattern-right">{{ activeDesign.mark }}</text>
       <view class="hero-head">
         <view>
-          <text class="eyebrow">{{ activeDesign.eyebrow }}</text>
-          <text class="hero-title">{{ selectedTypeName || '创建宴席' }}</text>
+          <text class="eyebrow">宴席通</text>
+          <text class="hero-title">创建宴席</text>
         </view>
         <text class="hero-mark">{{ activeDesign.mark }}</text>
       </view>
-      <text class="hero-copy">{{ activeDesign.copy }}</text>
+      <text class="hero-copy">{{ activeDesign.headline }}</text>
+      <text class="hero-subcopy">{{ activeDesign.copy }}</text>
       <view class="hero-meta">
         <text>{{ activeDesign.mood }}</text>
         <text>{{ selectedType?.defaultThemeName || '主题待选' }}</text>
@@ -17,7 +20,10 @@
 
     <view class="section type-section">
       <view class="section-head">
-        <text class="section-title">宴席类型</text>
+        <view class="section-title-wrap">
+          <text class="step-badge">1</text>
+          <text class="section-title">选择宴席类型</text>
+        </view>
         <text class="section-note">切换后同步调整主题、色彩和推荐模板</text>
       </view>
       <scroll-view scroll-x class="type-scroll" show-scrollbar="false">
@@ -31,28 +37,39 @@
         >
           <text class="type-mark">{{ designFor(item.eventTypeCode).mark }}</text>
           <text class="type-name">{{ item.name }}</text>
-          <text class="type-theme">{{ item.defaultThemeName }}</text>
+          <text v-if="form.eventTypeCode === item.eventTypeCode" class="type-check">✓</text>
         </view>
       </scroll-view>
+      <view class="theme-tip" :style="{ borderColor: activeDesign.lightBorder, background: activeDesign.lightBg }">
+        <text class="theme-tip-icon">◉</text>
+        <text>已根据宴席类型自动切换主题</text>
+        <text class="theme-tip-current">当前主题：{{ selectedType?.name }} · {{ selectedType?.defaultThemeName }}</text>
+      </view>
     </view>
 
     <view class="section form-section">
       <view class="section-head">
-        <text class="section-title">宴席信息</text>
+        <view class="section-title-wrap">
+          <text class="step-badge">2</text>
+          <text class="section-title">填写宴席信息</text>
+        </view>
         <button class="mini-action" size="mini" @tap="fillDemoData">体验数据</button>
       </view>
-      <view class="field">
-        <text class="field-label">宴席名称</text>
-        <input v-model="form.name" class="input" placeholder="请输入宴席名称" />
-      </view>
-      <view class="field-row">
-        <view class="field compact">
-          <text class="field-label">宴席时间</text>
-          <input v-model="form.banquetTime" class="input" placeholder="2026-10-01T18:00:00" />
+      <view class="form-card">
+        <view class="form-row">
+          <text class="form-icon">▤</text>
+          <text class="form-label">宴席名称</text>
+          <input v-model="form.name" class="form-input" placeholder="请输入宴席名称" />
         </view>
-        <view class="field compact">
-          <text class="field-label">宴席地点</text>
-          <input v-model="form.location" class="input" placeholder="宴会厅" />
+        <view class="form-row">
+          <text class="form-icon">◷</text>
+          <text class="form-label">宴席时间</text>
+          <input v-model="form.banquetTime" class="form-input" placeholder="2026-10-01T18:00:00" />
+        </view>
+        <view class="form-row">
+          <text class="form-icon">⌖</text>
+          <text class="form-label">宴席地点</text>
+          <input v-model="form.location" class="form-input" placeholder="请输入宴席地点" />
         </view>
       </view>
       <view class="theme-preview" :style="themePreviewStyle">
@@ -67,7 +84,10 @@
 
     <view class="section template-section">
       <view class="section-head">
-        <text class="section-title">请柬模板</text>
+        <view class="section-title-wrap">
+          <text class="step-badge">3</text>
+          <text class="section-title">选择请柬模板</text>
+        </view>
         <text class="section-note">{{ selectedTemplate ? selectedTemplate.name : '请选择模板' }}</text>
       </view>
       <view class="template-tabs">
@@ -111,7 +131,10 @@
 
     <view class="section copy-section">
       <view class="section-head">
-        <text class="section-title">收礼文案</text>
+        <view class="section-title-wrap">
+          <text class="step-badge">4</text>
+          <text class="section-title">收礼文案</text>
+        </view>
         <text class="section-note">可选</text>
       </view>
       <textarea v-model="customGiftSuccess" class="textarea" placeholder="自定义收礼成功文案，例如：感谢您的祝福，喜宴现场见。" />
@@ -177,84 +200,108 @@ interface InvitationTemplate {
 interface TypeDesign {
   mark: string;
   eyebrow: string;
+  headline: string;
   copy: string;
   mood: string;
   pageBg: string;
   heroBg: string;
   buttonBg: string;
   swatch: string;
+  lightBg: string;
+  lightBorder: string;
 }
 
 const typeDesigns: Record<string, TypeDesign> = {
   WEDDING: {
     mark: '囍',
     eyebrow: '红金婚宴',
-    copy: '用克制的红金氛围承接仪式感，适合婚礼请柬、回执与现场收礼。',
+    headline: '轻松办好每一场婚宴',
+    copy: '红金礼序 · 喜庆体面',
     mood: '喜庆 / 礼序 / 祝福',
-    pageBg: 'linear-gradient(180deg, #fff1ea 0%, #fffaf5 360rpx, #f8f1ea 100%)',
-    heroBg: 'linear-gradient(135deg, #9f1d1d 0%, #c7432d 48%, #e4b456 100%)',
+    pageBg: 'linear-gradient(180deg, #d91f1b 0%, #d91f1b 315rpx, #fff8ef 316rpx, #fffaf5 100%)',
+    heroBg: 'radial-gradient(circle at 78% 18%, rgba(255, 211, 120, 0.36), transparent 26%), linear-gradient(135deg, #d91f1b 0%, #b40f12 55%, #7e0b0b 100%)',
     buttonBg: 'linear-gradient(135deg, #a51f1f, #d45135)',
-    swatch: 'linear-gradient(135deg, #9f1d1d, #e4b456)'
+    swatch: 'linear-gradient(135deg, #9f1d1d, #e4b456)',
+    lightBg: '#fff1ea',
+    lightBorder: '#f3c6b7'
   },
   BIRTHDAY: {
     mark: '寿',
     eyebrow: '暖金寿宴',
-    copy: '深红与暖金降低喧闹感，突出长辈寿宴需要的稳重、体面与温情。',
+    headline: '福寿绵长，亲友同聚',
+    copy: '暖金贺寿 · 稳重温情',
     mood: '福寿 / 团圆 / 感恩',
-    pageBg: 'linear-gradient(180deg, #fff4e2 0%, #fffaf2 360rpx, #f6efe5 100%)',
-    heroBg: 'linear-gradient(135deg, #7f1d1d 0%, #a14b22 52%, #d7a84a 100%)',
+    pageBg: 'linear-gradient(180deg, #9a2c1d 0%, #9a2c1d 315rpx, #fff7ea 316rpx, #fffaf2 100%)',
+    heroBg: 'radial-gradient(circle at 78% 18%, rgba(255, 217, 142, 0.42), transparent 26%), linear-gradient(135deg, #8f1d1d 0%, #9b4b1e 58%, #d7a84a 100%)',
     buttonBg: 'linear-gradient(135deg, #7f1d1d, #b36b2c)',
-    swatch: 'linear-gradient(135deg, #7f1d1d, #d7a84a)'
+    swatch: 'linear-gradient(135deg, #7f1d1d, #d7a84a)',
+    lightBg: '#fff4e2',
+    lightBorder: '#efcc92'
   },
   BABY: {
     mark: '满',
     eyebrow: '满月暖礼',
-    copy: '柔和橙绿更轻盈，适合满月宴、宝宝宴等温暖家庭场景。',
+    headline: '满月之喜，温暖相聚',
+    copy: '橙绿暖礼 · 家庭温度',
     mood: '可爱 / 温暖 / 新生命',
-    pageBg: 'linear-gradient(180deg, #f0fdfa 0%, #fff7ed 340rpx, #f7f4ea 100%)',
-    heroBg: 'linear-gradient(135deg, #0f766e 0%, #f08a3c 58%, #ffd59e 100%)',
+    pageBg: 'linear-gradient(180deg, #0f766e 0%, #0f766e 315rpx, #fff7ed 316rpx, #f8fbf4 100%)',
+    heroBg: 'radial-gradient(circle at 78% 18%, rgba(255, 214, 158, 0.45), transparent 26%), linear-gradient(135deg, #0f766e 0%, #f08a3c 66%, #ffd59e 100%)',
     buttonBg: 'linear-gradient(135deg, #0f766e, #e8792e)',
-    swatch: 'linear-gradient(135deg, #0f766e, #f08a3c)'
+    swatch: 'linear-gradient(135deg, #0f766e, #f08a3c)',
+    lightBg: '#f0fdfa',
+    lightBorder: '#99d8ce'
   },
   HOUSEWARMING: {
     mark: '乔',
     eyebrow: '乔迁新居',
-    copy: '现代灰橙强调新居质感，不做传统红金，适合乔迁与家宴。',
+    headline: '新居落成，好运常伴',
+    copy: '现代灰橙 · 新居质感',
     mood: '新居 / 邻里 / 好兆头',
-    pageBg: 'linear-gradient(180deg, #f4f6f8 0%, #fff7ed 340rpx, #f3eee7 100%)',
-    heroBg: 'linear-gradient(135deg, #334155 0%, #c65f25 58%, #f4b65f 100%)',
+    pageBg: 'linear-gradient(180deg, #334155 0%, #334155 315rpx, #fff7ed 316rpx, #f4f6f8 100%)',
+    heroBg: 'radial-gradient(circle at 78% 18%, rgba(244, 182, 95, 0.42), transparent 26%), linear-gradient(135deg, #334155 0%, #c65f25 62%, #f4b65f 100%)',
     buttonBg: 'linear-gradient(135deg, #334155, #d56527)',
-    swatch: 'linear-gradient(135deg, #334155, #ea8a3a)'
+    swatch: 'linear-gradient(135deg, #334155, #ea8a3a)',
+    lightBg: '#fff7ed',
+    lightBorder: '#efc49d'
   },
   SCHOOL: {
     mark: '学',
     eyebrow: '升学答谢',
-    copy: '蓝金组合更清爽，突出成绩、答谢和成长仪式。',
+    headline: '金榜题名，答谢亲友',
+    copy: '蓝金书卷 · 荣誉成长',
     mood: '荣誉 / 成长 / 答谢',
-    pageBg: 'linear-gradient(180deg, #eef5ff 0%, #fffaf0 360rpx, #f2f5f9 100%)',
-    heroBg: 'linear-gradient(135deg, #1d4ed8 0%, #2776d8 55%, #f0b429 100%)',
+    pageBg: 'linear-gradient(180deg, #1d4ed8 0%, #1d4ed8 315rpx, #f4f8ff 316rpx, #fffaf0 100%)',
+    heroBg: 'radial-gradient(circle at 78% 18%, rgba(240, 180, 41, 0.46), transparent 26%), linear-gradient(135deg, #1d4ed8 0%, #2776d8 58%, #f0b429 100%)',
     buttonBg: 'linear-gradient(135deg, #1d4ed8, #2277c9)',
-    swatch: 'linear-gradient(135deg, #1d4ed8, #f0b429)'
+    swatch: 'linear-gradient(135deg, #1d4ed8, #f0b429)',
+    lightBg: '#eef5ff',
+    lightBorder: '#b8cdf7'
   },
   MEMORIAL: {
     mark: '忆',
     eyebrow: '素雅追思',
-    copy: '低饱和灰黑体系保持克制，让追思场景更安静、庄重。',
+    headline: '慎终追远，思念长存',
+    copy: '素雅追思 · 安静庄重',
     mood: '庄重 / 追忆 / 素雅',
-    pageBg: 'linear-gradient(180deg, #f3f4f6 0%, #fafafa 340rpx, #eeeeee 100%)',
-    heroBg: 'linear-gradient(135deg, #111827 0%, #374151 55%, #9ca3af 100%)',
+    pageBg: 'linear-gradient(180deg, #111827 0%, #111827 315rpx, #f5f5f5 316rpx, #eeeeee 100%)',
+    heroBg: 'radial-gradient(circle at 78% 18%, rgba(156, 163, 175, 0.38), transparent 26%), linear-gradient(135deg, #111827 0%, #374151 62%, #6b7280 100%)',
     buttonBg: 'linear-gradient(135deg, #111827, #4b5563)',
-    swatch: 'linear-gradient(135deg, #111827, #9ca3af)'
+    swatch: 'linear-gradient(135deg, #111827, #9ca3af)',
+    lightBg: '#f3f4f6',
+    lightBorder: '#c5c9cf'
   },
   OTHER: {
     mark: '宴',
     eyebrow: '通用宴席',
-    copy: '中性暖色适配答谢、聚会和其他宴请场景，信息清楚优先。',
+    headline: '办宴席，用宴席通',
+    copy: '通用暖金 · 清楚高效',
     mood: '通用 / 亲友 / 答谢',
-    pageBg: 'linear-gradient(180deg, #fff7ed 0%, #fffaf5 340rpx, #f5efe7 100%)',
-    heroBg: 'linear-gradient(135deg, #92400e 0%, #c27803 56%, #f5d287 100%)',
+    pageBg: 'linear-gradient(180deg, #92400e 0%, #92400e 315rpx, #fff7ed 316rpx, #fffaf5 100%)',
+    heroBg: 'radial-gradient(circle at 78% 18%, rgba(245, 210, 135, 0.46), transparent 26%), linear-gradient(135deg, #92400e 0%, #c27803 58%, #f5d287 100%)',
     buttonBg: 'linear-gradient(135deg, #92400e, #b7791f)',
-    swatch: 'linear-gradient(135deg, #92400e, #f5d287)'
+    swatch: 'linear-gradient(135deg, #92400e, #f5d287)',
+    lightBg: '#fff7ed',
+    lightBorder: '#efc78d'
   }
 };
 
@@ -454,30 +501,72 @@ onMounted(loadEventTypes);
 .page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 24rpx 24rpx 152rpx;
+  padding: 0 24rpx 152rpx;
   color: #172033;
 }
 
 .hero {
-  min-height: 270rpx;
-  padding: 34rpx 30rpx;
-  border-radius: 8rpx;
+  position: relative;
+  min-height: 360rpx;
+  margin: 0 -24rpx;
+  overflow: hidden;
+  padding: 52rpx 48rpx 74rpx;
   color: #fff;
-  box-shadow: 0 18rpx 42rpx rgba(66, 38, 24, 0.18);
+}
+
+.hero::after {
+  position: absolute;
+  right: -90rpx;
+  bottom: -112rpx;
+  width: 280rpx;
+  height: 280rpx;
+  border: 2rpx solid rgba(255, 232, 170, 0.32);
+  border-radius: 50%;
+  content: '';
+}
+
+.hero-pattern {
+  position: absolute;
+  color: rgba(255, 236, 182, 0.12);
+  font-size: 188rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hero-pattern-left {
+  left: 34rpx;
+  bottom: 34rpx;
+}
+
+.hero-pattern-right {
+  right: 50rpx;
+  top: 86rpx;
+  font-size: 126rpx;
 }
 
 .hero-head,
 .hero-meta,
 .section-head,
 .template-foot,
-.field-row {
+.field-row,
+.section-title-wrap,
+.form-row,
+.theme-tip {
   display: flex;
 }
 
 .hero-head,
 .section-head,
-.template-foot {
+.template-foot,
+.section-title-wrap,
+.form-row,
+.theme-tip {
   align-items: center;
+}
+
+.hero-head,
+.section-head,
+.template-foot {
   justify-content: space-between;
 }
 
@@ -503,16 +592,18 @@ onMounted(loadEventTypes);
 }
 
 .eyebrow {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 24rpx;
+  color: rgba(255, 238, 197, 0.86);
+  font-size: 28rpx;
   font-weight: 700;
 }
 
 .hero-title {
-  margin-top: 8rpx;
-  font-size: 50rpx;
+  margin-top: 26rpx;
+  color: #ffe9b5;
+  font-size: 62rpx;
   font-weight: 900;
   line-height: 1.16;
+  text-shadow: 0 6rpx 20rpx rgba(61, 7, 7, 0.28);
 }
 
 .hero-mark {
@@ -528,16 +619,25 @@ onMounted(loadEventTypes);
 }
 
 .hero-copy {
-  margin-top: 24rpx;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 26rpx;
+  margin-top: 18rpx;
+  color: #fff7df;
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 0;
   line-height: 1.62;
+}
+
+.hero-subcopy {
+  display: block;
+  margin-top: 8rpx;
+  color: rgba(255, 247, 223, 0.82);
+  font-size: 24rpx;
 }
 
 .hero-meta {
   gap: 12rpx;
   flex-wrap: wrap;
-  margin-top: 26rpx;
+  margin-top: 32rpx;
 }
 
 .hero-meta text {
@@ -549,11 +649,16 @@ onMounted(loadEventTypes);
 }
 
 .section {
-  margin-top: 22rpx;
+  margin-top: 20rpx;
   padding: 24rpx;
   border: 1rpx solid rgba(120, 81, 48, 0.12);
   border-radius: 8rpx;
-  background: rgba(255, 253, 250, 0.94);
+  background: rgba(255, 253, 250, 0.98);
+  box-shadow: 0 14rpx 34rpx rgba(81, 50, 29, 0.08);
+}
+
+.type-section {
+  margin-top: -44rpx;
 }
 
 .section-head {
@@ -561,8 +666,25 @@ onMounted(loadEventTypes);
   margin-bottom: 18rpx;
 }
 
-.section-title {
+.section-title-wrap {
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.step-badge {
+  display: grid;
+  width: 34rpx;
+  height: 34rpx;
   flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8rpx;
+  background: linear-gradient(135deg, #c51f1f, #8f1414);
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
+.section-title {
   color: #172033;
   font-size: 30rpx;
   font-weight: 900;
@@ -578,24 +700,22 @@ onMounted(loadEventTypes);
   white-space: nowrap;
 }
 
-.type-section {
-  padding-right: 0;
-}
-
 .type-scroll {
   width: 100%;
   white-space: nowrap;
 }
 
 .type-chip {
+  position: relative;
   box-sizing: border-box;
   display: inline-block;
-  width: 214rpx;
-  min-height: 154rpx;
+  width: 126rpx;
+  min-height: 132rpx;
   margin-right: 16rpx;
-  padding: 20rpx;
-  border: 2rpx solid #eee1d5;
+  padding: 16rpx 12rpx;
+  border: 2rpx solid #ead7be;
   border-radius: 8rpx;
+  text-align: center;
   vertical-align: top;
 }
 
@@ -612,30 +732,90 @@ onMounted(loadEventTypes);
 }
 
 .type-mark {
-  font-size: 34rpx;
+  font-size: 32rpx;
   font-weight: 900;
   line-height: 1;
 }
 
 .type-name {
-  margin-top: 16rpx;
-  font-size: 28rpx;
+  margin-top: 14rpx;
+  font-size: 25rpx;
   font-weight: 900;
 }
 
-.type-theme {
-  margin-top: 8rpx;
+.type-check {
+  position: absolute;
+  right: -8rpx;
+  bottom: -8rpx;
+  display: grid;
+  width: 34rpx;
+  height: 34rpx;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff4d8;
+  color: #9f1d1d;
   font-size: 22rpx;
-  opacity: 0.78;
+  font-weight: 900;
 }
 
-.field {
-  margin-bottom: 20rpx;
+.theme-tip {
+  gap: 12rpx;
+  margin: 24rpx 24rpx 0 0;
+  padding: 18rpx;
+  border: 1rpx solid #f3c6b7;
+  border-radius: 8rpx;
+  color: #9f1d1d;
+  font-size: 23rpx;
 }
 
-.field.compact {
-  flex: 1;
+.theme-tip-icon,
+.theme-tip-current {
+  flex: 0 0 auto;
+}
+
+.theme-tip-current {
+  margin-left: auto;
+}
+
+.form-card {
+  overflow: hidden;
+  border: 1rpx solid #eadfd3;
+  border-radius: 8rpx;
+  background: #fff;
+}
+
+.form-row {
+  min-height: 100rpx;
+  padding: 0 20rpx;
+  border-bottom: 1rpx solid #f1e6da;
+}
+
+.form-row:last-child {
+  border-bottom: 0;
+}
+
+.form-icon {
+  width: 46rpx;
+  flex: 0 0 auto;
+  color: #c51f1f;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.form-label {
+  width: 150rpx;
+  flex: 0 0 auto;
+  color: #26211d;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.form-input {
   min-width: 0;
+  flex: 1;
+  height: 100rpx;
+  color: #172033;
+  font-size: 28rpx;
 }
 
 .field-row {
@@ -683,7 +863,7 @@ onMounted(loadEventTypes);
   display: flex;
   gap: 18rpx;
   align-items: center;
-  margin-top: 4rpx;
+  margin-top: 22rpx;
   padding: 20rpx;
   border: 1rpx solid #eadfd3;
   border-radius: 8rpx;
@@ -851,7 +1031,7 @@ onMounted(loadEventTypes);
   left: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: 180rpx 1fr;
+  grid-template-columns: 1fr;
   gap: 18rpx;
   padding: 18rpx 24rpx 34rpx;
   border-top: 1rpx solid rgba(120, 81, 48, 0.12);
@@ -869,6 +1049,7 @@ onMounted(loadEventTypes);
 }
 
 .secondary-create {
+  display: none;
   border: 1rpx solid #eadfd3;
   color: #67564a;
   background: #fff;
