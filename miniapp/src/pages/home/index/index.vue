@@ -10,7 +10,7 @@
       </view>
       <text class="subtitle">创建宴席、分享请柬、收集回执，现场礼金和人情往来统一管理。</text>
       <view class="hero-actions">
-        <button class="primary-action" @tap="createBanquet">创建宴席</button>
+        <navigator url="/pages/banquet/create/index" open-type="navigate" class="primary-action">创建宴席</navigator>
         <button class="ghost-action" @tap="refresh" :loading="loading">刷新</button>
       </view>
     </view>
@@ -40,10 +40,10 @@
         <text class="section-title">常用操作</text>
       </view>
       <view class="action-grid">
-        <button class="tool-button primary-tool" @tap="createBanquet">
+        <navigator url="/pages/banquet/create/index" open-type="navigate" class="tool-button primary-tool">
           <text class="tool-title">创建宴席</text>
           <text class="tool-desc">类型、主题、请柬</text>
-        </button>
+        </navigator>
         <button class="tool-button" @tap="openLatestRsvpStats">
           <text class="tool-title">回执统计</text>
           <text class="tool-desc">宾客与人数</text>
@@ -64,6 +64,7 @@
         <text class="section-title">最近宴席</text>
         <text class="section-meta">{{ loading ? '同步中' : `${banquets.length} 条` }}</text>
       </view>
+      <navigator url="/pages/banquet/create/index" open-type="navigate" class="plain-create-link">进入创建宴席页面</navigator>
       <view v-if="loading" class="empty">正在同步宴席</view>
       <view v-else-if="banquets.length === 0" class="empty">暂无宴席，先创建一个宴席</view>
       <view
@@ -249,10 +250,13 @@ onMounted(refresh);
 
 .primary-action,
 .ghost-action {
+  box-sizing: border-box;
+  display: block;
   height: 80rpx;
   margin: 0;
   border-radius: 8rpx;
   font-size: 28rpx;
+  text-align: center;
   line-height: 80rpx;
 }
 
@@ -367,6 +371,8 @@ onMounted(refresh);
 }
 
 .tool-button {
+  box-sizing: border-box;
+  display: block;
   height: auto;
   margin: 0;
   padding: 22rpx 18rpx;
@@ -405,6 +411,19 @@ onMounted(refresh);
 
 .empty {
   padding: 28rpx 0;
+  text-align: center;
+}
+
+.plain-create-link {
+  display: block;
+  margin: 0 0 12rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid rgba(159, 47, 34, 0.2);
+  border-radius: 8rpx;
+  color: #9f2f22;
+  background: #fff7ed;
+  font-size: 26rpx;
+  font-weight: 700;
   text-align: center;
 }
 
