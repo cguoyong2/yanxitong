@@ -10,27 +10,27 @@
       </view>
       <text class="subtitle">创建宴席、分享请柬、收集回执，现场礼金和人情往来统一管理。</text>
       <view class="hero-actions">
-        <button class="primary-action" @click="createBanquet">创建宴席</button>
-        <button class="ghost-action" @click="refresh" :loading="loading">刷新</button>
+        <button class="primary-action" @tap="createBanquet">创建宴席</button>
+        <button class="ghost-action" @tap="refresh" :loading="loading">刷新</button>
       </view>
     </view>
 
     <view class="summary-grid">
-      <view class="summary-card">
+      <view class="summary-card tappable" @tap="openLatestOrCreate">
         <text class="summary-value">{{ banquets.length }}</text>
         <text class="summary-label">宴席</text>
       </view>
-      <view class="summary-card">
+      <view class="summary-card tappable" @tap="openLatestOrCreate">
         <text class="summary-value">{{ latestEventType }}</text>
         <text class="summary-label">最近类型</text>
       </view>
-      <view class="summary-card">
+      <view class="summary-card tappable" @tap="showPaymentDisabled">
         <text class="summary-value">未开放</text>
         <text class="summary-label">在线支付</text>
       </view>
     </view>
 
-    <view class="notice">
+    <view class="notice tappable" @tap="showPilotScope">
       <text class="notice-title">体验版说明</text>
       <text class="notice-text">当前先测试请柬、回执、线下记礼和后台查看；线上随礼和现场扫码付款将在真实微信支付配置后开放。</text>
     </view>
@@ -40,19 +40,19 @@
         <text class="section-title">常用操作</text>
       </view>
       <view class="action-grid">
-        <button class="tool-button primary-tool" @click="createBanquet">
+        <button class="tool-button primary-tool" @tap="createBanquet">
           <text class="tool-title">创建宴席</text>
           <text class="tool-desc">类型、主题、请柬</text>
         </button>
-        <button class="tool-button" @click="openLatestRsvpStats" :disabled="!latestBanquetId">
+        <button class="tool-button" @tap="openLatestRsvpStats">
           <text class="tool-title">回执统计</text>
           <text class="tool-desc">宾客与人数</text>
         </button>
-        <button class="tool-button" @click="openLatestOfflineGift" :disabled="!latestBanquetId">
+        <button class="tool-button" @tap="openLatestOfflineGift">
           <text class="tool-title">线下记礼</text>
           <text class="tool-desc">现金礼金登记</text>
         </button>
-        <button class="tool-button" @click="openFavor">
+        <button class="tool-button" @tap="openFavor">
           <text class="tool-title">人情账本</text>
           <text class="tool-desc">往来对比</text>
         </button>
@@ -70,7 +70,7 @@
         v-for="item in banquets"
         :key="item.id"
         class="banquet-card"
-        @click="openBanquet(item.id)"
+        @tap="openBanquet(item.id)"
       >
         <view class="banquet-main">
           <view class="banquet-title-row">
@@ -140,6 +140,14 @@ function openBanquet(id: number) {
   uni.navigateTo({ url: `/pages/banquet/detail/index?id=${id}` });
 }
 
+function openLatestOrCreate() {
+  if (latestBanquetId.value) {
+    openBanquet(latestBanquetId.value);
+    return;
+  }
+  createBanquet();
+}
+
 function openFavor() {
   uni.navigateTo({ url: '/pages/favor/index/index' });
 }
@@ -147,13 +155,30 @@ function openFavor() {
 function openLatestRsvpStats() {
   if (latestBanquetId.value) {
     uni.navigateTo({ url: `/pages/rsvp/stats/index?banquetId=${latestBanquetId.value}` });
+    return;
   }
+  uni.showToast({ title: '请先创建宴席', icon: 'none' });
 }
 
 function openLatestOfflineGift() {
   if (latestBanquetId.value) {
     uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${latestBanquetId.value}` });
+    return;
   }
+  uni.showToast({ title: '请先创建宴席', icon: 'none' });
+}
+
+function showPaymentDisabled() {
+  uni.showToast({ title: '线上支付暂未开放', icon: 'none' });
+}
+
+function showPilotScope() {
+  uni.showModal({
+    title: '体验版说明',
+    content: '当前可测试创建宴席、请柬、回执、线下记礼和后台查看。线上随礼和现场扫码付款将在真实微信支付配置后开放。',
+    showCancel: false,
+    confirmText: '知道了'
+  });
 }
 
 onMounted(refresh);
@@ -263,6 +288,18 @@ onMounted(refresh);
   min-height: 112rpx;
   padding: 20rpx 12rpx;
   text-align: center;
+}
+
+.tappable {
+  position: relative;
+}
+
+.tappable:active,
+.tool-button:active,
+.banquet-card:active,
+.primary-action:active,
+.ghost-action:active {
+  opacity: 0.78;
 }
 
 .summary-value,
