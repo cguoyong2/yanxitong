@@ -141,8 +141,9 @@
     </view>
 
     <view class="bottom-bar">
-      <button class="secondary-create" @tap="fillDemoData">重填</button>
-      <button class="primary-create" :loading="submitting" @tap="submit" :style="{ background: activeDesign.buttonBg }">创建宴席</button>
+      <view class="primary-create" :class="{ disabled: submitting }" @tap="submit" :style="{ background: activeDesign.buttonBg }">
+        {{ submitting ? '创建中...' : '创建宴席' }}
+      </view>
     </view>
 
     <view v-if="previewTemplate" class="preview-mask" @tap="closeTemplatePreview">
@@ -470,11 +471,16 @@ async function loadEventTypes() {
 }
 
 async function submit() {
+  if (submitting.value) {
+    uni.showToast({ title: '正在创建宴席', icon: 'none' });
+    return;
+  }
   if (!form.name || !form.eventTypeCode) {
     uni.showToast({ title: '请填写宴席名称和类型', icon: 'none' });
     return;
   }
   submitting.value = true;
+  uni.showLoading({ title: '创建中' });
   try {
     const result = await request<{ banquet: { id: number } }>('/banquets', {
       method: 'POST',
@@ -486,10 +492,14 @@ async function submit() {
           : undefined
       }
     });
-    uni.navigateTo({ url: `/pages/banquet/detail/index?id=${result.banquet.id}` });
+    uni.showToast({ title: '创建成功', icon: 'success' });
+    setTimeout(() => {
+      uni.redirectTo({ url: `/pages/banquet/detail/index?id=${result.banquet.id}` });
+    }, 450);
   } catch (error) {
     uni.showToast({ title: error instanceof Error ? error.message : '创建失败', icon: 'none' });
   } finally {
+    uni.hideLoading();
     submitting.value = false;
   }
 }
@@ -1038,26 +1048,24 @@ onMounted(loadEventTypes);
   background: rgba(255, 253, 250, 0.96);
 }
 
-.secondary-create,
 .primary-create {
+  box-sizing: border-box;
   height: 82rpx;
   margin: 0;
   border-radius: 8rpx;
+  color: #fff;
   font-size: 28rpx;
   font-weight: 900;
   line-height: 82rpx;
-}
-
-.secondary-create {
-  display: none;
-  border: 1rpx solid #eadfd3;
-  color: #67564a;
-  background: #fff;
+  text-align: center;
 }
 
 .primary-create {
   border: 0;
-  color: #fff;
+}
+
+.primary-create.disabled {
+  opacity: 0.68;
 }
 
 .preview-mask {
