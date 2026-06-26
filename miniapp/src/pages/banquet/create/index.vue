@@ -658,7 +658,7 @@ onMounted(loadEventTypes);
 }
 
 .type-section {
-  margin-top: -44rpx;
+  margin-top: 18rpx;
 }
 
 .section-head {
