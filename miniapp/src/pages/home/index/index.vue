@@ -25,7 +25,7 @@
 
     <view class="content">
       <view class="banner-card">
-        <image class="banner-image" src="/static/home/home_banner.png" mode="aspectFill" />
+        <image class="banner-image" src="/static/home/home_banner.png" mode="widthFix" />
         <view class="banner-dots">
           <text class="dot active"></text>
           <text class="dot"></text>
@@ -275,8 +275,8 @@ onMounted(refresh);
 .red-stage {
   position: relative;
   overflow: hidden;
-  height: 302rpx;
-  padding: 66rpx 40rpx 0;
+  height: 330rpx;
+  padding: calc(var(--status-bar-height) + 34rpx) 40rpx 0;
   background:
     radial-gradient(circle at 72% 38%, rgba(255, 190, 80, 0.18), transparent 26%),
     linear-gradient(135deg, #d8000f 0%, #c40005 58%, #a80000 100%);
@@ -327,6 +327,7 @@ onMounted(refresh);
   align-items: flex-start;
   justify-content: space-between;
   gap: 22rpx;
+  min-height: 96rpx;
 }
 
 .brand-row {
@@ -334,6 +335,8 @@ onMounted(refresh);
   align-items: baseline;
   gap: 18rpx;
   min-width: 0;
+  padding-top: 10rpx;
+  padding-right: 190rpx;
 }
 
 .brand,
@@ -376,9 +379,13 @@ onMounted(refresh);
 }
 
 .top-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
   gap: 30rpx;
   flex: 0 0 auto;
+  padding-top: 72rpx;
 }
 
 .top-action {
@@ -396,7 +403,7 @@ onMounted(refresh);
 .content {
   position: relative;
   z-index: 2;
-  margin-top: -155rpx;
+  margin-top: -168rpx;
   padding: 0 40rpx 26rpx;
 }
 
@@ -411,7 +418,7 @@ onMounted(refresh);
 .banner-image {
   display: block;
   width: 100%;
-  aspect-ratio: 840 / 356;
+  height: auto;
 }
 
 .banner-dots {
