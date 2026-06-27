@@ -137,7 +137,7 @@ const orders = [
 const devices = [
   { title: '确认屏租赁', icon: '▣', tone: 'red', action: 'device' },
   { title: '云喇叭租赁', icon: '◖', tone: 'orange', action: 'device' },
-  { title: '设备绑定记录', icon: '↗', tone: 'green', action: 'device' },
+  { title: '绑定记录', icon: '↗', tone: 'green', action: 'device' },
   { title: '交付方式说明', icon: '▰', tone: 'blue', action: 'device' }
 ];
 const services = [
