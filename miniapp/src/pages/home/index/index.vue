@@ -1,108 +1,123 @@
 <template>
   <view class="page">
-    <view class="brand-top">
-      <view>
-        <text class="brand">宴席通</text>
-        <text class="headline">办宴席，用宴席通</text>
-        <text class="subline">创建宴席、分享请柬、收集回执、现场礼金和人情往来统一管理。</text>
-      </view>
-      <view class="badge">体验版</view>
-    </view>
-
-    <view class="banner">
-      <view class="banner-art">
-        <text class="banner-knot">囍</text>
-        <text class="banner-flower">花</text>
-      </view>
-      <view class="banner-copy">
-        <text class="banner-eyebrow">宴席管理</text>
-        <text class="banner-title">轻松办好每一场宴席</text>
-        <text class="banner-text">从创建到回执、收礼、账本，按流程推进。</text>
+    <view class="hero-card">
+      <view class="hero-ornament lantern"></view>
+      <view class="hero-ornament flower"></view>
+      <text class="hero-knot">囍</text>
+      <text class="hero-brand">宴席通</text>
+      <text class="hero-title">办宴席，用宴席通</text>
+      <text class="hero-subtitle">轻松办好每一场宴席</text>
+      <view class="hero-divider">
+        <text></text>
+        <view class="divider-dot"></view>
+        <text></text>
       </view>
     </view>
 
-    <view class="primary-actions">
-      <button class="create-btn" @tap="createBanquet()">+ 创建宴席</button>
-      <button class="ghost-btn" :loading="loading" @tap="refresh()">刷新</button>
+    <button class="create-button" @tap="createBanquet()">
+      <text class="plus">+</text>
+      <text>创建宴席</text>
+    </button>
+
+    <view class="stats-grid">
+      <view class="stats-card" @tap="openLatestOrCreate()">
+        <view class="stats-icon table">桌</view>
+        <text class="stats-label">宴席数</text>
+        <text class="stats-value">{{ banquets.length }}</text>
+      </view>
+      <view class="stats-card" @tap="openLatestRsvpStats()">
+        <view class="stats-icon gift">礼</view>
+        <text class="stats-label">累计礼金</text>
+        <text class="stats-value">¥12,800</text>
+      </view>
+      <view class="stats-card" @tap="openLatestRsvpStats()">
+        <view class="stats-icon people">人</view>
+        <text class="stats-label">回执人数</text>
+        <text class="stats-value">86</text>
+      </view>
     </view>
 
-    <view class="stats-row">
-      <view class="stat-card">
-        <text class="stat-value">{{ banquets.length }}</text>
-        <text class="stat-label">宴席</text>
-      </view>
-      <view class="stat-card">
-        <text class="stat-value">{{ latestEventType }}</text>
-        <text class="stat-label">最近类型</text>
-      </view>
-      <view class="stat-card">
-        <text class="stat-value">未开放</text>
-        <text class="stat-label">在线支付</text>
-      </view>
+    <view v-if="!hasBanquet && !loading" class="empty-banquet-card">
+      <text class="empty-title">还没有宴席</text>
+      <text class="empty-desc">先创建宴席，系统会根据宴席类型自动推荐主题、请柬和回执入口。</text>
+      <button class="empty-button" @tap="createBanquet()">立即创建</button>
     </view>
 
-    <view class="state-card">
+    <view v-if="hasBanquet" class="current-card">
       <view class="section-head">
         <view>
-          <text class="section-title">{{ hasBanquet ? '我的宴席' : '还没有宴席' }}</text>
-          <text class="section-desc">{{ hasBanquet ? '继续管理最近一场宴席' : '先创建一场宴席，生成请柬与回执入口' }}</text>
+          <text class="section-title">我的宴席</text>
+          <text class="section-subtitle">最近一场宴席</text>
         </view>
-        <text class="count">{{ loading ? '同步中' : `${banquets.length} 条` }}</text>
+        <text class="status-pill">已创建</text>
       </view>
+      <view class="current-main" @tap="openBanquet(latestBanquet.id)">
+        <view class="current-mark">{{ eventTypeLabel(latestBanquet.eventTypeCode).slice(0, 1) }}</view>
+        <view class="current-info">
+          <text class="current-name">{{ latestBanquet.name }}</text>
+          <text class="current-meta">{{ formatTime(latestBanquet.banquetTime) }}</text>
+          <text class="current-meta">{{ latestBanquet.location || '地点待定' }}</text>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+    </view>
 
-      <view v-if="loading" class="empty">正在同步宴席数据</view>
-      <view v-else-if="!hasBanquet" class="empty-state">
-        <text class="empty-title">创建后即可开始邀请宾客</text>
-        <text class="empty-text">体验版先开放创建宴席、回执、线下记礼和后台查看。</text>
-        <button class="mini-primary" @tap="createBanquet()">马上创建</button>
-      </view>
-      <view v-else class="latest-card" @tap="openBanquet(latestBanquet.id)">
-        <view class="latest-top">
-          <view>
-            <text class="latest-name">{{ latestBanquet.name }}</text>
-            <text class="latest-meta">{{ formatTime(latestBanquet.banquetTime) }}</text>
-            <text class="latest-meta">{{ latestBanquet.location || '地点待定' }}</text>
-          </view>
-          <text class="latest-tag">{{ eventTypeLabel(latestBanquet.eventTypeCode) }}</text>
+    <view class="guide-card">
+      <view class="section-head">
+        <view>
+          <text class="section-title">开席引导</text>
+          <text class="section-subtitle">按步骤完成核心流程</text>
         </view>
-        <view class="latest-actions">
-          <button @tap.stop="openInvite(latestBanquet.id)">发请柬</button>
-          <button @tap.stop="openRsvp(latestBanquet.id)">回执统计</button>
-          <button @tap.stop="openOfflineGift(latestBanquet.id)">收礼记账</button>
+        <button class="refresh" :loading="loading" @tap="refresh()">刷新</button>
+      </view>
+      <view class="guide-list">
+        <view class="guide-row" @tap="createBanquet()">
+          <text class="guide-step">1</text>
+          <view class="guide-copy">
+            <text class="guide-title">创建宴席</text>
+            <text class="guide-desc">填写宴席信息，选择类型和主题</text>
+          </view>
+          <text class="arrow">›</text>
+        </view>
+        <view class="guide-row" @tap="openInvitationTab()">
+          <text class="guide-step">2</text>
+          <view class="guide-copy">
+            <text class="guide-title">发送请柬 / 收回执</text>
+            <text class="guide-desc">预览公开页，邀请宾客确认出席</text>
+          </view>
+          <text class="arrow">›</text>
+        </view>
+        <view class="guide-row" @tap="openLatestOfflineGift()">
+          <text class="guide-step">3</text>
+          <view class="guide-copy">
+            <text class="guide-title">现场收礼确认</text>
+            <text class="guide-desc">现金记礼，自动沉淀到人情账本</text>
+          </view>
+          <text class="arrow">›</text>
+        </view>
+        <view class="guide-row" @tap="openFavorTab()">
+          <text class="guide-step">4</text>
+          <view class="guide-copy">
+            <text class="guide-title">人情往来管理</text>
+            <text class="guide-desc">查看收送记录和往来差额</text>
+          </view>
+          <text class="arrow">›</text>
         </view>
       </view>
     </view>
 
-    <view class="tool-card">
-      <text class="section-title">办席工具</text>
-      <view class="tool-grid">
-        <view class="tool-item active" @tap="createBanquet()">
-          <text class="tool-icon">办</text>
-          <text class="tool-title">创建宴席</text>
-          <text class="tool-desc">类型、主题、请柬</text>
-        </view>
-        <view class="tool-item" @tap="openLatestRsvpStats()">
-          <text class="tool-icon">回</text>
-          <text class="tool-title">回执统计</text>
-          <text class="tool-desc">宾客与人数</text>
-        </view>
-        <view class="tool-item" @tap="openLatestOfflineGift()">
-          <text class="tool-icon">礼</text>
-          <text class="tool-title">线下记礼</text>
-          <text class="tool-desc">现金礼金登记</text>
-        </view>
-        <view class="tool-item" @tap="openFavorTab()">
-          <text class="tool-icon">账</text>
-          <text class="tool-title">人情账本</text>
-          <text class="tool-desc">往来对比</text>
-        </view>
-      </view>
+    <view class="notice-card">
+      <text class="notice-title">体验版说明</text>
+      <text class="notice-text">当前先验证创建宴席、请柬、回执、线下记礼和后台查看；线上随礼与现场扫码付款将在真实微信支付配置后开放。</text>
     </view>
 
     <view class="recent-card">
       <view class="section-head">
-        <text class="section-title">最近宴席</text>
-        <text class="section-desc">点击进入管理台</text>
+        <view>
+          <text class="section-title">最近宴席</text>
+          <text class="section-subtitle">{{ loading ? '同步中' : `${banquets.length} 条` }}</text>
+        </view>
+        <text class="small-link" @tap="createBanquet()">新建</text>
       </view>
       <view
         v-for="item in banquets"
@@ -110,14 +125,14 @@
         class="banquet-row"
         @tap="openBanquet(item.id)"
       >
-        <view class="avatar">{{ eventTypeLabel(item.eventTypeCode).slice(0, 1) }}</view>
-        <view class="row-main">
-          <text class="row-title">{{ item.name }}</text>
-          <text class="row-meta">{{ formatTime(item.banquetTime) }} · {{ item.location || '地点待定' }}</text>
+        <view class="banquet-avatar">{{ eventTypeLabel(item.eventTypeCode).slice(0, 1) }}</view>
+        <view class="banquet-main">
+          <text class="banquet-name">{{ item.name }}</text>
+          <text class="banquet-meta">{{ formatTime(item.banquetTime) }} · {{ item.location || '地点待定' }}</text>
         </view>
         <text class="arrow">›</text>
       </view>
-      <view v-if="!loading && banquets.length === 0" class="empty">暂无宴席</view>
+      <view v-if="!loading && banquets.length === 0" class="empty-row">暂无宴席记录</view>
     </view>
   </view>
 </template>
@@ -140,7 +155,6 @@ const loading = ref(false);
 const hasBanquet = computed(() => banquets.value.length > 0);
 const latestBanquet = computed(() => banquets.value[0]);
 const latestBanquetId = computed(() => latestBanquet.value?.id || 0);
-const latestEventType = computed(() => eventTypeLabel(latestBanquet.value?.eventTypeCode || ''));
 
 function eventTypeLabel(code: string) {
   const labels: Record<string, string> = {
@@ -152,7 +166,7 @@ function eventTypeLabel(code: string) {
     MEMORIAL: '追思',
     OTHER: '其他'
   };
-  return labels[code] || '待定';
+  return labels[code] || '宴席';
 }
 
 function formatTime(value?: string) {
@@ -178,16 +192,12 @@ function openBanquet(id: number) {
   uni.navigateTo({ url: `/pages/banquet/detail/index?id=${id}` });
 }
 
-function openInvite(id: number) {
-  uni.navigateTo({ url: `/pages/invite/edit-basic/index?banquetId=${id}` });
-}
-
-function openRsvp(id: number) {
-  uni.navigateTo({ url: `/pages/rsvp/stats/index?banquetId=${id}` });
-}
-
-function openOfflineGift(id: number) {
-  uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${id}` });
+function openLatestOrCreate() {
+  if (latestBanquetId.value) {
+    openBanquet(latestBanquetId.value);
+    return;
+  }
+  createBanquet();
 }
 
 function openLatestRsvpStats() {
@@ -195,7 +205,7 @@ function openLatestRsvpStats() {
     uni.showToast({ title: '请先创建宴席', icon: 'none' });
     return;
   }
-  openRsvp(latestBanquetId.value);
+  uni.navigateTo({ url: `/pages/rsvp/stats/index?banquetId=${latestBanquetId.value}` });
 }
 
 function openLatestOfflineGift() {
@@ -203,11 +213,15 @@ function openLatestOfflineGift() {
     uni.showToast({ title: '请先创建宴席', icon: 'none' });
     return;
   }
-  openOfflineGift(latestBanquetId.value);
+  uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${latestBanquetId.value}` });
 }
 
 function openFavorTab() {
   uni.switchTab({ url: '/pages/favor/index/index' });
+}
+
+function openInvitationTab() {
+  uni.switchTab({ url: '/pages/invitation/index/index' });
 }
 
 onMounted(refresh);
@@ -217,203 +231,319 @@ onMounted(refresh);
 .page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 24rpx;
-  background: #f7f7f7;
+  padding: 24rpx 24rpx 32rpx;
+  background:
+    linear-gradient(180deg, #fffaf4 0, #fffaf4 340rpx, #f7f7f7 560rpx),
+    #f7f7f7;
   color: #151823;
 }
 
-.brand-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24rpx;
-  padding: 28rpx 28rpx 96rpx;
-  border-radius: 0 0 28rpx 28rpx;
-  background: linear-gradient(135deg, #e60012 0%, #b80000 62%, #8f0008 100%);
-  color: #fff;
+.hero-card {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  padding: 34rpx 32rpx;
+  border-radius: 16rpx;
+  background:
+    radial-gradient(circle at 75% 20%, rgba(255, 229, 160, 0.28), transparent 28%),
+    radial-gradient(circle at 10% 110%, rgba(255, 195, 102, 0.18), transparent 35%),
+    linear-gradient(135deg, #e8372d 0%, #d71318 45%, #b80000 100%);
+  box-shadow: 0 20rpx 42rpx rgba(184, 0, 0, 0.18);
 }
 
-.brand,
-.headline,
-.subline,
-.banner-eyebrow,
-.banner-title,
-.banner-text,
+.hero-card::before,
+.hero-card::after {
+  position: absolute;
+  border: 1rpx solid rgba(255, 232, 190, 0.22);
+  border-radius: 50%;
+  content: '';
+}
+
+.hero-card::before {
+  right: -80rpx;
+  top: -60rpx;
+  width: 260rpx;
+  height: 260rpx;
+}
+
+.hero-card::after {
+  right: 38rpx;
+  bottom: -106rpx;
+  width: 260rpx;
+  height: 260rpx;
+}
+
+.hero-ornament {
+  position: absolute;
+  pointer-events: none;
+}
+
+.lantern {
+  top: 28rpx;
+  left: 30rpx;
+  width: 58rpx;
+  height: 72rpx;
+  border: 3rpx solid rgba(255, 236, 186, 0.82);
+  border-radius: 50% 50% 44% 44%;
+  background: linear-gradient(135deg, #ffdf9c, #e53828 52%, #a80000);
+  box-shadow: inset 0 0 0 10rpx rgba(255, 236, 186, 0.12);
+}
+
+.lantern::before,
+.lantern::after {
+  position: absolute;
+  left: 50%;
+  width: 2rpx;
+  background: rgba(255, 236, 186, 0.8);
+  transform: translateX(-50%);
+  content: '';
+}
+
+.lantern::before {
+  top: -32rpx;
+  height: 32rpx;
+}
+
+.lantern::after {
+  bottom: -24rpx;
+  height: 24rpx;
+}
+
+.flower {
+  right: 22rpx;
+  bottom: 22rpx;
+  width: 136rpx;
+  height: 94rpx;
+  border-radius: 70% 40% 70% 50%;
+  background:
+    radial-gradient(circle at 70% 44%, rgba(255, 236, 186, 0.68) 0 15rpx, transparent 16rpx),
+    radial-gradient(circle at 45% 52%, rgba(255, 202, 124, 0.58) 0 22rpx, transparent 23rpx),
+    radial-gradient(circle at 25% 66%, rgba(255, 236, 186, 0.42) 0 18rpx, transparent 19rpx);
+  opacity: 0.8;
+}
+
+.hero-knot {
+  position: absolute;
+  left: 42rpx;
+  bottom: 8rpx;
+  color: rgba(255, 236, 186, 0.13);
+  font-size: 150rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.hero-brand,
+.hero-title,
+.hero-subtitle,
 .section-title,
-.section-desc,
-.latest-name,
-.latest-meta,
-.row-title,
-.row-meta {
+.section-subtitle,
+.stats-label,
+.stats-value,
+.empty-title,
+.empty-desc,
+.current-name,
+.current-meta,
+.guide-title,
+.guide-desc,
+.notice-title,
+.notice-text,
+.banquet-name,
+.banquet-meta {
   display: block;
 }
 
-.brand {
-  font-size: 26rpx;
-  font-weight: 700;
+.hero-brand {
+  position: relative;
+  z-index: 1;
+  margin-left: 84rpx;
   color: #ffe8bf;
-}
-
-.headline {
-  margin-top: 18rpx;
-  font-size: 43rpx;
+  font-size: 30rpx;
   font-weight: 800;
-  line-height: 1.18;
+  letter-spacing: 0;
 }
 
-.subline {
-  margin-top: 14rpx;
-  max-width: 520rpx;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 25rpx;
-  line-height: 1.6;
-}
-
-.badge {
-  flex: 0 0 auto;
-  padding: 9rpx 16rpx;
-  border: 1rpx solid rgba(255, 232, 190, 0.72);
-  border-radius: 999rpx;
-  color: #fff2cf;
-  font-size: 24rpx;
-}
-
-.banner {
+.hero-title {
   position: relative;
-  z-index: 2;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  margin-top: -72rpx;
-  padding: 28rpx;
-  border-radius: 16rpx;
-  background:
-    radial-gradient(circle at 78% 28%, rgba(255, 231, 169, 0.34), transparent 29%),
-    linear-gradient(138deg, #fff7e8 0%, #ffe4c3 42%, #df3b25 100%);
-  box-shadow: 0 18rpx 40rpx rgba(184, 0, 0, 0.16);
-}
-
-.banner-art {
-  position: absolute;
-  inset: 0;
-  color: rgba(184, 0, 0, 0.08);
+  z-index: 1;
+  margin-top: 42rpx;
+  color: #fff1ca;
+  font-size: 48rpx;
   font-weight: 900;
+  line-height: 1.12;
+  text-align: center;
+  text-shadow: 0 6rpx 16rpx rgba(85, 0, 0, 0.22);
 }
 
-.banner-knot {
-  position: absolute;
-  right: 42rpx;
-  top: 34rpx;
-  color: rgba(184, 0, 0, 0.16);
-  font-size: 120rpx;
-}
-
-.banner-flower {
-  position: absolute;
-  right: 34rpx;
-  bottom: 16rpx;
-  color: rgba(255, 255, 255, 0.24);
-  font-size: 98rpx;
-}
-
-.banner-copy {
+.hero-subtitle {
   position: relative;
-  max-width: 410rpx;
-}
-
-.banner-eyebrow {
-  color: #b80000;
-  font-size: 24rpx;
-  font-weight: 700;
-}
-
-.banner-title {
+  z-index: 1;
   margin-top: 16rpx;
-  color: #7e130b;
-  font-size: 42rpx;
-  font-weight: 800;
-  line-height: 1.15;
+  color: #fff7df;
+  font-size: 27rpx;
+  text-align: center;
 }
 
-.banner-text {
-  margin-top: 12rpx;
-  color: #8a5a37;
-  font-size: 24rpx;
-  line-height: 1.5;
-}
-
-.primary-actions {
-  display: grid;
-  grid-template-columns: 1fr 160rpx;
+.hero-divider {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 14rpx;
-  margin-top: 20rpx;
+  margin: 18rpx auto 0;
+}
+
+.hero-divider text {
+  display: block;
+  width: 86rpx;
+  height: 1rpx;
+  background: rgba(255, 232, 190, 0.68);
+}
+
+.divider-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border: 2rpx solid #ffe8bf;
+  border-radius: 50%;
 }
 
 button {
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  line-height: 86rpx;
 }
 
 button::after {
   border: 0;
 }
 
-.create-btn {
-  background: linear-gradient(135deg, #e60012, #c71916);
+.create-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18rpx;
+  height: 104rpx;
+  margin-top: 22rpx;
+  border-radius: 14rpx;
+  background: linear-gradient(135deg, #e7352b 0%, #cf171b 100%);
   color: #fff;
-  font-weight: 800;
-  box-shadow: 0 14rpx 24rpx rgba(230, 0, 18, 0.18);
+  font-size: 34rpx;
+  font-weight: 900;
+  line-height: 104rpx;
+  box-shadow: 0 16rpx 28rpx rgba(207, 23, 27, 0.22);
 }
 
-.ghost-btn {
-  border: 1rpx solid #f0d4bd;
-  background: #fff8ef;
-  color: #a54b26;
-  font-weight: 700;
+.plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: #fff;
+  color: #cf171b;
+  font-size: 40rpx;
+  line-height: 48rpx;
 }
 
-.stats-row {
+.stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14rpx;
-  margin-top: 18rpx;
+  gap: 18rpx;
+  margin-top: 22rpx;
 }
 
-.stat-card {
-  padding: 24rpx 12rpx;
-  border: 1rpx solid #eeeeee;
-  border-radius: 12rpx;
+.stats-card {
+  min-height: 158rpx;
+  padding: 22rpx 8rpx 18rpx;
+  border: 1rpx solid #f0e4dc;
+  border-radius: 14rpx;
   background: #fff;
   text-align: center;
-  box-shadow: 0 10rpx 24rpx rgba(30, 18, 12, 0.04);
+  box-shadow: 0 12rpx 28rpx rgba(99, 56, 28, 0.06);
 }
 
-.stat-value {
-  display: block;
-  color: #c71916;
-  font-size: 31rpx;
-  font-weight: 800;
+.stats-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  margin: 0 auto 12rpx;
+  border-radius: 50%;
+  font-size: 24rpx;
+  font-weight: 900;
 }
 
-.stat-label {
-  display: block;
-  margin-top: 8rpx;
-  color: #7a7f8c;
+.stats-icon.table {
+  background: #fff0ee;
+  color: #d32620;
+}
+
+.stats-icon.gift {
+  background: #fff3df;
+  color: #c68a31;
+}
+
+.stats-icon.people {
+  background: #fff0ee;
+  color: #d32620;
+}
+
+.stats-label {
+  color: #7a6f68;
   font-size: 23rpx;
 }
 
-.state-card,
-.tool-card,
+.stats-value {
+  margin-top: 9rpx;
+  color: #c71916;
+  font-size: 31rpx;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.empty-banquet-card,
+.current-card,
+.guide-card,
+.notice-card,
 .recent-card {
-  margin-top: 20rpx;
+  margin-top: 22rpx;
   padding: 24rpx;
-  border: 1rpx solid #eeeeee;
-  border-radius: 12rpx;
+  border: 1rpx solid #f0e4dc;
+  border-radius: 16rpx;
   background: #fff;
-  box-shadow: 0 10rpx 24rpx rgba(30, 18, 12, 0.04);
+  box-shadow: 0 12rpx 30rpx rgba(99, 56, 28, 0.06);
+}
+
+.empty-banquet-card {
+  background: linear-gradient(180deg, #fffaf3, #fff);
+  text-align: center;
+}
+
+.empty-title {
+  color: #151823;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.empty-desc {
+  margin-top: 10rpx;
+  color: #7a6f68;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.empty-button {
+  width: 260rpx;
+  height: 72rpx;
+  margin: 22rpx auto 0;
+  border-radius: 999rpx;
+  background: #d32620;
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 72rpx;
 }
 
 .section-head {
@@ -424,157 +554,161 @@ button::after {
 }
 
 .section-title {
-  color: #161b2a;
+  color: #151823;
   font-size: 31rpx;
-  font-weight: 800;
+  font-weight: 900;
 }
 
-.section-desc,
-.count {
-  margin-top: 8rpx;
-  color: #7a7f8c;
+.section-subtitle {
+  margin-top: 7rpx;
+  color: #8a8179;
   font-size: 23rpx;
 }
 
-.empty,
-.empty-state {
-  margin-top: 18rpx;
-  padding: 26rpx;
-  border: 1rpx dashed #f0d4bd;
-  border-radius: 12rpx;
-  background: #fffaf4;
-  color: #8b6250;
-  font-size: 25rpx;
-  text-align: center;
-}
-
-.empty-title,
-.empty-text {
-  display: block;
-}
-
-.empty-title {
-  color: #151823;
-  font-size: 29rpx;
+.status-pill,
+.small-link {
+  flex: 0 0 auto;
+  color: #c71916;
+  font-size: 24rpx;
   font-weight: 800;
 }
 
-.empty-text {
-  margin-top: 10rpx;
-  color: #7a7f8c;
-  font-size: 24rpx;
-  line-height: 1.55;
-}
-
-.mini-primary {
-  width: 260rpx;
-  margin: 22rpx auto 0;
+.status-pill {
+  padding: 8rpx 14rpx;
   border-radius: 999rpx;
-  background: #e60012;
-  color: #fff;
-  line-height: 72rpx;
+  background: #fff0ee;
 }
 
-.latest-card {
-  margin-top: 20rpx;
-  padding: 22rpx;
-  border-radius: 12rpx;
-  background: linear-gradient(180deg, #fff9f0, #fff);
-  border: 1rpx solid #f2dfce;
-}
-
-.latest-top {
+.current-main {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: 18rpx;
-}
-
-.latest-name {
-  color: #151823;
-  font-size: 31rpx;
-  font-weight: 800;
-}
-
-.latest-meta {
-  margin-top: 8rpx;
-  color: #7a7f8c;
-  font-size: 24rpx;
-}
-
-.latest-tag {
-  align-self: flex-start;
-  padding: 8rpx 16rpx;
-  border-radius: 999rpx;
-  background: #ffe9d0;
-  color: #b35d1f;
-  font-size: 22rpx;
-  font-weight: 700;
-}
-
-.latest-actions {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12rpx;
-  margin-top: 18rpx;
-}
-
-.latest-actions button {
-  border: 1rpx solid #f0d4bd;
-  background: #fff;
-  color: #a54b26;
-  font-size: 23rpx;
-  font-weight: 700;
-  line-height: 64rpx;
-}
-
-.tool-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14rpx;
-  margin-top: 18rpx;
-}
-
-.tool-item {
+  margin-top: 20rpx;
   padding: 20rpx;
-  border: 1rpx solid #eeeeee;
-  border-radius: 12rpx;
-  background: #fff;
+  border: 1rpx solid #f3e2d6;
+  border-radius: 14rpx;
+  background: #fffaf5;
 }
 
-.tool-item.active {
-  border-color: #f0c9c2;
-  background: #fff4f2;
-}
-
-.tool-icon {
-  display: inline-flex;
+.current-mark,
+.banquet-avatar {
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 46rpx;
-  height: 46rpx;
+  flex: 0 0 auto;
   border-radius: 50%;
-  background: #f9e9e7;
-  color: #c71916;
+  background: linear-gradient(135deg, #ef6a62, #d32620);
+  color: #fff;
+  font-weight: 900;
+}
+
+.current-mark {
+  width: 68rpx;
+  height: 68rpx;
+  font-size: 30rpx;
+}
+
+.current-info,
+.banquet-main,
+.guide-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.current-name {
+  overflow: hidden;
+  color: #151823;
+  font-size: 29rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.current-meta {
+  overflow: hidden;
+  margin-top: 7rpx;
+  color: #7a6f68;
   font-size: 23rpx;
-  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.tool-title,
-.tool-desc {
-  display: block;
+.refresh {
+  flex: 0 0 auto;
+  width: 112rpx;
+  height: 56rpx;
+  border: 1rpx solid #f0d4bd;
+  border-radius: 999rpx;
+  background: #fff8ef;
+  color: #9b3e26;
+  font-size: 23rpx;
+  line-height: 56rpx;
 }
 
-.tool-title {
-  margin-top: 12rpx;
-  color: #161b2a;
-  font-size: 27rpx;
-  font-weight: 800;
+.guide-list {
+  margin-top: 18rpx;
 }
 
-.tool-desc {
+.guide-row {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  min-height: 88rpx;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #f1e8df;
+}
+
+.guide-row:last-child {
+  border-bottom: 0;
+}
+
+.guide-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d32620, #a90000);
+  color: #fff4cf;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.guide-title {
+  color: #1c2231;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.guide-desc {
   margin-top: 6rpx;
-  color: #7a7f8c;
+  color: #8a8179;
   font-size: 22rpx;
+}
+
+.arrow {
+  flex: 0 0 auto;
+  color: #b7aca4;
+  font-size: 42rpx;
+}
+
+.notice-card {
+  border-color: #f2d4b3;
+  background: #fff8ef;
+}
+
+.notice-title {
+  color: #151823;
+  font-size: 29rpx;
+  font-weight: 900;
+}
+
+.notice-text {
+  margin-top: 10rpx;
+  color: #9b5427;
+  font-size: 24rpx;
+  line-height: 1.65;
 }
 
 .banquet-row {
@@ -582,50 +716,41 @@ button::after {
   align-items: center;
   gap: 18rpx;
   padding: 22rpx 0;
-  border-bottom: 1rpx solid #eeeeee;
+  border-bottom: 1rpx solid #f1e8df;
 }
 
 .banquet-row:last-child {
   border-bottom: 0;
 }
 
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.banquet-avatar {
   width: 58rpx;
   height: 58rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ef6a62, #d8271f);
-  color: #fff;
-  font-weight: 800;
+  font-size: 25rpx;
 }
 
-.row-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.row-title {
+.banquet-name {
   overflow: hidden;
   color: #151823;
   font-size: 28rpx;
-  font-weight: 800;
+  font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.row-meta {
+.banquet-meta {
   overflow: hidden;
   margin-top: 8rpx;
-  color: #7a7f8c;
+  color: #7a6f68;
   font-size: 23rpx;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.arrow {
-  color: #b6bbc7;
-  font-size: 42rpx;
+.empty-row {
+  padding: 34rpx 0 12rpx;
+  color: #8a8179;
+  font-size: 24rpx;
+  text-align: center;
 }
 </style>
