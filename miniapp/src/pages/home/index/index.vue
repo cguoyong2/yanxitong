@@ -276,7 +276,7 @@ onMounted(refresh);
   position: relative;
   overflow: hidden;
   height: 302rpx;
-  padding: 58rpx 40rpx 0;
+  padding: 66rpx 40rpx 0;
   background:
     radial-gradient(circle at 72% 38%, rgba(255, 190, 80, 0.18), transparent 26%),
     linear-gradient(135deg, #d8000f 0%, #c40005 58%, #a80000 100%);
@@ -286,9 +286,9 @@ onMounted(refresh);
 .red-stage::after {
   position: absolute;
   right: -60rpx;
-  bottom: -40rpx;
+  bottom: -34rpx;
   left: -60rpx;
-  height: 130rpx;
+  height: 118rpx;
   border-radius: 0 0 50% 50%;
   background: #f7f7f7;
   transform: rotate(7deg);
@@ -396,17 +396,16 @@ onMounted(refresh);
 .content {
   position: relative;
   z-index: 2;
-  margin-top: -120rpx;
-  padding: 0 26rpx 26rpx;
+  margin-top: -155rpx;
+  padding: 0 40rpx 26rpx;
 }
 
 .banner-card {
   position: relative;
   overflow: hidden;
-  border: 2rpx solid rgba(255, 255, 255, 0.9);
   border-radius: 24rpx;
-  background: #fff;
-  box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.18);
+  background: transparent;
+  box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
 }
 
 .banner-image {
