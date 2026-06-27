@@ -53,7 +53,7 @@
           <text class="step-badge">2</text>
           <text class="section-title">填写宴席信息</text>
         </view>
-        <button class="mini-action" size="mini" @tap="fillDemoData">体验数据</button>
+        <button class="mini-action" size="mini" @tap="fillDemoData()">体验数据</button>
       </view>
       <view class="form-card">
         <view class="form-row">
@@ -118,7 +118,7 @@
             <text class="template-desc">{{ item.presentation?.headline || '诚挚邀请' }}</text>
             <view class="template-foot">
               <text class="template-price">{{ templatePrice(item) }}</text>
-              <button size="mini" class="preview-btn" @tap.stop="openTemplatePreview(item)">预览</button>
+        <button size="mini" class="preview-btn" @tap.stop="openTemplatePreview(item)">预览</button>
             </view>
           </view>
         </view>
@@ -141,12 +141,12 @@
     </view>
 
     <view class="bottom-bar">
-      <view class="primary-create" :class="{ disabled: submitting }" @tap="submit" :style="{ background: activeDesign.buttonBg }">
+      <view class="primary-create" :class="{ disabled: submitting }" @tap="submit()" :style="{ background: activeDesign.buttonBg }">
         {{ submitting ? '创建中...' : '创建宴席' }}
       </view>
     </view>
 
-    <view v-if="previewTemplate" class="preview-mask" @tap="closeTemplatePreview">
+    <view v-if="previewTemplate" class="preview-mask" @tap="closeTemplatePreview()">
       <view class="preview-panel" @tap.stop>
         <view class="preview-hero" :style="templateCoverStyle(previewTemplate)">
           <image v-if="previewTemplate.coverUrl" :src="previewTemplate.coverUrl" mode="aspectFill" />
@@ -159,8 +159,8 @@
           <view class="preview-schedule">
             <text v-for="item in scheduleItems(previewTemplate)" :key="item">{{ item }}</text>
           </view>
-          <button type="primary" @tap="choosePreviewTemplate">选择此模板</button>
-          <button @tap="closeTemplatePreview">关闭</button>
+          <button type="primary" @tap="choosePreviewTemplate()">选择此模板</button>
+          <button @tap="closeTemplatePreview()">关闭</button>
         </view>
       </view>
     </view>
