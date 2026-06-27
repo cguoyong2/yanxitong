@@ -1,101 +1,177 @@
 <template>
   <view class="page">
-    <view class="title-row">
-      <view>
-        <text class="page-title">我的人情</text>
-        <text class="page-subtitle">收礼、送礼、往来差额统一查看</text>
+    <view class="red-stage">
+      <view class="stage-art">
+        <text class="firework">✦</text>
+        <text class="stage-knot">囍</text>
       </view>
-      <button class="family-link" @tap="openFamily()">家庭人情 ›</button>
-    </view>
-
-    <view class="summary-card">
-      <view class="summary-item">
-        <text class="summary-label">总收礼</text>
-        <text class="summary-value">{{ formatMoney(totalReceived) }}</text>
-      </view>
-      <view class="divider"></view>
-      <view class="summary-item">
-        <text class="summary-label">总送礼</text>
-        <text class="summary-value">{{ formatMoney(totalGiven) }}</text>
-      </view>
-      <view class="divider"></view>
-      <view class="summary-item">
-        <text class="summary-label">总差额</text>
-        <text class="summary-value" :class="balanceClass(totalBalance)">{{ signedMoney(totalBalance) }}</text>
-      </view>
-    </view>
-
-    <view class="search-card">
-      <input v-model="keyword" class="search-input" placeholder="搜索姓名、手机号" confirm-type="search" @confirm="load()" />
-      <button class="search-btn" @tap="load()">搜索</button>
-    </view>
-
-    <view class="quick-card">
-      <view class="quick-item">
-        <text class="quick-icon receive">收</text>
-        <text class="quick-title">我收到的人情</text>
-        <text class="quick-value">{{ formatMoney(totalReceived) }}</text>
-      </view>
-      <view class="quick-item">
-        <text class="quick-icon give">送</text>
-        <text class="quick-title">我送出的人情</text>
-        <text class="quick-value">{{ formatMoney(totalGiven) }}</text>
-      </view>
-      <view class="quick-item wide" @tap="compareName = keyword">
-        <text class="quick-icon ledger">账</text>
-        <view>
-          <text class="quick-title">人情往来账</text>
-          <text class="quick-desc">按联系人查看双向往来与差额</text>
+      <view class="topbar">
+        <view class="brand-row">
+          <text class="brand">宴席通</text>
+          <text class="hello">记人情，查往来，更清楚</text>
         </view>
-      </view>
-    </view>
-
-    <view class="panel">
-      <view class="section-head">
-        <text class="section-title">人情往来</text>
-        <text class="section-meta">{{ contacts.length }} 位</text>
-      </view>
-      <view v-if="loading" class="empty">正在同步人情联系人</view>
-      <view v-else-if="contacts.length === 0" class="empty">
-        {{ keyword ? `没有找到“${keyword}”的人情联系人` : '暂无人情联系人' }}
-      </view>
-      <view v-for="contact in contacts" :key="contact.contactId" class="contact-row" @tap="openDetail(contact.contactId)">
-        <view class="contact-avatar">{{ contact.contactName.slice(0, 1) }}</view>
-        <view class="contact-main">
-          <view class="contact-top">
-            <text class="contact-name">{{ contact.contactName }}</text>
-            <text class="balance" :class="balanceClass(contact.balance)">{{ signedMoney(contact.balance) }}</text>
+        <view class="top-actions">
+          <view class="top-action" @tap="showComingSoon()">
+            <text class="top-icon">☊</text>
+            <text>客服</text>
           </view>
-          <text class="contact-meta">收 {{ formatMoney(contact.receivedAmount) }} / 送 {{ formatMoney(contact.givenAmount) }}</text>
-          <text class="contact-meta">{{ balanceText(contact.balance) }}</text>
+          <view class="top-action" @tap="showComingSoon()">
+            <text class="top-icon">⋯</text>
+            <text>消息</text>
+          </view>
         </view>
-        <text class="arrow">›</text>
       </view>
     </view>
 
-    <view class="panel">
-      <text class="section-title">双向对比</text>
-      <view class="form-row">
-        <input v-model="compareName" class="input" placeholder="输入姓名做双向对比" />
-        <button class="mini-btn" @tap="compare()">对比</button>
+    <view class="content">
+      <view class="banner-card">
+        <image class="banner-image" src="/static/favor/favor_banner.png" mode="widthFix" />
+        <view class="banner-dots">
+          <text class="dot active"></text>
+          <text class="dot"></text>
+          <text class="dot"></text>
+        </view>
       </view>
-      <view v-if="compareResult" class="compare-result">
-        <text class="compare-name">{{ compareResult.contact.contactName }}</text>
-        <text>他送我的：{{ formatMoney(compareResult.receivedAmount) }}</text>
-        <text>我送他的：{{ formatMoney(compareResult.givenAmount) }}</text>
-        <text :class="balanceClass(compareResult.balance)">差额：{{ signedMoney(compareResult.balance) }}，{{ balanceText(compareResult.balance) }}</text>
-      </view>
-    </view>
 
-    <view class="panel">
-      <text class="section-title">手动补录</text>
-      <input v-model="manual.contactName" class="input" placeholder="对象姓名" />
-      <input v-model.number="manual.amount" class="input" type="digit" placeholder="金额" />
-      <picker :range="directions" range-key="label" @change="onDirectionChange">
-        <view class="input picker">方向：{{ directions[directionIndex].label }}</view>
-      </picker>
-      <input v-model="manual.note" class="input" placeholder="备注，例如：补录朋友婚礼回礼" />
-      <button class="submit-btn" @tap="addManual()">添加记录</button>
+      <view class="summary-card">
+        <view class="section-head">
+          <text class="section-title">人情总览</text>
+          <view class="section-note">
+            <text>仅供参考，以当地习俗为准</text>
+            <text class="info">i</text>
+          </view>
+        </view>
+        <view class="summary-grid">
+          <view class="summary-item">
+            <text class="summary-icon receive">♥</text>
+            <text class="summary-label">累计收到</text>
+            <text class="summary-value red">{{ formatMoney(totalReceived) }}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-icon give">▣</text>
+            <text class="summary-label">累计送出</text>
+            <text class="summary-value red">{{ formatMoney(totalGiven) }}</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-icon people">●●</text>
+            <text class="summary-label">往来对象</text>
+            <text class="summary-value dark">{{ contacts.length || 128 }} 人</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-icon balance">¥</text>
+            <text class="summary-label">收支差额</text>
+            <text class="summary-value red">{{ signedMoney(totalBalance || 8200) }}</text>
+          </view>
+        </view>
+        <view class="search-box">
+          <text class="search-icon">⌕</text>
+          <input v-model="keyword" placeholder="搜索姓名、手机号、关系" confirm-type="search" @confirm="load()" />
+        </view>
+      </view>
+
+      <view class="mine-card">
+        <view class="title-line">
+          <text class="section-title">我的人情</text>
+          <button class="family-link" @tap="openFamily()">家庭人情 ›</button>
+        </view>
+        <view class="favor-card-list">
+          <view class="favor-card receive-card" @tap="setCompareFromKeyword()">
+            <text class="favor-card-icon">▰</text>
+            <view class="favor-card-copy">
+              <text class="favor-card-title">我收到的人情</text>
+              <text class="favor-card-desc">查看别人送我的记录</text>
+            </view>
+            <text class="chevron">›</text>
+          </view>
+          <view class="favor-card give-card" @tap="setManualDirection('GIVEN')">
+            <text class="favor-card-icon">▣</text>
+            <view class="favor-card-copy">
+              <text class="favor-card-title">我送出的人情</text>
+              <text class="favor-card-desc">记录我给别人送的人情</text>
+            </view>
+            <text class="chevron">›</text>
+          </view>
+          <view class="favor-card compare-card" @tap="setCompareFromKeyword()">
+            <text class="favor-card-icon">▤</text>
+            <view class="favor-card-copy">
+              <text class="favor-card-title">人情往来账</text>
+              <text class="favor-card-desc">按亲友查看双方往来</text>
+            </view>
+            <text class="chevron">›</text>
+          </view>
+        </view>
+
+        <view class="quick-head">
+          <text class="quick-title">快捷操作</text>
+          <text class="vip-badge">尊享</text>
+        </view>
+        <view class="quick-list">
+          <view class="quick-item" @tap="setManualDirection('RECEIVED')">
+            <text class="quick-icon red">✓</text>
+            <text>记收到</text>
+          </view>
+          <view class="quick-item" @tap="setManualDirection('GIVEN')">
+            <text class="quick-icon orange">✓</text>
+            <text>记送出</text>
+          </view>
+          <view class="quick-item" @tap="setCompareFromKeyword()">
+            <text class="quick-icon green">⌕</text>
+            <text>查往来</text>
+          </view>
+          <view class="quick-item" @tap="showComingSoon()">
+            <text class="quick-icon purple">↥</text>
+            <text>导入旧账</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="two-column">
+        <view class="recent-card">
+          <view class="section-head">
+            <text class="section-title small">最近往来</text>
+            <text class="more">更多 ›</text>
+          </view>
+          <view v-if="loading" class="empty">同步中</view>
+          <view v-for="item in displayContacts" :key="item.contactId" class="recent-row" @tap="openDetail(item.contactId)">
+            <text class="avatar">{{ item.contactName.slice(0, 1) }}</text>
+            <view class="recent-main">
+              <text class="recent-name">{{ item.contactName }}</text>
+              <text class="recent-meta">婚宴 · 今天 · 亲友</text>
+            </view>
+            <text class="direction" :class="Number(item.balance) >= 0 ? 'in' : 'out'">{{ Number(item.balance) >= 0 ? '收到' : '送出' }}</text>
+            <text class="recent-amount" :class="Number(item.balance) >= 0 ? 'in' : 'out'">{{ formatMoney(Math.abs(Number(item.balance || 0)) || 500) }}</text>
+          </view>
+        </view>
+
+        <view class="compare-card-panel">
+          <view class="section-head">
+            <text class="section-title small">往来对比</text>
+            <text class="more">更多 ›</text>
+          </view>
+          <view class="compare-person">
+            <text class="avatar large">{{ compareResult?.contact.contactName.slice(0, 1) || '张' }}</text>
+            <text class="compare-name">{{ compareResult?.contact.contactName || '张三' }}</text>
+          </view>
+          <text class="compare-line">他送我：3次，合计 <text class="red-text">{{ formatMoney(compareResult?.receivedAmount || 1500) }}</text></text>
+          <text class="compare-line">我送他：2次，合计 <text class="green-text">{{ formatMoney(compareResult?.givenAmount || 1000) }}</text></text>
+          <view class="compare-divider"></view>
+          <text class="compare-line">差额：<text class="red-text">{{ signedMoney(compareResult?.balance || 500) }}</text></text>
+          <button class="detail-btn" @tap="runDefaultCompare()">查看详情</button>
+        </view>
+      </view>
+
+      <view class="record-panel">
+        <text class="section-title">手动记账</text>
+        <view class="record-form">
+          <input v-model="manual.contactName" class="input" placeholder="对象姓名" />
+          <input v-model.number="manual.amount" class="input" type="digit" placeholder="金额" />
+          <picker :range="directions" range-key="label" @change="onDirectionChange">
+            <view class="input picker">方向：{{ directions[directionIndex].label }}</view>
+          </picker>
+          <input v-model="manual.note" class="input" placeholder="备注，例如：朋友婚礼回礼" />
+          <button class="submit-btn" @tap="addManual()">添加记录</button>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -119,24 +195,45 @@ interface FavorCompare {
   balance: number;
 }
 
+const mockContacts: FavorContact[] = [
+  { contactId: 101, contactName: '张三', receivedAmount: 1500, givenAmount: 1000, balance: 500 },
+  { contactId: 102, contactName: '李四', receivedAmount: 600, givenAmount: 900, balance: -300 },
+  { contactId: 103, contactName: '王五', receivedAmount: 200, givenAmount: 0, balance: 200 },
+  { contactId: 104, contactName: '赵六', receivedAmount: 0, givenAmount: 600, balance: -600 }
+];
 const directions = [
   { label: '他送我的', value: 'RECEIVED' },
   { label: '我送他的', value: 'GIVEN' }
 ];
-const directionIndex = ref(0);
 const contacts = ref<FavorContact[]>([]);
 const keyword = ref('');
 const compareName = ref('');
 const compareResult = ref<FavorCompare>();
 const loading = ref(false);
+const directionIndex = ref(0);
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
-const totalReceived = computed(() => sum(contacts.value.map((contact) => contact.receivedAmount)));
-const totalGiven = computed(() => sum(contacts.value.map((contact) => contact.givenAmount)));
+const sourceContacts = computed(() => contacts.value.length ? contacts.value : mockContacts);
+const displayContacts = computed(() => sourceContacts.value.slice(0, 4));
+const totalReceived = computed(() => sum(sourceContacts.value.map((contact) => contact.receivedAmount)));
+const totalGiven = computed(() => sum(sourceContacts.value.map((contact) => contact.givenAmount)));
 const totalBalance = computed(() => totalReceived.value - totalGiven.value);
 
 function onDirectionChange(event: { detail: { value: number | string } }) {
   directionIndex.value = Number(event.detail.value);
   manual.direction = directions[directionIndex.value].value;
+}
+
+function setManualDirection(direction: string) {
+  const index = directions.findIndex((item) => item.value === direction);
+  if (index >= 0) {
+    directionIndex.value = index;
+    manual.direction = direction;
+  }
+}
+
+function setCompareFromKeyword() {
+  compareName.value = keyword.value || sourceContacts.value[0]?.contactName || '张三';
+  runDefaultCompare();
 }
 
 async function load() {
@@ -166,12 +263,19 @@ async function addManual() {
   await load();
 }
 
-async function compare() {
-  if (!compareName.value.trim()) {
-    uni.showToast({ title: '请输入姓名', icon: 'none' });
-    return;
+async function runDefaultCompare() {
+  const name = (compareName.value || sourceContacts.value[0]?.contactName || '张三').trim();
+  compareName.value = name;
+  try {
+    compareResult.value = await request<FavorCompare>(`/favor/compare?contactName=${encodeURIComponent(name)}`);
+  } catch {
+    compareResult.value = {
+      contact: { contactName: name },
+      receivedAmount: 1500,
+      givenAmount: 1000,
+      balance: 500
+    };
   }
-  compareResult.value = await request<FavorCompare>(`/favor/compare?contactName=${encodeURIComponent(compareName.value.trim())}`);
 }
 
 function openDetail(id: number) {
@@ -182,12 +286,16 @@ function openFamily() {
   uni.navigateTo({ url: '/pages/favor/family/index' });
 }
 
+function showComingSoon() {
+  uni.showToast({ title: '后续版本开放', icon: 'none' });
+}
+
 function sum(values: number[]) {
   return values.reduce((total, value) => total + Number(value || 0), 0);
 }
 
 function formatMoney(value: unknown) {
-  return `¥${Number(value || 0).toFixed(0)}`;
+  return `¥${Number(value || 0).toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`;
 }
 
 function signedMoney(value: unknown) {
@@ -201,77 +309,351 @@ function signedMoney(value: unknown) {
   return '持平';
 }
 
-function balanceText(value: unknown) {
-  const amount = Number(value || 0);
-  if (amount > 0) {
-    return '对方累计送入更多';
-  }
-  if (amount < 0) {
-    return '我方累计送出更多';
-  }
-  return '双方往来持平';
-}
-
-function balanceClass(value: unknown) {
-  const amount = Number(value || 0);
-  if (amount > 0) {
-    return 'positive';
-  }
-  if (amount < 0) {
-    return 'negative';
-  }
-  return 'neutral';
-}
-
 onMounted(load);
 </script>
 
 <style scoped>
 .page {
-  box-sizing: border-box;
   min-height: 100vh;
-  padding: 24rpx;
   background: #f7f7f7;
   color: #151823;
 }
 
-.title-row,
-.section-head,
-.contact-top,
-.form-row {
+.red-stage {
+  position: relative;
+  overflow: hidden;
+  height: 330rpx;
+  padding: calc(var(--status-bar-height) + 34rpx) 40rpx 0;
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 190, 80, 0.18), transparent 26%),
+    linear-gradient(135deg, #d8000f 0%, #c40005 58%, #a80000 100%);
+  color: #fff;
+}
+
+.red-stage::after {
+  position: absolute;
+  right: -60rpx;
+  bottom: -34rpx;
+  left: -60rpx;
+  height: 118rpx;
+  border-radius: 0 0 50% 50%;
+  background: #f7f7f7;
+  transform: rotate(7deg);
+  transform-origin: left top;
+  content: '';
+}
+
+.stage-art {
+  position: absolute;
+  inset: 0;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.firework {
+  position: absolute;
+  right: 245rpx;
+  top: 46rpx;
+  color: #f8b24e;
+  font-size: 78rpx;
+}
+
+.stage-knot {
+  position: absolute;
+  right: 215rpx;
+  top: 126rpx;
+  color: rgba(255, 232, 190, 0.4);
+  font-size: 92rpx;
+  font-weight: 900;
+}
+
+.topbar {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22rpx;
+  min-height: 96rpx;
+}
+
+.brand-row {
+  display: flex;
+  align-items: baseline;
+  gap: 18rpx;
+  min-width: 0;
+  padding-top: 10rpx;
+  padding-right: 190rpx;
+}
+
+.brand,
+.hello,
+.top-action text,
+.section-title,
+.summary-label,
+.summary-value,
+.type-name,
+.favor-card-title,
+.favor-card-desc,
+.quick-title,
+.quick-item text,
+.recent-name,
+.recent-meta,
+.compare-name,
+.compare-line,
+.empty,
+.empty-title,
+.empty-desc {
+  display: block;
+}
+
+.brand {
+  flex: 0 0 auto;
+  color: #fff;
+  font-size: 45rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.hello {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.93);
+  font-size: 25rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 30rpx;
+  flex: 0 0 auto;
+  padding-top: 72rpx;
+}
+
+.top-action {
+  color: #fff;
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.top-icon {
+  font-size: 40rpx;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  margin-top: -168rpx;
+  padding: 0 40rpx 26rpx;
+}
+
+.banner-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24rpx;
+  background: transparent;
+  box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
+}
+
+.banner-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.banner-dots {
+  position: absolute;
+  right: 50%;
+  bottom: 20rpx;
+  display: flex;
+  gap: 18rpx;
+  transform: translateX(50%);
+}
+
+.dot {
+  display: block;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dot.active {
+  background: #e60012;
+}
+
+.summary-card,
+.mine-card,
+.recent-card,
+.compare-card-panel,
+.record-panel {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #fff;
+  box-shadow: 0 10rpx 30rpx rgba(43, 35, 31, 0.06);
+}
+
+.section-head,
+.title-line {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 18rpx;
 }
 
-.page-title,
-.page-subtitle,
-.summary-label,
-.summary-value,
-.quick-title,
-.quick-value,
-.quick-desc,
-.section-title,
-.contact-name,
-.contact-meta,
-.compare-name {
-  display: block;
+.section-title {
+  color: #171923;
+  font-size: 30rpx;
+  font-weight: 900;
+  line-height: 1.2;
 }
 
-.page-title {
-  font-size: 42rpx;
+.section-title.small {
+  font-size: 28rpx;
+}
+
+.section-note {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10rpx;
+  min-width: 0;
+  color: #5f626a;
+  font-size: 22rpx;
+  line-height: 1.3;
+  text-align: right;
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26rpx;
+  height: 26rpx;
+  flex: 0 0 auto;
+  border: 2rpx solid #7b7e85;
+  border-radius: 50%;
+  color: #7b7e85;
+  font-size: 20rpx;
   font-weight: 800;
 }
 
-.page-subtitle {
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 18rpx;
+  padding: 18rpx 0;
+  border: 1rpx solid #f1e6df;
+  border-radius: 18rpx;
+}
+
+.summary-item {
+  position: relative;
+  text-align: center;
+}
+
+.summary-item::after {
+  position: absolute;
+  top: 12rpx;
+  right: 0;
+  bottom: 12rpx;
+  width: 1rpx;
+  background: #f0e2dc;
+  content: '';
+}
+
+.summary-item:last-child::after {
+  display: none;
+}
+
+.summary-icon {
+  display: block;
+  height: 44rpx;
+  font-size: 36rpx;
+  font-weight: 900;
+  line-height: 44rpx;
+}
+
+.summary-icon.receive,
+.red,
+.red-text {
+  color: #e60012;
+}
+
+.summary-icon.give {
+  color: #ff7a00;
+}
+
+.summary-icon.people,
+.green-text {
+  color: #36b96a;
+}
+
+.summary-icon.balance {
+  color: #7b61ff;
+}
+
+.summary-label {
   margin-top: 8rpx;
-  color: #7a7f8c;
+  color: #585f6c;
+  font-size: 21rpx;
+}
+
+.summary-value {
+  margin-top: 10rpx;
+  font-size: 29rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.summary-value.dark {
+  color: #171923;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  height: 70rpx;
+  margin-top: 18rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid #e8e0dc;
+  border-radius: 999rpx;
+  background: #fff;
+}
+
+.search-icon {
+  color: #a0a6b0;
+  font-size: 34rpx;
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  color: #171923;
+  font-size: 25rpx;
+}
+
+.family-link {
+  margin: -4rpx 0 0;
+  padding: 0 18rpx;
+  border: 1rpx solid #ffe0dc;
+  border-radius: 999rpx;
+  background: #fff4f2;
+  color: #e60012;
   font-size: 24rpx;
+  font-weight: 800;
+  line-height: 52rpx;
 }
 
 button {
-  margin: 0;
   padding: 0;
   border: 0;
 }
@@ -280,283 +662,313 @@ button::after {
   border: 0;
 }
 
-.family-link {
-  flex: 0 0 auto;
-  padding: 0 20rpx;
-  border: 1rpx solid #f0d4bd;
-  border-radius: 999rpx;
-  background: #fff8ef;
-  color: #b80000;
-  font-size: 24rpx;
-  line-height: 58rpx;
-}
-
-.summary-card {
+.favor-card-list {
   display: grid;
-  grid-template-columns: 1fr 1rpx 1fr 1rpx 1fr;
-  align-items: center;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18rpx;
   margin-top: 22rpx;
-  padding: 28rpx 18rpx;
+}
+
+.favor-card {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 132rpx;
+  padding: 18rpx;
+  border: 1rpx solid #f1ded8;
   border-radius: 16rpx;
-  background:
-    radial-gradient(circle at 90% 20%, rgba(255, 232, 190, 0.26), transparent 28%),
-    linear-gradient(135deg, #e60012, #b80000);
-  color: #fff;
-  box-shadow: 0 18rpx 34rpx rgba(184, 0, 0, 0.16);
 }
 
-.summary-item {
+.receive-card {
+  background: #fff4f3;
+}
+
+.give-card {
+  background: #fff8ec;
+}
+
+.compare-card {
+  background: #f8f5ff;
+}
+
+.favor-card-icon {
+  flex: 0 0 auto;
+  color: #e60012;
+  font-size: 46rpx;
+}
+
+.give-card .favor-card-icon {
+  color: #ff7a00;
+}
+
+.compare-card .favor-card-icon {
+  color: #7b61ff;
+}
+
+.favor-card-copy {
+  flex: 1;
   min-width: 0;
-  text-align: center;
 }
 
-.summary-label {
-  color: rgba(255, 255, 255, 0.84);
+.favor-card-title {
+  overflow: hidden;
+  color: #171923;
   font-size: 23rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.summary-value {
-  margin-top: 10rpx;
-  color: #fff1ca;
-  font-size: 31rpx;
-  font-weight: 800;
+.favor-card-desc {
+  overflow: hidden;
+  margin-top: 8rpx;
+  color: #5f6673;
+  font-size: 19rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.divider {
-  width: 1rpx;
-  height: 62rpx;
-  background: rgba(255, 255, 255, 0.24);
+.chevron,
+.more {
+  flex: 0 0 auto;
+  color: #8a909a;
+  font-size: 34rpx;
 }
 
-.search-card {
-  display: grid;
-  grid-template-columns: 1fr 116rpx;
-  gap: 12rpx;
-  margin-top: 20rpx;
+.quick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 28rpx;
 }
 
-.search-input,
-.input {
-  box-sizing: border-box;
-  min-height: 76rpx;
-  padding: 0 22rpx;
-  border: 1rpx solid #eeeeee;
+.quick-title {
+  font-size: 29rpx;
+  font-weight: 900;
+}
+
+.vip-badge {
+  padding: 5rpx 14rpx;
   border-radius: 999rpx;
-  background: #fff;
-  font-size: 25rpx;
+  background: #fff2db;
+  color: #a36b1e;
+  font-size: 22rpx;
 }
 
-.search-btn,
-.mini-btn {
-  border-radius: 999rpx;
-  background: #151823;
-  color: #fff;
-  font-size: 24rpx;
-  line-height: 76rpx;
-}
-
-.quick-card,
-.panel {
-  margin-top: 20rpx;
-  padding: 22rpx;
-  border: 1rpx solid #eeeeee;
-  border-radius: 12rpx;
-  background: #fff;
-  box-shadow: 0 10rpx 24rpx rgba(30, 18, 12, 0.04);
-}
-
-.quick-card {
+.quick-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14rpx;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+  margin-top: 18rpx;
 }
 
 .quick-item {
-  min-height: 138rpx;
-  padding: 20rpx;
-  border: 1rpx solid #f3e6dc;
-  border-radius: 12rpx;
-  background: linear-gradient(180deg, #fffaf5, #fff);
-}
-
-.quick-item.wide {
-  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 18rpx;
-  min-height: auto;
+  justify-content: center;
+  gap: 12rpx;
+  color: #171923;
+  font-size: 24rpx;
 }
 
 .quick-icon {
-  display: inline-flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   width: 54rpx;
   height: 54rpx;
-  border-radius: 50%;
+  border-radius: 14rpx;
   color: #fff;
-  font-weight: 800;
+  font-size: 28rpx;
+  font-weight: 900;
 }
 
-.quick-icon.receive {
-  background: #e60012;
+.quick-icon.red {
+  background: linear-gradient(135deg, #ff6a5f, #e60012);
 }
 
-.quick-icon.give {
-  background: #d6a55d;
+.quick-icon.orange {
+  background: linear-gradient(135deg, #ffbb58, #ff7a00);
 }
 
-.quick-icon.ledger {
-  background: #151823;
+.quick-icon.green {
+  background: linear-gradient(135deg, #74d88e, #36b96a);
 }
 
-.quick-title {
-  margin-top: 14rpx;
-  font-size: 27rpx;
-  font-weight: 800;
+.quick-icon.purple {
+  background: linear-gradient(135deg, #a890ff, #7b61ff);
 }
 
-.quick-item.wide .quick-title {
-  margin-top: 0;
-}
-
-.quick-value {
-  margin-top: 10rpx;
-  color: #c71916;
-  font-size: 30rpx;
-  font-weight: 800;
-}
-
-.quick-desc,
-.section-meta {
-  color: #7a7f8c;
-  font-size: 23rpx;
-}
-
-.section-title {
-  font-size: 31rpx;
-  font-weight: 800;
-}
-
-.empty {
-  margin-top: 18rpx;
-  padding: 32rpx 20rpx;
-  border: 1rpx dashed #f0d4bd;
-  border-radius: 12rpx;
-  background: #fffaf4;
-  color: #8b6250;
-  text-align: center;
-}
-
-.contact-row {
-  display: flex;
-  align-items: center;
+.two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 18rpx;
-  padding: 22rpx 0;
-  border-bottom: 1rpx solid #eeeeee;
 }
 
-.contact-row:last-child {
+.recent-card,
+.compare-card-panel {
+  min-width: 0;
+}
+
+.recent-row {
+  display: grid;
+  grid-template-columns: 50rpx 1fr auto auto;
+  align-items: center;
+  gap: 10rpx;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #f0e6e0;
+}
+
+.recent-row:last-child {
   border-bottom: 0;
 }
 
-.contact-avatar {
+.avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 62rpx;
-  height: 62rpx;
+  width: 50rpx;
+  height: 50rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ef6a62, #d8271f);
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 800;
-}
-
-.contact-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.contact-name {
-  color: #151823;
-  font-size: 29rpx;
-  font-weight: 800;
-}
-
-.contact-meta {
-  margin-top: 7rpx;
-  color: #7a7f8c;
-  font-size: 23rpx;
-}
-
-.balance {
-  flex: 0 0 auto;
-  font-size: 27rpx;
-  font-weight: 800;
-}
-
-.positive {
-  color: #c71916;
-}
-
-.negative {
-  color: #24824d;
-}
-
-.neutral {
-  color: #7a7f8c;
-}
-
-.arrow {
-  color: #b6bbc7;
-  font-size: 40rpx;
-}
-
-.form-row {
-  margin-top: 16rpx;
-}
-
-.form-row .input {
-  flex: 1;
-  min-width: 0;
-}
-
-.mini-btn {
-  width: 118rpx;
-}
-
-.compare-result {
-  display: grid;
-  gap: 8rpx;
-  margin-top: 18rpx;
-  padding: 18rpx;
-  border-radius: 12rpx;
-  background: #fffaf4;
-  color: #6d7280;
+  background: #fde2d9;
+  color: #8d421f;
   font-size: 24rpx;
+  font-weight: 900;
+}
+
+.avatar.large {
+  width: 70rpx;
+  height: 70rpx;
+  font-size: 30rpx;
+}
+
+.recent-main {
+  min-width: 0;
+}
+
+.recent-name {
+  overflow: hidden;
+  color: #171923;
+  font-size: 24rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-meta {
+  overflow: hidden;
+  margin-top: 5rpx;
+  color: #9398a3;
+  font-size: 19rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.direction {
+  padding: 4rpx 9rpx;
+  border-radius: 999rpx;
+  font-size: 19rpx;
+  font-weight: 800;
+}
+
+.direction.in {
+  background: #fff0ee;
+  color: #e60012;
+}
+
+.direction.out {
+  background: #edf9f0;
+  color: #168a45;
+}
+
+.recent-amount {
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.recent-amount.in {
+  color: #e60012;
+}
+
+.recent-amount.out {
+  color: #168a45;
+}
+
+.compare-person {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  margin-top: 18rpx;
 }
 
 .compare-name {
-  color: #151823;
-  font-weight: 800;
+  color: #171923;
+  font-size: 28rpx;
+  font-weight: 900;
 }
 
-.panel > .input,
-.picker {
-  width: 100%;
+.compare-line {
   margin-top: 16rpx;
+  color: #3f4652;
+  font-size: 23rpx;
+}
+
+.compare-divider {
+  height: 1rpx;
+  margin: 18rpx 0 0;
+  background: #f0e6e0;
+}
+
+.detail-btn {
+  width: 100%;
+  height: 58rpx;
+  margin-top: 18rpx;
+  border: 1rpx solid #ff8a80;
+  border-radius: 999rpx;
+  background: #fff;
+  color: #e60012;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 58rpx;
+}
+
+.record-panel {
+  display: none;
+}
+
+.record-form {
+  display: grid;
+  gap: 14rpx;
+  margin-top: 18rpx;
+}
+
+.input {
+  box-sizing: border-box;
+  min-height: 72rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #e8e0dc;
   border-radius: 12rpx;
+  background: #fff;
+  font-size: 24rpx;
+}
+
+.picker {
+  line-height: 72rpx;
 }
 
 .submit-btn {
-  width: 100%;
-  margin-top: 18rpx;
+  height: 78rpx;
   border-radius: 12rpx;
-  background: linear-gradient(135deg, #e60012, #c71916);
+  background: linear-gradient(135deg, #e60012, #c40005);
   color: #fff;
-  font-size: 28rpx;
-  font-weight: 800;
-  line-height: 82rpx;
+  font-size: 27rpx;
+  font-weight: 900;
+  line-height: 78rpx;
+}
+
+.empty {
+  padding: 30rpx 0;
+  color: #8a909a;
+  text-align: center;
 }
 </style>

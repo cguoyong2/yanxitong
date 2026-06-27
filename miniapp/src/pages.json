@@ -13,7 +13,7 @@
     { "path": "pages/gift/success/index", "style": { "navigationBarTitleText": "支付成功" } },
     { "path": "pages/gift/list/index", "style": { "navigationBarTitleText": "收礼记录" } },
     { "path": "pages/gift/offline/index", "style": { "navigationBarTitleText": "线下记礼" } },
-    { "path": "pages/favor/index/index", "style": { "navigationBarTitleText": "人情账本" } },
+    { "path": "pages/favor/index/index", "style": { "navigationStyle": "custom", "navigationBarTitleText": "人情账本" } },
     { "path": "pages/favor/detail/index", "style": { "navigationBarTitleText": "人情详情" } },
     { "path": "pages/favor/family/index", "style": { "navigationBarTitleText": "家庭人情簿" } },
     { "path": "pages/invitation/index/index", "style": { "navigationBarTitleText": "请柬" } },
