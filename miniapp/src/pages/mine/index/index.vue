@@ -1,86 +1,162 @@
 <template>
   <view class="page">
-    <view class="profile-card">
-      <view class="avatar">宴</view>
-      <view class="profile-main">
-        <text class="name">宴席通用户</text>
-        <text class="meta">体验版 · 非支付流程测试</text>
+    <view class="red-stage">
+      <view class="stage-art">
+        <text class="firework">✦</text>
+        <text class="stage-knot">囍</text>
       </view>
-      <button class="profile-btn" @tap="showComingSoon()">完善资料</button>
-    </view>
-
-    <view class="banner">
-      <text class="banner-title">运营与办席服务</text>
-      <text class="banner-text">版本权益、设备租赁、请柬模板和客服支持会逐步接入。</text>
-    </view>
-
-    <view class="grid-card">
-      <view class="grid-item" @tap="openOrders()">
-        <text class="grid-icon">版</text>
-        <text class="grid-title">版本订单</text>
-      </view>
-      <view class="grid-item" @tap="openDevices()">
-        <text class="grid-icon">屏</text>
-        <text class="grid-title">设备订单</text>
-      </view>
-      <view class="grid-item" @tap="showComingSoon()">
-        <text class="grid-icon">票</text>
-        <text class="grid-title">发票信息</text>
-      </view>
-      <view class="grid-item" @tap="showComingSoon()">
-        <text class="grid-icon">服</text>
-        <text class="grid-title">专属客服</text>
-      </view>
-    </view>
-
-    <view class="panel">
-      <text class="section-title">常用服务</text>
-      <view v-for="item in services" :key="item.title" class="service-row" @tap="handleService(item.action)">
-        <view>
-          <text class="service-title">{{ item.title }}</text>
-          <text class="service-desc">{{ item.desc }}</text>
+      <view class="topbar">
+        <view class="brand-row">
+          <text class="brand">宴席通</text>
+          <text class="hello">个人中心，订单、设备、服务一站管理</text>
         </view>
-        <text class="arrow">›</text>
+        <view class="top-actions">
+          <view class="top-action" @tap="showComingSoon()">
+            <text class="top-icon">☊</text>
+            <text>客服</text>
+          </view>
+          <view class="top-action" @tap="showComingSoon()">
+            <text class="top-icon">⋯</text>
+            <text>消息</text>
+          </view>
+        </view>
       </view>
     </view>
 
-    <view class="panel">
-      <text class="section-title">系统</text>
-      <view class="service-row" @tap="showVersion()">
-        <view>
-          <text class="service-title">当前版本</text>
-          <text class="service-desc">MVP 体验版</text>
+    <view class="content">
+      <view class="banner-card">
+        <image class="banner-image" src="/static/mine/mine_banner.png" mode="widthFix" />
+        <view class="banner-dots">
+          <text class="dot active"></text>
+          <text class="dot"></text>
+          <text class="dot"></text>
         </view>
-        <text class="arrow">›</text>
       </view>
-      <view class="service-row" @tap="showComingSoon()">
-        <view>
-          <text class="service-title">隐私与安全</text>
-          <text class="service-desc">账号、数据和操作日志说明</text>
+
+      <view class="profile-card">
+        <image class="avatar" src="/static/mine/avatar_user.png" mode="aspectFill" />
+        <view class="profile-main">
+          <view class="name-line">
+            <text class="user-name">张先生</text>
+            <text class="real-badge">已实名</text>
+          </view>
+          <text class="phone">138 **** 5678</text>
+          <view class="profile-stats">
+            <view>
+              <text class="profile-number">3</text>
+              <text class="profile-label">我的宴席</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view>
+              <text class="profile-number">5</text>
+              <text class="profile-label">我的请柬</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view>
+              <text class="profile-number">2</text>
+              <text class="profile-label">待处理</text>
+            </view>
+          </view>
         </view>
-        <text class="arrow">›</text>
+        <button class="edit-btn" @tap="showComingSoon()">✎ 编辑资料</button>
+      </view>
+
+      <view class="section-card">
+        <view class="section-head">
+          <text class="section-title">我的订单</text>
+          <text class="more">查看全部 ›</text>
+        </view>
+        <view class="order-grid">
+          <view v-for="item in orders" :key="item.title" class="order-item" @tap="handleAction(item.action)">
+            <text class="order-icon" :class="item.tone">{{ item.icon }}</text>
+            <text class="order-title">{{ item.title }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-card compact">
+        <view class="section-head">
+          <text class="section-title">我的设备</text>
+          <text class="more">查看全部 ›</text>
+        </view>
+        <view class="device-grid">
+          <view v-for="item in devices" :key="item.title" class="device-item" @tap="handleAction(item.action)">
+            <text class="device-icon" :class="item.tone">{{ item.icon }}</text>
+            <text>{{ item.title }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-card">
+        <text class="section-title">我的服务</text>
+        <view class="service-grid">
+          <view v-for="item in services" :key="item.title" class="service-item" @tap="handleAction(item.action)">
+            <text class="service-icon" :class="item.tone">{{ item.icon }}</text>
+            <text>{{ item.title }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="section-card settings-card">
+        <text class="section-title">帮助与设置</text>
+        <view class="settings-grid">
+          <view v-for="item in settings" :key="item.title" class="setting-item" @tap="showComingSoon()">
+            <text class="setting-icon">{{ item.icon }}</text>
+            <text>{{ item.title }}</text>
+            <text class="setting-arrow">›</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="agent-card">
+        <image class="agent-image" src="/static/mine/service_agent.png" mode="aspectFill" />
+        <view class="agent-main">
+          <view class="agent-title-line">
+            <text class="agent-title">专属客服</text>
+            <text class="agent-desc">为您提供一对一贴心服务</text>
+          </view>
+          <view class="agent-tags">
+            <text>快速响应</text>
+            <text>专业解答</text>
+            <text>贴心服务</text>
+          </view>
+        </view>
+        <button class="agent-btn" @tap="showComingSoon()">立即联系</button>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
+const orders = [
+  { title: '版本订单', icon: '▤', tone: 'red', action: 'plan' },
+  { title: '模板订单', icon: '▦', tone: 'orange', action: 'invitation' },
+  { title: '设备订单', icon: '◔', tone: 'blue', action: 'device' },
+  { title: '定制订单', icon: '✎', tone: 'purple', action: 'custom' }
+];
+const devices = [
+  { title: '确认屏租赁', icon: '▣', tone: 'red', action: 'device' },
+  { title: '云喇叭租赁', icon: '◖', tone: 'orange', action: 'device' },
+  { title: '设备绑定记录', icon: '↗', tone: 'green', action: 'device' },
+  { title: '交付方式说明', icon: '▰', tone: 'blue', action: 'device' }
+];
 const services = [
-  { title: '我的宴席', desc: '查看已创建宴席', action: 'banquet' },
-  { title: '收礼记录', desc: '查看线上和线下礼金', action: 'gift' },
-  { title: '人情账本', desc: '维护往来联系人', action: 'favor' },
-  { title: '请柬模板', desc: '管理模板和基础请柬', action: 'invitation' }
+  { title: '我的宴席', icon: '囍', tone: 'red', action: 'banquet' },
+  { title: '我的请柬', icon: '✉', tone: 'red', action: 'invitation' },
+  { title: '收礼记录', icon: '▣', tone: 'orange', action: 'gift' },
+  { title: '人情账本', icon: '▤', tone: 'orange', action: 'favor' },
+  { title: '使用教程', icon: '▶', tone: 'green', action: 'help' },
+  { title: '联系客服', icon: '☊', tone: 'blue', action: 'service' }
+];
+const settings = [
+  { title: '常见问题', icon: '?' },
+  { title: '消息通知', icon: '♧' },
+  { title: '隐私设置', icon: '▣' },
+  { title: '账号设置', icon: '♙' },
+  { title: '意见反馈', icon: '✎' }
 ];
 
-function openOrders() {
-  uni.navigateTo({ url: '/pages/order/plan/index' });
-}
-
-function openDevices() {
-  uni.navigateTo({ url: '/pages/device/select/index' });
-}
-
-function handleService(action: string) {
+function handleAction(action: string) {
   if (action === 'banquet') {
     uni.switchTab({ url: '/pages/home/index/index' });
     return;
@@ -97,16 +173,15 @@ function handleService(action: string) {
     uni.navigateTo({ url: '/pages/gift/list/index' });
     return;
   }
+  if (action === 'plan') {
+    uni.navigateTo({ url: '/pages/order/plan/index' });
+    return;
+  }
+  if (action === 'device') {
+    uni.navigateTo({ url: '/pages/device/select/index' });
+    return;
+  }
   showComingSoon();
-}
-
-function showVersion() {
-  uni.showModal({
-    title: '宴席通',
-    content: '当前为 MVP 体验版，优先验证非支付流程。',
-    showCancel: false,
-    confirmText: '知道了'
-  });
 }
 
 function showComingSoon() {
@@ -116,61 +191,256 @@ function showComingSoon() {
 
 <style scoped>
 .page {
-  box-sizing: border-box;
   min-height: 100vh;
-  padding: 24rpx;
   background: #f7f7f7;
   color: #151823;
 }
 
-.profile-card {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-  padding: 26rpx;
-  border-radius: 16rpx;
-  background: #fff;
-  box-shadow: 0 10rpx 24rpx rgba(30, 18, 12, 0.04);
-}
-
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 84rpx;
-  height: 84rpx;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #e60012, #b80000);
+.red-stage {
+  position: relative;
+  overflow: hidden;
+  height: 330rpx;
+  padding: calc(var(--status-bar-height) + 34rpx) 40rpx 0;
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 190, 80, 0.18), transparent 26%),
+    linear-gradient(135deg, #d8000f 0%, #c40005 58%, #a80000 100%);
   color: #fff;
-  font-size: 34rpx;
-  font-weight: 800;
 }
 
-.profile-main {
-  flex: 1;
+.red-stage::after {
+  position: absolute;
+  right: -60rpx;
+  bottom: -34rpx;
+  left: -60rpx;
+  height: 118rpx;
+  border-radius: 0 0 50% 50%;
+  background: #f7f7f7;
+  transform: rotate(7deg);
+  transform-origin: left top;
+  content: '';
+}
+
+.stage-art {
+  position: absolute;
+  inset: 0;
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.firework {
+  position: absolute;
+  right: 245rpx;
+  top: 46rpx;
+  color: #f8b24e;
+  font-size: 78rpx;
+}
+
+.stage-knot {
+  position: absolute;
+  right: 215rpx;
+  top: 126rpx;
+  color: rgba(255, 232, 190, 0.4);
+  font-size: 92rpx;
+  font-weight: 900;
+}
+
+.topbar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22rpx;
+  min-height: 96rpx;
+}
+
+.brand-row {
+  display: flex;
+  align-items: baseline;
+  gap: 18rpx;
   min-width: 0;
+  padding-top: 10rpx;
+  padding-right: 190rpx;
 }
 
-.name,
-.meta,
-.banner-title,
-.banner-text,
-.grid-title,
+.brand,
+.hello,
+.top-action text,
 .section-title,
-.service-title,
-.service-desc {
+.user-name,
+.phone,
+.profile-number,
+.profile-label,
+.order-title,
+.custom-title,
+.agent-title,
+.agent-desc,
+.mine-title {
   display: block;
 }
 
-.name {
+.brand {
+  flex: 0 0 auto;
+  color: #fff;
+  font-size: 45rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.hello {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.93);
+  font-size: 25rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 30rpx;
+  flex: 0 0 auto;
+  padding-top: 72rpx;
+}
+
+.top-action {
+  color: #fff;
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.top-icon {
+  font-size: 40rpx;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  margin-top: -168rpx;
+  padding: 0 40rpx 26rpx;
+}
+
+.banner-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24rpx;
+  background: transparent;
+  box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
+}
+
+.banner-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.banner-dots {
+  position: absolute;
+  right: 50%;
+  bottom: 20rpx;
+  display: flex;
+  gap: 18rpx;
+  transform: translateX(50%);
+}
+
+.dot {
+  display: block;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.dot.active {
+  background: #e60012;
+}
+
+.profile-card,
+.section-card,
+.agent-card {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #fff;
+  box-shadow: 0 10rpx 30rpx rgba(43, 35, 31, 0.06);
+}
+
+.profile-card {
+  display: grid;
+  grid-template-columns: 114rpx 1fr 150rpx;
+  align-items: start;
+  gap: 22rpx;
+}
+
+.avatar {
+  width: 114rpx;
+  height: 114rpx;
+  border-radius: 50%;
+}
+
+.profile-main {
+  min-width: 0;
+}
+
+.name-line {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.user-name {
+  color: #171923;
   font-size: 32rpx;
+  font-weight: 900;
+}
+
+.real-badge {
+  padding: 4rpx 10rpx;
+  border-radius: 8rpx;
+  background: #e9f8ec;
+  color: #36b96a;
+  font-size: 20rpx;
   font-weight: 800;
 }
 
-.meta {
-  margin-top: 8rpx;
-  color: #7a7f8c;
-  font-size: 23rpx;
+.phone {
+  margin-top: 10rpx;
+  color: #171923;
+  font-size: 25rpx;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: 1fr 1rpx 1fr 1rpx 1fr;
+  align-items: center;
+  margin-top: 20rpx;
+}
+
+.profile-stats view {
+  text-align: center;
+}
+
+.profile-number {
+  color: #171923;
+  font-size: 31rpx;
+  font-weight: 900;
+}
+
+.profile-label {
+  margin-top: 6rpx;
+  color: #6f7480;
+  font-size: 21rpx;
+}
+
+.stat-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background: #ece2dc;
 }
 
 button {
@@ -183,117 +453,216 @@ button::after {
   border: 0;
 }
 
-.profile-btn {
-  padding: 0 18rpx;
-  border: 1rpx solid #f0d4bd;
+.edit-btn {
+  height: 58rpx;
+  border: 1rpx solid #f6d8c9;
   border-radius: 999rpx;
-  background: #fff8ef;
-  color: #b80000;
+  background: #fff6ef;
+  color: #8a4a21;
   font-size: 23rpx;
-  line-height: 56rpx;
+  line-height: 58rpx;
 }
 
-.banner {
-  position: relative;
-  overflow: hidden;
-  margin-top: 20rpx;
-  padding: 30rpx;
-  border-radius: 16rpx;
-  background:
-    radial-gradient(circle at 88% 18%, rgba(255, 232, 190, 0.33), transparent 25%),
-    linear-gradient(135deg, #e60012, #b80000);
-  color: #fff;
-}
-
-.banner-title {
-  color: #fff1ca;
-  font-size: 36rpx;
-  font-weight: 800;
-}
-
-.banner-text {
-  margin-top: 12rpx;
-  max-width: 500rpx;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 24rpx;
-  line-height: 1.55;
-}
-
-.grid-card {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12rpx;
-  margin-top: 20rpx;
-}
-
-.grid-item,
-.panel {
-  border: 1rpx solid #eeeeee;
-  border-radius: 12rpx;
-  background: #fff;
-  box-shadow: 0 10rpx 24rpx rgba(30, 18, 12, 0.04);
-}
-
-.grid-item {
-  padding: 22rpx 8rpx;
-  text-align: center;
-}
-
-.grid-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 54rpx;
-  height: 54rpx;
-  margin: 0 auto;
-  border-radius: 50%;
-  background: #fff0ee;
-  color: #c71916;
-  font-weight: 800;
-}
-
-.grid-title {
-  margin-top: 10rpx;
-  font-size: 22rpx;
-  font-weight: 700;
-}
-
-.panel {
-  margin-top: 20rpx;
-  padding: 24rpx;
-}
-
-.section-title {
-  font-size: 31rpx;
-  font-weight: 800;
-}
-
-.service-row {
+.section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
-  padding: 22rpx 0;
-  border-bottom: 1rpx solid #eeeeee;
 }
 
-.service-row:last-child {
-  border-bottom: 0;
+.section-title {
+  color: #171923;
+  font-size: 30rpx;
+  font-weight: 900;
 }
 
-.service-title {
-  font-size: 28rpx;
-  font-weight: 800;
-}
-
-.service-desc {
-  margin-top: 7rpx;
-  color: #7a7f8c;
+.more {
+  color: #5f626a;
   font-size: 23rpx;
 }
 
-.arrow {
-  color: #b6bbc7;
-  font-size: 40rpx;
+.order-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
+  margin-top: 22rpx;
+}
+
+.order-item {
+  min-height: 102rpx;
+  padding-top: 18rpx;
+  border: 1rpx solid #ece4df;
+  border-radius: 14rpx;
+  text-align: center;
+}
+
+.order-icon,
+.device-icon,
+.service-icon {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 900;
+}
+
+.order-title {
+  margin-top: 12rpx;
+  color: #171923;
+  font-size: 23rpx;
+}
+
+.red {
+  color: #e60012;
+}
+
+.orange {
+  color: #ff7a00;
+}
+
+.blue {
+  color: #3e8bff;
+}
+
+.purple {
+  color: #7b61ff;
+}
+
+.green {
+  color: #36b96a;
+}
+
+.compact {
+  padding-bottom: 18rpx;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
+.device-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  min-height: 72rpx;
+  border: 1rpx solid #ece4df;
+  border-radius: 12rpx;
+  color: #171923;
+  font-size: 22rpx;
+}
+
+.device-icon {
+  font-size: 28rpx;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  min-height: 74rpx;
+  border: 1rpx solid #ece4df;
+  border-radius: 12rpx;
+  color: #171923;
+  font-size: 24rpx;
+}
+
+.service-icon {
+  font-size: 30rpx;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: 24rpx;
+  margin-top: 24rpx;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  color: #3f4652;
+  font-size: 23rpx;
+}
+
+.setting-icon {
+  color: #8a909a;
+}
+
+.setting-arrow {
+  color: #8a909a;
+  font-size: 28rpx;
+}
+
+.agent-card {
+  display: grid;
+  grid-template-columns: 126rpx 1fr 154rpx;
+  align-items: center;
+  gap: 20rpx;
+  background: linear-gradient(90deg, #fff8f1, #fff);
+  border: 1rpx solid #f7e0d2;
+}
+
+.agent-image {
+  width: 126rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+}
+
+.agent-main {
+  min-width: 0;
+}
+
+.agent-title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+}
+
+.agent-title {
+  flex: 0 0 auto;
+  color: #171923;
+  font-size: 31rpx;
+  font-weight: 900;
+}
+
+.agent-desc {
+  overflow: hidden;
+  color: #3f4652;
+  font-size: 22rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-tags {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 18rpx;
+}
+
+.agent-tags text {
+  color: #e65a42;
+  font-size: 20rpx;
+}
+
+.agent-btn {
+  height: 68rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #e60012, #c40005);
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: 900;
+  line-height: 68rpx;
 }
 </style>
