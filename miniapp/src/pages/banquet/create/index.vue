@@ -511,7 +511,7 @@ onMounted(loadEventTypes);
 .page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 0 24rpx 152rpx;
+  padding: 0 24rpx 40rpx;
   color: #172033;
 }
 
@@ -1035,17 +1035,10 @@ onMounted(loadEventTypes);
 }
 
 .bottom-bar {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 10;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 18rpx;
-  padding: 18rpx 24rpx 34rpx;
-  border-top: 1rpx solid rgba(120, 81, 48, 0.12);
-  background: rgba(255, 253, 250, 0.96);
+  margin-top: 24rpx;
+  padding: 0 0 22rpx;
 }
 
 .primary-create {
