@@ -14,7 +14,21 @@
     { "path": "pages/gift/list/index", "style": { "navigationBarTitleText": "收礼记录" } },
     { "path": "pages/gift/offline/index", "style": { "navigationBarTitleText": "线下记礼" } },
     { "path": "pages/favor/index/index", "style": { "navigationBarTitleText": "人情账本" } },
-    { "path": "pages/favor/detail/index", "style": { "navigationBarTitleText": "人情详情" } }
-  ]
+    { "path": "pages/favor/detail/index", "style": { "navigationBarTitleText": "人情详情" } },
+    { "path": "pages/favor/family/index", "style": { "navigationBarTitleText": "家庭人情簿" } },
+    { "path": "pages/invitation/index/index", "style": { "navigationBarTitleText": "请柬" } },
+    { "path": "pages/mine/index/index", "style": { "navigationBarTitleText": "我的" } }
+  ],
+  "tabBar": {
+    "color": "#7A7F8C",
+    "selectedColor": "#E60012",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/home/index/index", "text": "宴席" },
+      { "pagePath": "pages/favor/index/index", "text": "人情" },
+      { "pagePath": "pages/invitation/index/index", "text": "请柬" },
+      { "pagePath": "pages/mine/index/index", "text": "我的" }
+    ]
+  }
 }
-
