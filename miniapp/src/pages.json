@@ -16,7 +16,7 @@
     { "path": "pages/favor/index/index", "style": { "navigationStyle": "custom", "navigationBarTitleText": "人情账本" } },
     { "path": "pages/favor/detail/index", "style": { "navigationBarTitleText": "人情详情" } },
     { "path": "pages/favor/family/index", "style": { "navigationBarTitleText": "家庭人情簿" } },
-    { "path": "pages/invitation/index/index", "style": { "navigationBarTitleText": "请柬" } },
+    { "path": "pages/invitation/index/index", "style": { "navigationStyle": "custom", "navigationBarTitleText": "请柬" } },
     { "path": "pages/mine/index/index", "style": { "navigationBarTitleText": "我的" } }
   ],
   "tabBar": {
