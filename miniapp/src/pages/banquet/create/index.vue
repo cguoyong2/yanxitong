@@ -1,7 +1,15 @@
 <template>
   <view class="page">
-    <view class="hero">
-      <image class="hero-image" src="/static/create/create_hero.png" mode="widthFix" />
+    <view class="hero" :class="currentDesign.tone">
+      <view class="hero-art">
+        <text class="hero-mark">{{ currentDesign.mark }}</text>
+      </view>
+      <text class="hero-brand">宴席通</text>
+      <text class="hero-title">{{ currentDesign.title }}</text>
+      <text class="hero-desc">{{ currentDesign.desc }}</text>
+      <view class="hero-tags">
+        <text v-for="tag in currentDesign.tags" :key="tag">{{ tag }}</text>
+      </view>
     </view>
 
     <view class="content">
@@ -142,16 +150,21 @@ interface InvitationTemplate {
 interface TypeDesign {
   mark: string;
   bg: string;
+  tone: string;
+  title: string;
+  desc: string;
+  tags: string[];
+  greeting: string;
 }
 
 const typeDesigns: Record<string, TypeDesign> = {
-  WEDDING: { mark: '♡', bg: 'linear-gradient(135deg, #e60012, #c40005)' },
-  BIRTHDAY: { mark: '寿', bg: 'linear-gradient(135deg, #fff7eb, #ffffff)' },
-  BABY: { mark: '☺', bg: 'linear-gradient(135deg, #fff4f5, #ffffff)' },
-  HOUSEWARMING: { mark: '⌂', bg: 'linear-gradient(135deg, #f1fbf4, #ffffff)' },
-  SCHOOL: { mark: '◇', bg: 'linear-gradient(135deg, #f0f6ff, #ffffff)' },
-  MEMORIAL: { mark: '♜', bg: 'linear-gradient(135deg, #f4f4f5, #ffffff)' },
-  OTHER: { mark: '宴', bg: 'linear-gradient(135deg, #fff7eb, #ffffff)' }
+  WEDDING: { mark: '囍', bg: 'linear-gradient(135deg, #e60012, #c40005)', tone: 'tone-wedding', title: '创建婚宴', desc: '轻松办好每一场婚宴', tags: ['红金礼序', '喜庆体面'], greeting: '诚邀您拨冗赴宴，共同见证我们的幸福时刻' },
+  BIRTHDAY: { mark: '寿', bg: 'linear-gradient(135deg, #fff7eb, #ffffff)', tone: 'tone-birthday', title: '创建寿宴', desc: '福寿安康，亲友同贺', tags: ['寿礼安排', '亲友祝寿'], greeting: '诚邀您拨冗赴宴，共祝福寿安康' },
+  BABY: { mark: '满', bg: 'linear-gradient(135deg, #fff4f5, #ffffff)', tone: 'tone-baby', title: '创建满月宴', desc: '喜迎新生，满月同庆', tags: ['满月喜礼', '亲友同喜'], greeting: '诚邀您参加满月宴，共同见证新生命的喜悦' },
+  HOUSEWARMING: { mark: '福', bg: 'linear-gradient(135deg, #f1fbf4, #ffffff)', tone: 'tone-house', title: '创建乔迁宴', desc: '乔迁新居，福至新门', tags: ['新居入伙', '亲友同贺'], greeting: '诚邀您莅临乔迁宴，共贺新居之喜' },
+  SCHOOL: { mark: '学', bg: 'linear-gradient(135deg, #f0f6ff, #ffffff)', tone: 'tone-school', title: '创建升学宴', desc: '金榜题名，前程似锦', tags: ['升学庆贺', '谢师亲友'], greeting: '诚邀您参加升学宴，共同分享金榜题名的喜悦' },
+  MEMORIAL: { mark: '念', bg: 'linear-gradient(135deg, #f4f4f5, #ffffff)', tone: 'tone-memorial', title: '创建追思会', desc: '慎终追远，思念长存', tags: ['追思故人', '缅怀永存'], greeting: '诚邀您参加追思会，共同追忆往昔，寄托哀思' },
+  OTHER: { mark: '宴', bg: 'linear-gradient(135deg, #fff7eb, #ffffff)', tone: 'tone-other', title: '创建宴席', desc: '按场景配置宴席流程', tags: ['灵活类型', '有序管理'], greeting: '诚邀您拨冗赴宴，共同见证这份重要时刻' }
 };
 
 const eventTypes = ref<EventType[]>([]);
@@ -174,6 +187,7 @@ const initialEventTypeCode = ref('');
 const initialTemplateId = ref<number>();
 
 const selectedTemplate = computed(() => templates.value.find((item) => item.id === form.templateId));
+const currentDesign = computed(() => designFor(form.eventTypeCode || 'OTHER'));
 const filteredTemplates = computed(() => {
   const rows = templates.value.filter((item) => matchesEventType(item, form.eventTypeCode));
   return (rows.length ? rows : templates.value).slice(0, 8);
@@ -318,7 +332,7 @@ async function syncInvitationBasic(invitationId?: number) {
       contactPhone: displayForm.phone,
       addressDetail: form.location,
       scheduleText: '',
-      greeting: '诚邀您拨冗赴宴，共同见证这份重要时刻',
+      greeting: currentDesign.value.greeting,
       showGiftEntry: true,
       showDeviceEntry: true
     }
@@ -345,12 +359,110 @@ onMounted(() => {
 .hero {
   position: relative;
   overflow: hidden;
-  background: #d91f1b;
+  min-height: 430rpx;
+  padding: calc(var(--status-bar-height) + 58rpx) 42rpx 92rpx;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255, 214, 146, 0.26), transparent 190rpx),
+    linear-gradient(135deg, #e71921 0%, #c9161c 62%, #9b0e13 100%);
+  color: #fff8df;
 }
 
-.hero-image {
+.hero.tone-birthday {
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255, 230, 176, 0.28), transparent 190rpx),
+    linear-gradient(135deg, #c15b10 0%, #9d4308 62%, #743005 100%);
+}
+
+.hero.tone-baby {
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255, 221, 230, 0.34), transparent 190rpx),
+    linear-gradient(135deg, #e7566f 0%, #c73655 62%, #932742 100%);
+}
+
+.hero.tone-house {
+  background:
+    radial-gradient(circle at 78% 22%, rgba(190, 245, 208, 0.25), transparent 190rpx),
+    linear-gradient(135deg, #1b8a58 0%, #116943 62%, #0b4b31 100%);
+}
+
+.hero.tone-school {
+  background:
+    radial-gradient(circle at 78% 22%, rgba(190, 220, 255, 0.25), transparent 190rpx),
+    linear-gradient(135deg, #2563eb 0%, #1d4ed8 62%, #1e3a8a 100%);
+}
+
+.hero.tone-memorial {
+  background:
+    radial-gradient(circle at 78% 22%, rgba(255, 255, 255, 0.1), transparent 190rpx),
+    linear-gradient(135deg, #202124 0%, #111315 62%, #050607 100%);
+}
+
+.hero.tone-other {
+  background:
+    radial-gradient(circle at 78% 22%, rgba(218, 200, 255, 0.24), transparent 190rpx),
+    linear-gradient(135deg, #7c3aed 0%, #5b21b6 62%, #3b0764 100%);
+}
+
+.hero-art {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-mark {
+  position: absolute;
+  right: 46rpx;
+  bottom: 18rpx;
+  color: rgba(255, 239, 206, 0.18);
+  font-size: 210rpx;
+  font-weight: 900;
+}
+
+.hero-brand,
+.hero-title,
+.hero-desc,
+.hero-tags {
+  position: relative;
+  z-index: 2;
   display: block;
-  width: 100%;
+}
+
+.hero-brand {
+  color: #ffe4bd;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.hero-title {
+  margin-top: 26rpx;
+  font-family: serif;
+  font-size: 68rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.hero-desc {
+  margin-top: 18rpx;
+  color: rgba(255, 248, 232, 0.96);
+  font-size: 31rpx;
+  font-weight: 800;
+}
+
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 28rpx;
+}
+
+.hero-tags text {
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff2d7;
+  font-size: 24rpx;
+  font-weight: 800;
 }
 
 .content {

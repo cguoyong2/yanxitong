@@ -3,12 +3,12 @@
     <view class="red-stage">
       <view class="stage-art">
         <text class="firework">✦</text>
-        <text class="stage-knot">囍</text>
+        <text class="stage-knot">{{ activeDesign.mark }}</text>
       </view>
       <view class="topbar">
         <view class="brand-row">
           <text class="brand">宴席通</text>
-          <text class="hello">您好，办宴席，用宴席通</text>
+          <text class="hello">{{ activeDesign.homeText }}</text>
         </view>
         <view class="top-actions">
           <view class="top-action" @tap="showServiceTip()">
@@ -174,13 +174,13 @@ interface GiftSummary {
 }
 
 const eventTypes = [
-  { code: 'WEDDING', name: '婚宴', subtitle: '喜结良缘', icon: '囍', tone: 'red' },
-  { code: 'BIRTHDAY', name: '寿宴', subtitle: '福寿安康', icon: '寿', tone: 'orange' },
-  { code: 'BABY', name: '满月', subtitle: '喜迎新生', icon: '🍼', tone: 'pink' },
-  { code: 'HOUSEWARMING', name: '乔迁', subtitle: '乔迁之喜', icon: '⌂', tone: 'green' },
-  { code: 'SCHOOL', name: '升学', subtitle: '金榜题名', icon: '◆', tone: 'blue' },
-  { code: 'MEMORIAL', name: '追思会', subtitle: '追思缅怀', icon: '✿', tone: 'black' },
-  { code: 'OTHER', name: '其他', subtitle: '更多类型', icon: '▦', tone: 'purple' }
+  { code: 'WEDDING', name: '婚宴', subtitle: '喜结良缘', icon: '囍', tone: 'red', mark: '囍', homeText: '您好，办婚宴，用宴席通' },
+  { code: 'BIRTHDAY', name: '寿宴', subtitle: '福寿安康', icon: '寿', tone: 'orange', mark: '寿', homeText: '寿宴筹备，福寿有序' },
+  { code: 'BABY', name: '满月', subtitle: '喜迎新生', icon: '满', tone: 'pink', mark: '满', homeText: '满月礼成，亲友同喜' },
+  { code: 'HOUSEWARMING', name: '乔迁', subtitle: '乔迁之喜', icon: '福', tone: 'green', mark: '福', homeText: '乔迁新居，邀亲友同贺' },
+  { code: 'SCHOOL', name: '升学', subtitle: '金榜题名', icon: '学', tone: 'blue', mark: '学', homeText: '升学庆贺，前程有光' },
+  { code: 'MEMORIAL', name: '追思会', subtitle: '追思缅怀', icon: '念', tone: 'black', mark: '念', homeText: '慎终追远，思念长存' },
+  { code: 'OTHER', name: '其他', subtitle: '更多类型', icon: '宴', tone: 'purple', mark: '宴', homeText: '办宴席，用宴席通' }
 ];
 const guides = [
   { title: '办席流程', desc: '了解完整办席步骤', icon: '▰', tone: 'red', action: 'create' },
@@ -209,6 +209,7 @@ const hasBanquet = computed(() => banquets.value.length > 0);
 const latestBanquet = computed(() => banquets.value[0] || { id: 0, name: '', eventTypeCode: '', themeCode: '', banquetTime: '', location: '' });
 const latestBanquetId = computed(() => latestBanquet.value?.id || 0);
 const activeTone = computed(() => eventTypes.find((item) => item.code === activeType.value)?.tone || 'red');
+const activeDesign = computed(() => eventTypes.find((item) => item.code === activeType.value) || eventTypes[0]);
 
 function formatTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';

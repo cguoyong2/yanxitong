@@ -1,9 +1,9 @@
 <template>
-  <view class="page" v-if="detail">
+  <view class="page" v-if="detail" :class="detailDesign.tone">
     <view class="red-stage">
       <view class="hero-art">
         <text class="firework">✦</text>
-        <text class="hero-knot">囍</text>
+        <text class="hero-knot">{{ detailDesign.mark }}</text>
       </view>
       <view class="hero-top">
         <view>
@@ -181,9 +181,19 @@ const actionItems = [
   { title: '人情账本', desc: '自动沉淀往来', icon: '账', tone: 'green', action: 'favor' },
   { title: '线上随礼', desc: paymentTip(), icon: '¥', tone: 'purple', action: 'onlineGift' }
 ];
+const typeDesigns: Record<string, { mark: string; tone: string }> = {
+  WEDDING: { mark: '囍', tone: 'tone-wedding' },
+  BIRTHDAY: { mark: '寿', tone: 'tone-birthday' },
+  BABY: { mark: '满', tone: 'tone-baby' },
+  HOUSEWARMING: { mark: '福', tone: 'tone-house' },
+  SCHOOL: { mark: '学', tone: 'tone-school' },
+  MEMORIAL: { mark: '念', tone: 'tone-memorial' },
+  OTHER: { mark: '宴', tone: 'tone-other' }
+};
 const hasDeviceRight = computed(() => Boolean(entitlements.rightValues.DEVICE_RENTAL));
 const hasExportRight = computed(() => Boolean(entitlements.rightValues.EXCEL_EXPORT));
 const paymentEntryEnabled = computed(() => features.value.mockPaymentEnabled);
+const detailDesign = computed(() => typeDesigns[detail.value?.banquet.eventTypeCode || 'WEDDING'] || typeDesigns.OTHER);
 const statusLabel = computed(() => {
   const status = detail.value?.banquet.status;
   if (status === 'PUBLISHED') return '已发布';
@@ -446,6 +456,48 @@ onMounted(bootstrap);
     radial-gradient(circle at 100% 100%, rgba(255, 219, 168, 0.26), transparent 26%),
     linear-gradient(142deg, #e40012 0%, #cf0710 48%, #a80008 100%);
   color: #fff;
+}
+
+.tone-birthday .red-stage {
+  background:
+    radial-gradient(circle at 76% 12%, rgba(255, 218, 138, 0.3), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(255, 228, 176, 0.2), transparent 26%),
+    linear-gradient(142deg, #c15b10 0%, #9d4308 48%, #743005 100%);
+}
+
+.tone-baby .red-stage {
+  background:
+    radial-gradient(circle at 76% 12%, rgba(255, 198, 212, 0.3), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(255, 224, 232, 0.18), transparent 26%),
+    linear-gradient(142deg, #e7566f 0%, #c73655 48%, #932742 100%);
+}
+
+.tone-house .red-stage {
+  background:
+    radial-gradient(circle at 76% 12%, rgba(185, 245, 202, 0.22), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(210, 245, 220, 0.16), transparent 26%),
+    linear-gradient(142deg, #1b8a58 0%, #116943 48%, #0b4b31 100%);
+}
+
+.tone-school .red-stage {
+  background:
+    radial-gradient(circle at 76% 12%, rgba(186, 220, 255, 0.24), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(215, 232, 255, 0.16), transparent 26%),
+    linear-gradient(142deg, #2563eb 0%, #1d4ed8 48%, #1e3a8a 100%);
+}
+
+.tone-memorial .red-stage {
+  background:
+    radial-gradient(circle at 76% 12%, rgba(255, 255, 255, 0.08), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.06), transparent 26%),
+    linear-gradient(142deg, #202124 0%, #111315 48%, #050607 100%);
+}
+
+.tone-other .red-stage {
+  background:
+    radial-gradient(circle at 76% 12%, rgba(218, 200, 255, 0.22), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(235, 224, 255, 0.12), transparent 26%),
+    linear-gradient(142deg, #7c3aed 0%, #5b21b6 48%, #3b0764 100%);
 }
 
 .hero-art {
