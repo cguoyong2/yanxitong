@@ -37,23 +37,23 @@
         <image class="avatar" src="/static/mine/avatar_user.png" mode="aspectFill" />
         <view class="profile-main">
           <view class="name-line">
-            <text class="user-name">张先生</text>
+            <text class="user-name">宴席通用户</text>
             <text class="real-badge">已实名</text>
           </view>
-          <text class="phone">138 **** 5678</text>
+          <text class="phone">登录后展示手机号</text>
           <view class="profile-stats">
             <view>
-              <text class="profile-number">3</text>
+              <text class="profile-number">{{ banquetCount }}</text>
               <text class="profile-label">我的宴席</text>
             </view>
             <view class="stat-divider"></view>
             <view>
-              <text class="profile-number">5</text>
+              <text class="profile-number">{{ invitationCount }}</text>
               <text class="profile-label">我的请柬</text>
             </view>
             <view class="stat-divider"></view>
             <view>
-              <text class="profile-number">2</text>
+              <text class="profile-number">{{ pendingCount }}</text>
               <text class="profile-label">待处理</text>
             </view>
           </view>
@@ -128,6 +128,16 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import { request } from '../../../api/client';
+
+interface Banquet {
+  id: number;
+}
+
+const banquetCount = ref(0);
+const invitationCount = ref(0);
+const pendingCount = ref(0);
 const orders = [
   { title: '版本订单', icon: '▤', tone: 'red', action: 'plan' },
   { title: '模板订单', icon: '▦', tone: 'orange', action: 'invitation' },
@@ -187,6 +197,15 @@ function handleAction(action: string) {
 function showComingSoon() {
   uni.showToast({ title: '后续版本开放', icon: 'none' });
 }
+
+async function loadProfileStats() {
+  const banquets = await request<Banquet[]>('/banquets').catch(() => []);
+  banquetCount.value = banquets.length;
+  invitationCount.value = banquets.length;
+  pendingCount.value = 0;
+}
+
+onMounted(loadProfileStats);
 </script>
 
 <style scoped>
