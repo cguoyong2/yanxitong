@@ -47,19 +47,27 @@
       </view>
     </view>
 
-    <view v-if="orders.length" class="orders-card">
+    <view class="orders-card">
       <view class="section-head">
-        <text class="section-title">已租设备</text>
-        <text class="section-note">{{ orders.length }} 单</text>
+        <text class="section-title">设备订单跟踪</text>
+        <text class="section-note">{{ orders.length ? `${orders.length} 单` : '暂无订单' }}</text>
+      </view>
+      <view v-if="!orders.length" class="order-empty">
+        <text class="empty-title">还没有设备订单</text>
+        <text class="empty-desc">选择下方确认屏或云喇叭后，会在这里显示订单、租用时间、交付方式和支付状态。</text>
       </view>
       <view v-for="order in orders" :key="order.orderNo" class="order-row">
         <view class="order-main">
           <text class="order-title">{{ deviceTypeLabel(order.deviceType) }}</text>
           <text class="order-meta">{{ order.orderNo }}</text>
-          <text class="order-meta">{{ statusLabel(order.payStatus) }} · {{ orderStatusLabel(order.orderStatus) }}</text>
+          <text class="order-meta">{{ formatRentWindow(order) }}</text>
+          <text class="order-meta">{{ deliveryLabel(order.deliveryMethod) }} · {{ formatTime(order.createdAt) }}</text>
         </view>
         <view class="order-side">
           <text class="order-price">{{ formatMoney(order.price) }}</text>
+          <text class="status-tag" :class="{ paid: order.payStatus === 'PAID' }">
+            {{ statusLabel(order.payStatus) }} · {{ orderStatusLabel(order.orderStatus) }}
+          </text>
           <button
             v-if="features.mockPaymentEnabled && order.payStatus !== 'PAID'"
             class="pay-button"
@@ -137,11 +145,14 @@ interface Entitlements {
 interface DeviceOrder {
   orderNo: string;
   deviceType: string;
+  rentStartAt?: string;
+  rentEndAt?: string;
   price?: number;
   priceUnit?: string;
   deliveryMethod?: string;
   payStatus: string;
   orderStatus: string;
+  createdAt?: string;
 }
 
 const configs = ref<DeviceConfig[]>([]);
@@ -181,7 +192,7 @@ async function loadOrders() {
   if (!banquetId.value) {
     return;
   }
-  orders.value = await request<DeviceOrder[]>(`/devices/orders?banquetId=${banquetId.value}`);
+  orders.value = await request<DeviceOrder[]>(`/devices/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
 }
 
 async function createOrder(config: DeviceConfig) {
@@ -209,6 +220,7 @@ async function createOrder(config: DeviceConfig) {
       }
     });
     orders.value = [order, ...orders.value.filter((item) => item.orderNo !== order.orderNo)];
+    cacheOrder(order);
     uni.showToast({ title: '设备订单已创建', icon: 'success' });
   } finally {
     submittingId.value = undefined;
@@ -220,6 +232,7 @@ async function mockPay(orderNo: string) {
   try {
     await request(`/devices/orders/${orderNo}/mock-success`, { method: 'POST' });
     await loadOrders();
+    clearCachedOrder(orderNo);
     uni.showToast({ title: '设备订单已确认', icon: 'success' });
   } finally {
     payingOrderNo.value = '';
@@ -228,6 +241,33 @@ async function mockPay(orderNo: string) {
 
 function toLocalDateTime(date: string, time: string) {
   return date && time ? `${date}T${time}:00` : undefined;
+}
+
+function cachedOrders(): DeviceOrder[] {
+  if (!banquetId.value) {
+    return [];
+  }
+  return uni.getStorageSync(deviceOrderCacheKey()) || [];
+}
+
+function cacheOrder(order: DeviceOrder) {
+  if (!banquetId.value) {
+    return;
+  }
+  const rows = [order, ...cachedOrders().filter((item) => item.orderNo !== order.orderNo)];
+  uni.setStorageSync(deviceOrderCacheKey(), rows);
+}
+
+function clearCachedOrder(orderNo: string) {
+  if (!banquetId.value) {
+    return;
+  }
+  const rows = cachedOrders().filter((item) => item.orderNo !== orderNo);
+  uni.setStorageSync(deviceOrderCacheKey(), rows);
+}
+
+function deviceOrderCacheKey() {
+  return `device-order:${banquetId.value}`;
 }
 
 function validateRentWindow() {
@@ -272,6 +312,16 @@ function setDefaultDate() {
 
 function formatMoney(value: unknown) {
   return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function formatTime(value?: string) {
+  return value ? value.replace('T', ' ').slice(0, 16) : '刚刚创建';
+}
+
+function formatRentWindow(order: DeviceOrder) {
+  const start = formatTime(order.rentStartAt);
+  const end = order.rentEndAt ? formatTime(order.rentEndAt).slice(11) : '结束待定';
+  return `${start} - ${end}`;
 }
 
 function deviceTypeLabel(value: string) {
@@ -564,6 +614,31 @@ onMounted(async () => {
   border-bottom: 1rpx solid #f0dfcf;
 }
 
+.order-empty {
+  padding: 30rpx 24rpx;
+  border: 1rpx dashed #ead8ca;
+  border-radius: 18rpx;
+  background: #fffaf6;
+}
+
+.empty-title,
+.empty-desc {
+  display: block;
+}
+
+.empty-title {
+  color: #171c2a;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.empty-desc {
+  margin-top: 10rpx;
+  color: #8a7768;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
 .order-row:last-child {
   border-bottom: 0;
 }
@@ -576,21 +651,44 @@ onMounted(async () => {
   font-weight: 900;
 }
 
+.order-main {
+  min-width: 0;
+}
+
 .order-meta {
   display: block;
+  overflow: hidden;
   margin-top: 6rpx;
   color: #8a7768;
   font-size: 23rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .order-side {
   display: grid;
   justify-items: end;
   gap: 10rpx;
+  min-width: 176rpx;
 }
 
 .order-price {
   color: #c7191e;
+}
+
+.status-tag {
+  padding: 7rpx 12rpx;
+  border-radius: 999rpx;
+  background: #fff0ea;
+  color: #c7191e;
+  font-size: 21rpx;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.status-tag.paid {
+  background: #ecfdf3;
+  color: #138a45;
 }
 
 .pay-button {

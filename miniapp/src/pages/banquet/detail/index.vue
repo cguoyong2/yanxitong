@@ -184,6 +184,7 @@ interface Entitlements {
     name: string;
   };
   rightValues: Record<string, string>;
+  paidPlanActive?: boolean;
 }
 
 interface RsvpStats {
@@ -196,12 +197,20 @@ interface GiftSummary {
   totalAmount: number;
 }
 
+interface DeviceOrder {
+  orderNo: string;
+  deviceType: string;
+  payStatus: string;
+  orderStatus: string;
+}
+
 const detail = ref<BanquetDetail>();
 const currentBanquetId = ref('');
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const rsvpStats = ref<RsvpStats>();
 const giftSummary = ref<GiftSummary>();
+const deviceOrders = ref<DeviceOrder[]>([]);
 const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
@@ -235,8 +244,8 @@ const progressItems = computed(() => [
   },
   {
     title: '版本与设备',
-    desc: `${entitlements.currentPlan?.name || '基础版'} · ${hasDeviceRight.value ? '设备已开通' : '设备未开通'}`,
-    done: Boolean(entitlements.currentPlan || hasDeviceRight.value),
+    desc: `${entitlements.currentPlan?.name || '基础版'} · ${deviceOrders.value.length ? `${deviceOrders.value.length} 个设备订单` : hasDeviceRight.value ? '可租设备' : '设备未开通'}`,
+    done: Boolean(deviceOrders.value.length),
     action: hasDeviceRight.value ? 'device' : 'plan'
   }
 ]);
@@ -257,6 +266,15 @@ const nextStep = computed(() => {
       desc: '如需确认屏或云喇叭，请先升级到包含设备租赁的版本。',
       button: '查看版本',
       action: 'plan'
+    };
+  }
+  if (!deviceOrders.value.length) {
+    return {
+      icon: '屏',
+      title: '选择现场设备',
+      desc: '可先提交确认屏或云喇叭租赁需求，形成设备订单基础闭环。',
+      button: '设备选择',
+      action: 'device'
     };
   }
   if (!Number(rsvpStats.value?.totalRecords || 0)) {
@@ -306,12 +324,13 @@ const invitationShareUrl = computed(() => {
 async function load(id: string) {
   currentBanquetId.value = id;
   pageState.value = 'loading';
-  const [runtimeFeatures, banquetDetail, result, rsvp, gifts] = await Promise.all([
+  const [runtimeFeatures, banquetDetail, result, rsvp, gifts, devices] = await Promise.all([
     loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
     request<BanquetDetail>(`/banquets/${id}`),
     request<Entitlements>(`/plans/banquets/${id}/entitlements`),
     request<RsvpStats>(`/rsvp/stats?banquetId=${id}`).catch(() => ({ totalGuests: 0 })),
-    request<GiftSummary>(`/gifts/summary?banquetId=${id}`).catch(() => ({ totalAmount: 0 }))
+    request<GiftSummary>(`/gifts/summary?banquetId=${id}`).catch(() => ({ totalAmount: 0 })),
+    request<DeviceOrder[]>(`/devices/orders?banquetId=${id}`).catch(() => [])
   ]);
   features.value = runtimeFeatures;
   detail.value = banquetDetail;
@@ -328,8 +347,10 @@ async function load(id: string) {
   writeActiveEventType(banquetDetail.banquet.eventTypeCode);
   entitlements.currentPlan = result.currentPlan;
   entitlements.rightValues = result.rightValues || {};
+  entitlements.paidPlanActive = result.paidPlanActive;
   rsvpStats.value = rsvp;
   giftSummary.value = gifts;
+  deviceOrders.value = devices;
   pageState.value = 'ready';
 }
 
