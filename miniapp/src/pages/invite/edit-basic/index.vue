@@ -144,6 +144,8 @@ async function submit() {
     });
     await loadInvitation();
     uni.showToast({ title: '已保存', icon: 'success' });
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '保存请柬失败', icon: 'none' });
   } finally {
     submitting.value = false;
   }

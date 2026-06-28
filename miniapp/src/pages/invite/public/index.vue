@@ -306,17 +306,25 @@ function formatClock(value?: string) {
 
 function openRsvp() {
   if (!data.value) {
+    uni.showToast({ title: '请柬信息未加载', icon: 'none' });
     return;
   }
-  uni.navigateTo({ url: data.value.actionUrls?.rsvp || `/pages/rsvp/submit/index?banquetId=${data.value.banquet.id}&invitationId=${data.value.invitation.id}` });
+  uni.navigateTo({
+    url: data.value.actionUrls?.rsvp || `/pages/rsvp/submit/index?banquetId=${data.value.banquet.id}&invitationId=${data.value.invitation.id}`,
+    fail: () => uni.showToast({ title: '回执页面打开失败', icon: 'none' })
+  });
 }
 
 function openGift(entrySource: string) {
   if (!data.value) {
+    uni.showToast({ title: '请柬信息未加载', icon: 'none' });
     return;
   }
   const url = entrySource === 'ONSITE_QR' ? data.value.actionUrls?.onsiteGift : data.value.actionUrls?.onlineGift;
-  uni.navigateTo({ url: url || `/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=${entrySource}` });
+  uni.navigateTo({
+    url: url || `/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=${entrySource}`,
+    fail: () => uni.showToast({ title: '随礼页面打开失败', icon: 'none' })
+  });
 }
 
 function showGiftDisabled() {

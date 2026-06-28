@@ -24,14 +24,14 @@
     </view>
 
     <view class="content">
-      <view class="banner-card">
-        <image class="banner-image" src="/static/invitation/invitation_banner.png" mode="widthFix" />
+      <swiper class="banner-card" circular :indicator-dots="false" autoplay @change="bannerIndex = Number($event.detail.current)">
+        <swiper-item v-for="banner in banners" :key="banner.image">
+          <image class="banner-image" :src="banner.image" mode="aspectFill" @tap="handleBanner(banner.action)" />
+        </swiper-item>
+      </swiper>
         <view class="banner-dots">
-          <text class="dot active"></text>
-          <text class="dot"></text>
-          <text class="dot"></text>
+          <text v-for="(_, index) in banners" :key="index" class="dot" :class="{ active: index === bannerIndex }"></text>
         </view>
-      </view>
 
       <view class="type-card">
         <view class="section-head">
@@ -203,7 +203,13 @@ const activeFilter = ref('全部');
 const myInvitation = ref<MyInvitation>();
 const templates = ref<InvitationTemplate[]>([]);
 const loadingTemplates = ref(false);
+const bannerIndex = ref(0);
 const filters = ['全部', '免费', '付费', '定制', '热门'];
+const banners = [
+  { image: '/static/invitation/invitation_banner.png', action: 'mine' },
+  { image: '/static/invitation/tpl_red.png', action: 'create' },
+  { image: '/static/invitation/tpl_gold.png', action: 'custom' }
+];
 const eventTypes = [
   { code: 'WEDDING', name: '婚宴', subtitle: '喜结良缘', icon: '囍', tone: 'red' },
   { code: 'BIRTHDAY', name: '寿宴', subtitle: '福寿安康', icon: '寿', tone: 'orange' },
@@ -240,6 +246,18 @@ function openMyInvitation() {
 
 function showComingSoon() {
   uni.showToast({ title: '定制请柬服务将在后续版本开放', icon: 'none' });
+}
+
+function handleBanner(action: string) {
+  if (action === 'mine') {
+    openMyInvitation();
+    return;
+  }
+  if (action === 'create') {
+    openCreateEntry();
+    return;
+  }
+  showComingSoon();
 }
 
 function eventTypeLabel(code: string) {
@@ -479,6 +497,7 @@ onMounted(() => {
 .banner-card {
   position: relative;
   overflow: hidden;
+  height: 386rpx;
   border-radius: 24rpx;
   background: transparent;
   box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
@@ -487,16 +506,18 @@ onMounted(() => {
 .banner-image {
   display: block;
   width: 100%;
-  height: auto;
+  height: 386rpx;
 }
 
 .banner-dots {
-  position: absolute;
-  right: 50%;
-  bottom: 20rpx;
+  position: relative;
+  z-index: 2;
   display: flex;
+  justify-content: center;
   gap: 18rpx;
-  transform: translateX(50%);
+  height: 24rpx;
+  margin-top: -44rpx;
+  margin-bottom: 20rpx;
 }
 
 .dot {

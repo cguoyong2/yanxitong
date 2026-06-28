@@ -80,6 +80,8 @@ async function submit() {
         }
       }
     });
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '保存记礼失败', icon: 'none' });
   } finally {
     submitting.value = false;
   }
@@ -103,6 +105,7 @@ function validate() {
 
 function openGiftList() {
   if (!banquetId.value) {
+    requireBanquetToast();
     return;
   }
   uni.navigateTo({ url: `/pages/gift/list/index?banquetId=${banquetId.value}` });

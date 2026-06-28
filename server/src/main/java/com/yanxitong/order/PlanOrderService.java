@@ -57,6 +57,17 @@ public class PlanOrderService {
         return PageResult.of(planOrderMapper.selectList(query), total, page, pageSize);
     }
 
+    public List<PlanOrder> listOrdersByBanquet(Long banquetId) {
+        QueryWrapper<PlanOrder> query = new QueryWrapper<PlanOrder>()
+                .eq("banquet_id", banquetId)
+                .orderByDesc("updated_at");
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId != null) {
+            query.and(wrapper -> wrapper.eq("tenant_id", tenantId).or().isNull("tenant_id"));
+        }
+        return planOrderMapper.selectList(query);
+    }
+
     private QueryWrapper<PlanOrder> tenantScopedPlanOrderQuery() {
         QueryWrapper<PlanOrder> query = new QueryWrapper<>();
         Long tenantId = TenantContext.getTenantId();

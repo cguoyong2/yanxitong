@@ -70,24 +70,47 @@ function forbidPattern(file, pattern, reason) {
 
 const requiredTexts = [
   ['miniapp/src/pages/home/index/index.vue', '创建宴席', 'home create entry'],
+  ['miniapp/src/pages/home/index/index.vue', 'selectType(type.code)', 'home type switching action'],
+  ['miniapp/src/pages/home/index/index.vue', 'eventTypeCode=${activeType.value}', 'create page receives selected type'],
   ['miniapp/src/pages/banquet/create/index.vue', '填入体验数据', 'create page sample-data helper'],
   ['miniapp/src/pages/banquet/create/index.vue', '当前使用模板封面，自定义上传稍后开放', 'cover upload boundary'],
   ['miniapp/src/pages/banquet/detail/index.vue', '线上随礼暂未开放', 'detail non-payment boundary'],
+  ['miniapp/src/pages/banquet/detail/index.vue', '请柬公开页打开失败', 'detail invitation navigation feedback'],
   ['miniapp/src/pages/invitation/index/index.vue', '暂无符合条件的模板', 'template empty state'],
   ['miniapp/src/pages/invitation/index/index.vue', '定制请柬服务将在后续版本开放', 'custom invitation boundary'],
   ['miniapp/src/pages/invite/edit-basic/index.vue', '复制路径', 'share path copy'],
+  ['miniapp/src/pages/invite/edit-basic/index.vue', '保存请柬失败', 'invitation edit save feedback'],
   ['miniapp/src/pages/invite/public/index.vue', '在线随礼需完成微信支付配置后开放', 'public invitation payment boundary'],
+  ['miniapp/src/pages/invite/public/index.vue', '回执页面打开失败', 'public invitation RSVP navigation feedback'],
   ['miniapp/src/pages/rsvp/submit/index.vue', '返回请柬', 'RSVP return action'],
   ['miniapp/src/pages/rsvp/submit/index.vue', '去线下记礼', 'non-payment RSVP success action'],
+  ['miniapp/src/pages/rsvp/stats/index.vue', 'shareSlug', 'RSVP stats can return to public invitation'],
   ['miniapp/src/pages/gift/offline/index.vue', '继续登记', 'offline gift success modal'],
   ['miniapp/src/pages/gift/offline/index.vue', '查看记录', 'offline gift record navigation'],
+  ['miniapp/src/pages/gift/offline/index.vue', '保存记礼失败', 'offline gift save feedback'],
   ['miniapp/src/pages/favor/family/index.vue', '家庭协作功能将在后续版本开放', 'family favor boundary'],
+  ['miniapp/src/pages/favor/index/index.vue', "setManualDirection('RECEIVED')", 'favor received card action'],
+  ['miniapp/src/pages/favor/index/index.vue', "setManualDirection('GIVEN')", 'favor given card action'],
+  ['miniapp/src/pages/favor/index/index.vue', 'grid-template-columns: 1fr', 'favor cards do not overflow'],
+  ['miniapp/src/pages/order/plan/index.vue', '/plans/orders?banquetId=', 'plan orders are visible after creation'],
   ['miniapp/src/pages/mine/index/index.vue', '绑定记录', 'mine device label'],
-  ['miniapp/src/pages/mine/index/index.vue', '交付说明', 'mine delivery label']
+  ['miniapp/src/pages/mine/index/index.vue', '交付说明', 'mine delivery label'],
+  ['miniapp/src/pages/mine/index/index.vue', 'openLatestBanquet', 'mine service opens latest banquet'],
+  ['miniapp/src/pages/mine/index/index.vue', 'openLatestInvitation', 'mine service opens latest invitation']
 ];
 
 for (const [file, text, reason] of requiredTexts) {
   requireText(file, text, reason);
+}
+
+for (const file of [
+  'miniapp/src/pages/home/index/index.vue',
+  'miniapp/src/pages/favor/index/index.vue',
+  'miniapp/src/pages/invitation/index/index.vue',
+  'miniapp/src/pages/mine/index/index.vue'
+]) {
+  requireText(file, '<swiper class="banner-card"', 'tab banner supports swipe');
+  requireText(file, '@tap="handleBanner', 'tab banner is tappable');
 }
 
 for (const file of walk(path.join(miniappSrc, 'pages'))) {

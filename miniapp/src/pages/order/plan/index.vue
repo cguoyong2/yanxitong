@@ -125,7 +125,7 @@ async function load() {
   ]);
   features.value = runtimeFeatures;
   plans.value = planList;
-  await loadEntitlements();
+  await Promise.all([loadEntitlements(), loadOrders()]);
 }
 
 async function loadEntitlements() {
@@ -137,6 +137,14 @@ async function loadEntitlements() {
   entitlements.rightValues = result.rightValues || {};
   entitlements.paidPlanActive = result.paidPlanActive;
   entitlements.freeDefault = result.freeDefault;
+}
+
+async function loadOrders() {
+  if (!banquetId.value) {
+    return;
+  }
+  const orders = await request<PlanOrder[]>(`/plans/orders?banquetId=${banquetId.value}`).catch(() => []);
+  pendingOrder.value = orders.find((item) => item.payStatus !== 'PAID');
 }
 
 async function createOrder(planId: number) {

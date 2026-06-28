@@ -24,14 +24,14 @@
     </view>
 
     <view class="content">
-      <view class="banner-card">
-        <image class="banner-image" src="/static/mine/mine_banner.png" mode="widthFix" />
+      <swiper class="banner-card" circular :indicator-dots="false" autoplay @change="bannerIndex = Number($event.detail.current)">
+        <swiper-item v-for="banner in banners" :key="banner.image">
+          <image class="banner-image" :src="banner.image" mode="aspectFill" @tap="handleBanner(banner.action)" />
+        </swiper-item>
+      </swiper>
         <view class="banner-dots">
-          <text class="dot active"></text>
-          <text class="dot"></text>
-          <text class="dot"></text>
+          <text v-for="(_, index) in banners" :key="index" class="dot" :class="{ active: index === bannerIndex }"></text>
         </view>
-      </view>
 
       <view class="profile-card">
         <image class="avatar" src="/static/mine/avatar_user.png" mode="aspectFill" />
@@ -133,11 +133,20 @@ import { request } from '../../../api/client';
 
 interface Banquet {
   id: number;
+  name?: string;
 }
 
 const banquetCount = ref(0);
 const invitationCount = ref(0);
 const pendingCount = ref(0);
+const latestBanquetId = ref(0);
+const latestInvitationSlug = ref('');
+const bannerIndex = ref(0);
+const banners = [
+  { image: '/static/mine/mine_banner.png', action: 'banquet' },
+  { image: '/static/home/home_banner.png', action: 'invitation' },
+  { image: '/static/favor/favor_banner.png', action: 'favor' }
+];
 const orders = [
   { title: '版本订单', icon: '▤', tone: 'red', action: 'plan' },
   { title: '模板订单', icon: '▦', tone: 'orange', action: 'invitation' },
@@ -168,7 +177,7 @@ const settings = [
 
 function handleAction(action: string) {
   if (action === 'banquet') {
-    uni.switchTab({ url: '/pages/home/index/index' });
+    openLatestBanquet();
     return;
   }
   if (action === 'favor') {
@@ -176,7 +185,7 @@ function handleAction(action: string) {
     return;
   }
   if (action === 'invitation') {
-    uni.switchTab({ url: '/pages/invitation/index/index' });
+    openLatestInvitation();
     return;
   }
   if (action === 'gift') {
@@ -184,14 +193,44 @@ function handleAction(action: string) {
     return;
   }
   if (action === 'plan') {
-    uni.navigateTo({ url: '/pages/order/plan/index' });
+    openPlanOrders();
     return;
   }
   if (action === 'device') {
-    uni.navigateTo({ url: '/pages/device/select/index' });
+    openDeviceOrders();
     return;
   }
   showComingSoon();
+}
+
+function handleBanner(action: string) {
+  handleAction(action);
+}
+
+function openLatestBanquet() {
+  if (latestBanquetId.value) {
+    uni.navigateTo({ url: `/pages/banquet/detail/index?id=${latestBanquetId.value}` });
+    return;
+  }
+  uni.switchTab({ url: '/pages/home/index/index' });
+}
+
+function openLatestInvitation() {
+  if (latestInvitationSlug.value) {
+    uni.navigateTo({ url: `/pages/invite/public/index?slug=${latestInvitationSlug.value}` });
+    return;
+  }
+  uni.switchTab({ url: '/pages/invitation/index/index' });
+}
+
+function openPlanOrders() {
+  const query = latestBanquetId.value ? `?banquetId=${latestBanquetId.value}` : '';
+  uni.navigateTo({ url: `/pages/order/plan/index${query}` });
+}
+
+function openDeviceOrders() {
+  const query = latestBanquetId.value ? `?banquetId=${latestBanquetId.value}` : '';
+  uni.navigateTo({ url: `/pages/device/select/index${query}` });
 }
 
 function showComingSoon() {
@@ -203,6 +242,11 @@ async function loadProfileStats() {
   banquetCount.value = banquets.length;
   invitationCount.value = banquets.length;
   pendingCount.value = 0;
+  latestBanquetId.value = banquets[0]?.id || 0;
+  if (latestBanquetId.value) {
+    const detail = await request<{ invitation?: { shareSlug?: string } }>(`/banquets/${latestBanquetId.value}`).catch(() => undefined);
+    latestInvitationSlug.value = detail?.invitation?.shareSlug || '';
+  }
 }
 
 onMounted(loadProfileStats);
@@ -347,6 +391,7 @@ onMounted(loadProfileStats);
 .banner-card {
   position: relative;
   overflow: hidden;
+  height: 386rpx;
   border-radius: 24rpx;
   background: transparent;
   box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
@@ -355,16 +400,18 @@ onMounted(loadProfileStats);
 .banner-image {
   display: block;
   width: 100%;
-  height: auto;
+  height: 386rpx;
 }
 
 .banner-dots {
-  position: absolute;
-  right: 50%;
-  bottom: 20rpx;
+  position: relative;
+  z-index: 2;
   display: flex;
+  justify-content: center;
   gap: 18rpx;
-  transform: translateX(50%);
+  height: 24rpx;
+  margin-top: -44rpx;
+  margin-bottom: 20rpx;
 }
 
 .dot {

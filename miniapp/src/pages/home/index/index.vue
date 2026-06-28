@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="activeTone">
     <view class="red-stage">
       <view class="stage-art">
         <text class="firework">✦</text>
@@ -24,14 +24,14 @@
     </view>
 
     <view class="content">
-      <view class="banner-card">
-        <image class="banner-image" src="/static/home/home_banner.png" mode="widthFix" />
+      <swiper class="banner-card" circular :indicator-dots="false" autoplay @change="bannerIndex = Number($event.detail.current)">
+        <swiper-item v-for="banner in banners" :key="banner.image">
+          <image class="banner-image" :src="banner.image" mode="aspectFill" @tap="handleBanner(banner.action)" />
+        </swiper-item>
+      </swiper>
         <view class="banner-dots">
-          <text class="dot active"></text>
-          <text class="dot"></text>
-          <text class="dot"></text>
+          <text v-for="(_, index) in banners" :key="index" class="dot" :class="{ active: index === bannerIndex }"></text>
         </view>
-      </view>
 
       <view class="type-card">
         <view class="section-head">
@@ -48,7 +48,7 @@
               :key="type.code"
               class="type-item"
               :class="[type.tone, { active: type.code === activeType }]"
-              @tap="activeType = type.code"
+              @tap="selectType(type.code)"
             >
               <text class="type-icon">{{ type.icon }}</text>
               <text class="type-name">{{ type.name }}</text>
@@ -61,7 +61,10 @@
       <view v-if="hasBanquet" class="my-card">
         <view class="section-head">
           <text class="section-title">我的宴席</text>
-          <text class="more" @tap="openLatestOrCreate()">全部宴席 ›</text>
+          <view class="head-actions">
+            <text class="more primary" @tap="createBanquet()">创建宴席</text>
+            <text class="more" @tap="openLatestOrCreate()">全部宴席 ›</text>
+          </view>
         </view>
         <view class="banquet-box">
           <view class="banquet-main" @tap="openBanquet(latestBanquet.id)">
@@ -191,14 +194,21 @@ const packages = [
   { name: '星空之恋', price: '13,999', image: '/static/home/package_blue.png' },
   { name: '简约时光', price: '9,999', image: '/static/home/package_gold.png' }
 ];
+const banners = [
+  { image: '/static/home/home_banner.png', action: 'create' },
+  { image: '/static/home/package_red.png', action: 'plan' },
+  { image: '/static/home/package_gold.png', action: 'invitation' }
+];
 const banquets = ref<Banquet[]>([]);
 const latestRsvpGuests = ref(0);
 const latestGiftAmount = ref(0);
 const loading = ref(false);
 const activeType = ref('WEDDING');
+const bannerIndex = ref(0);
 const hasBanquet = computed(() => banquets.value.length > 0);
 const latestBanquet = computed(() => banquets.value[0] || { id: 0, name: '', eventTypeCode: '', themeCode: '', banquetTime: '', location: '' });
 const latestBanquetId = computed(() => latestBanquet.value?.id || 0);
+const activeTone = computed(() => eventTypes.find((item) => item.code === activeType.value)?.tone || 'red');
 
 function formatTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
@@ -235,8 +245,28 @@ async function loadLatestStats() {
   latestGiftAmount.value = Number(gifts.totalAmount || 0);
 }
 
+function selectType(code: string) {
+  activeType.value = code;
+}
+
 function createBanquet() {
-  uni.navigateTo({ url: '/pages/banquet/create/index' });
+  uni.navigateTo({ url: `/pages/banquet/create/index?eventTypeCode=${activeType.value}` });
+}
+
+function handleBanner(action: string) {
+  if (action === 'create') {
+    createBanquet();
+    return;
+  }
+  if (action === 'plan') {
+    if (latestBanquetId.value) {
+      uni.navigateTo({ url: `/pages/order/plan/index?banquetId=${latestBanquetId.value}` });
+      return;
+    }
+    createBanquet();
+    return;
+  }
+  openInvitationTab();
 }
 
 function openBanquet(id: number) {
@@ -292,9 +322,48 @@ onMounted(refresh);
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
   min-height: 100vh;
   background: #f7f7f7;
   color: #151823;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
 }
 
 .red-stage {
@@ -306,6 +375,42 @@ onMounted(refresh);
     radial-gradient(circle at 72% 38%, rgba(255, 190, 80, 0.18), transparent 26%),
     linear-gradient(135deg, #d8000f 0%, #c40005 58%, #a80000 100%);
   color: #fff;
+}
+
+.page.orange .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 218, 138, 0.2), transparent 26%),
+    linear-gradient(135deg, #c15b10 0%, #a64209 58%, #7a2d08 100%);
+}
+
+.page.pink .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 198, 212, 0.26), transparent 26%),
+    linear-gradient(135deg, #e7566f 0%, #c73655 58%, #932742 100%);
+}
+
+.page.green .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(185, 245, 202, 0.22), transparent 26%),
+    linear-gradient(135deg, #1b8a58 0%, #116943 58%, #0b4b31 100%);
+}
+
+.page.blue .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(186, 220, 255, 0.24), transparent 26%),
+    linear-gradient(135deg, #2563eb 0%, #1d4ed8 58%, #1e3a8a 100%);
+}
+
+.page.black .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 255, 255, 0.08), transparent 26%),
+    linear-gradient(135deg, #202124 0%, #111315 58%, #050607 100%);
+}
+
+.page.purple .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(218, 200, 255, 0.24), transparent 26%),
+    linear-gradient(135deg, #7c3aed 0%, #5b21b6 58%, #3b0764 100%);
 }
 
 .red-stage::after {
@@ -435,6 +540,7 @@ onMounted(refresh);
 .banner-card {
   position: relative;
   overflow: hidden;
+  height: 386rpx;
   border-radius: 24rpx;
   background: transparent;
   box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
@@ -443,16 +549,18 @@ onMounted(refresh);
 .banner-image {
   display: block;
   width: 100%;
-  height: auto;
+  height: 386rpx;
 }
 
 .banner-dots {
-  position: absolute;
-  right: 50%;
-  bottom: 20rpx;
+  position: relative;
+  z-index: 2;
   display: flex;
+  justify-content: center;
   gap: 18rpx;
-  transform: translateX(50%);
+  height: 24rpx;
+  margin-top: -44rpx;
+  margin-bottom: 20rpx;
 }
 
 .dot {
@@ -464,7 +572,18 @@ onMounted(refresh);
 }
 
 .dot.active {
-  background: #e60012;
+  background: var(--accent);
+}
+
+.head-actions {
+  display: flex;
+  gap: 18rpx;
+  align-items: center;
+}
+
+.more.primary {
+  color: var(--accent);
+  font-weight: 900;
 }
 
 .type-card,
@@ -578,7 +697,7 @@ onMounted(refresh);
 }
 
 .type-item.active {
-  border-color: #e60012;
+  border-color: var(--accent);
   box-shadow: inset 0 0 0 2rpx rgba(230, 0, 18, 0.22);
 }
 
@@ -672,8 +791,8 @@ onMounted(refresh);
   margin-top: 13rpx;
   padding: 5rpx 12rpx;
   border-radius: 8rpx;
-  background: #fff0ee;
-  color: #e60012;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 21rpx;
   font-weight: 700;
 }
@@ -692,7 +811,7 @@ onMounted(refresh);
 .stats-number,
 .gift-number {
   display: inline;
-  color: #e60012;
+  color: var(--accent);
   font-weight: 900;
 }
 
@@ -748,7 +867,7 @@ onMounted(refresh);
 .action-icon {
   display: block;
   margin-bottom: 8rpx;
-  color: #e60012;
+  color: var(--accent);
   font-size: 34rpx;
 }
 
@@ -788,7 +907,7 @@ button::after {
   height: 76rpx;
   margin: 22rpx auto 0;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #e60012, #c40005);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 27rpx;
   font-weight: 900;
@@ -823,7 +942,7 @@ button::after {
 }
 
 .guide-icon.red {
-  background: linear-gradient(135deg, #ff6a5f, #e60012);
+  background: linear-gradient(135deg, #ff6a5f, var(--accent));
 }
 
 .guide-icon.orange {
@@ -892,7 +1011,7 @@ button::after {
 
 .package-price {
   margin: 7rpx 0 14rpx;
-  color: #e60012;
+  color: var(--accent);
   font-size: 23rpx;
 }
 </style>

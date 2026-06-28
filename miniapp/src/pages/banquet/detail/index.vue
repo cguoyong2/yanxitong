@@ -271,17 +271,25 @@ function handleAction(action: string) {
 function openInvite() {
   const slug = detail.value?.invitation?.shareSlug;
   if (slug) {
-    uni.navigateTo({ url: `/pages/invite/public/index?slug=${slug}` });
+    uni.navigateTo({
+      url: `/pages/invite/public/index?slug=${slug}`,
+      fail: () => uni.showToast({ title: '请柬公开页打开失败', icon: 'none' })
+    });
+    return;
   }
+  uni.showToast({ title: '暂无请柬分享链接', icon: 'none' });
 }
 
 function editInvite() {
   const invitation = detail.value?.invitation;
   if (invitation) {
     uni.navigateTo({
-      url: `/pages/invite/edit-basic/index?invitationId=${invitation.id}`
+      url: `/pages/invite/edit-basic/index?invitationId=${invitation.id}`,
+      fail: () => uni.showToast({ title: '请柬编辑页打开失败', icon: 'none' })
     });
+    return;
   }
+  uni.showToast({ title: '暂无可编辑请柬', icon: 'none' });
 }
 
 function copyInviteLink() {
@@ -308,7 +316,10 @@ function openDevice() {
 
 function openRsvpStats() {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({ url: `/pages/rsvp/stats/index?banquetId=${detail.value.banquet.id}` });
+    uni.navigateTo({
+      url: `/pages/rsvp/stats/index?banquetId=${detail.value.banquet.id}`,
+      fail: () => uni.showToast({ title: '回执统计打开失败', icon: 'none' })
+    });
   }
 }
 
@@ -320,13 +331,19 @@ function openGiftPay(entrySource: string) {
 
 function openOfflineGift() {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${detail.value.banquet.id}` });
+    uni.navigateTo({
+      url: `/pages/gift/offline/index?banquetId=${detail.value.banquet.id}`,
+      fail: () => uni.showToast({ title: '线下记礼打开失败', icon: 'none' })
+    });
   }
 }
 
 function openGiftList() {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({ url: `/pages/gift/list/index?banquetId=${detail.value.banquet.id}` });
+    uni.navigateTo({
+      url: `/pages/gift/list/index?banquetId=${detail.value.banquet.id}`,
+      fail: () => uni.showToast({ title: '收礼记录打开失败', icon: 'none' })
+    });
   }
 }
 

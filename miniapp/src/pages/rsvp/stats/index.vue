@@ -96,6 +96,7 @@ import { request } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 interface RsvpStats {
+  shareSlug?: string;
   banquetId?: number;
   totalRecords: number;
   attendingRecords: number;
@@ -108,6 +109,7 @@ interface RsvpStats {
 
 const stats = ref<RsvpStats>();
 const banquetId = ref('');
+const shareSlug = ref('');
 const loading = ref(false);
 const attendingRate = computed(() => {
   const total = Number(stats.value?.totalRecords || 0);
@@ -145,7 +147,12 @@ async function load() {
 }
 
 function shareInvite() {
+  if (shareSlug.value) {
+    uni.navigateTo({ url: `/pages/invite/public/index?slug=${shareSlug.value}` });
+    return;
+  }
   if (!banquetId.value) {
+    uni.showToast({ title: '缺少宴席信息', icon: 'none' });
     return;
   }
   uni.navigateTo({ url: `/pages/banquet/detail/index?id=${banquetId.value}` });
@@ -161,6 +168,10 @@ onMounted(async () => {
   banquetId.value = await resolveBanquetId(current.options?.banquetId);
   if (!banquetId.value) {
     requireBanquetToast();
+  }
+  if (banquetId.value) {
+    const detail = await request<{ invitation?: { shareSlug?: string } }>(`/banquets/${banquetId.value}`).catch(() => undefined);
+    shareSlug.value = detail?.invitation?.shareSlug || '';
   }
   await load();
 });

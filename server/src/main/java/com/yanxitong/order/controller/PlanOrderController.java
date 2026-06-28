@@ -39,6 +39,11 @@ public class PlanOrderController {
         return ApiResponse.ok(planOrderService.create(request));
     }
 
+    @GetMapping("/orders")
+    public ApiResponse<List<PlanOrder>> orders(@RequestParam Long banquetId) {
+        return ApiResponse.ok(planOrderService.listOrdersByBanquet(banquetId));
+    }
+
     @PostMapping("/orders/{orderNo}/mock-success")
     public ApiResponse<PlanOrder> mockPaymentSuccess(@PathVariable String orderNo) {
         mockPaymentGuard.requireEnabled();

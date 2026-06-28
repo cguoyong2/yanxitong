@@ -24,14 +24,14 @@
     </view>
 
     <view class="content">
-      <view class="banner-card">
-        <image class="banner-image" src="/static/favor/favor_banner.png" mode="widthFix" />
+      <swiper class="banner-card" circular :indicator-dots="false" autoplay @change="bannerIndex = Number($event.detail.current)">
+        <swiper-item v-for="banner in banners" :key="banner.image">
+          <image class="banner-image" :src="banner.image" mode="aspectFill" @tap="handleBanner(banner.action)" />
+        </swiper-item>
+      </swiper>
         <view class="banner-dots">
-          <text class="dot active"></text>
-          <text class="dot"></text>
-          <text class="dot"></text>
+          <text v-for="(_, index) in banners" :key="index" class="dot" :class="{ active: index === bannerIndex }"></text>
         </view>
-      </view>
 
       <view class="summary-card">
         <view class="section-head">
@@ -42,22 +42,22 @@
           </view>
         </view>
         <view class="summary-grid">
-          <view class="summary-item">
+          <view class="summary-item" @tap="setManualDirection('RECEIVED')">
             <text class="summary-icon receive">♥</text>
             <text class="summary-label">累计收到</text>
             <text class="summary-value red">{{ formatMoney(totalReceived) }}</text>
           </view>
-          <view class="summary-item">
+          <view class="summary-item" @tap="setManualDirection('GIVEN')">
             <text class="summary-icon give">▣</text>
             <text class="summary-label">累计送出</text>
             <text class="summary-value red">{{ formatMoney(totalGiven) }}</text>
           </view>
-          <view class="summary-item">
+          <view class="summary-item" @tap="scrollToRecent()">
             <text class="summary-icon people">●●</text>
             <text class="summary-label">往来对象</text>
             <text class="summary-value dark">{{ contacts.length }} 人</text>
           </view>
-          <view class="summary-item">
+          <view class="summary-item" @tap="setCompareFromKeyword()">
             <text class="summary-icon balance">¥</text>
             <text class="summary-label">收支差额</text>
             <text class="summary-value red">{{ signedMoney(totalBalance) }}</text>
@@ -75,7 +75,7 @@
           <button class="family-link" @tap="openFamily()">家庭人情 ›</button>
         </view>
         <view class="favor-card-list">
-          <view class="favor-card receive-card" @tap="setCompareFromKeyword()">
+          <view class="favor-card receive-card" @tap="setManualDirection('RECEIVED')">
             <text class="favor-card-icon">▰</text>
             <view class="favor-card-copy">
               <text class="favor-card-title">我收到的人情</text>
@@ -126,10 +126,10 @@
       </view>
 
       <view class="two-column">
-        <view class="recent-card">
+          <view id="recent-list" class="recent-card">
           <view class="section-head">
             <text class="section-title small">最近往来</text>
-            <text class="more">更多 ›</text>
+            <text class="more" @tap="scrollToRecent()">更多 ›</text>
           </view>
           <view v-if="loading" class="empty">同步中</view>
           <view v-else-if="displayContacts.length === 0" class="empty">
@@ -150,7 +150,7 @@
         <view class="compare-card-panel">
           <view class="section-head">
             <text class="section-title small">往来对比</text>
-            <text class="more">更多 ›</text>
+            <text class="more" @tap="setCompareFromKeyword()">更多 ›</text>
           </view>
           <view v-if="compareResult" class="compare-person">
             <text class="avatar large">{{ contactInitial(compareResult.contact?.contactName) }}</text>
@@ -170,7 +170,7 @@
         </view>
       </view>
 
-      <view class="record-panel">
+      <view id="manual-form" class="record-panel">
         <text class="section-title">手动记账</text>
         <view class="record-form">
           <input v-model="manual.contactName" class="input" placeholder="对象姓名" />
@@ -215,7 +215,13 @@ const compareName = ref('');
 const compareResult = ref<FavorCompare>();
 const loading = ref(false);
 const directionIndex = ref(0);
+const bannerIndex = ref(0);
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
+const banners = [
+  { image: '/static/favor/favor_banner.png', action: 'manual-received' },
+  { image: '/static/home/package_gold.png', action: 'manual-given' },
+  { image: '/static/home/package_red.png', action: 'compare' }
+];
 const sourceContacts = computed(() => contacts.value);
 const displayContacts = computed(() => sourceContacts.value.slice(0, 4));
 const totalReceived = computed(() => sum(sourceContacts.value.map((contact) => contact.receivedAmount)));
@@ -233,11 +239,30 @@ function setManualDirection(direction: string) {
     directionIndex.value = index;
     manual.direction = direction;
   }
+  uni.pageScrollTo({ selector: '#manual-form', duration: 220 });
+  uni.showToast({ title: direction === 'GIVEN' ? '已切换为记送出' : '已切换为记收到', icon: 'none' });
 }
 
 function setCompareFromKeyword() {
   compareName.value = keyword.value || sourceContacts.value[0]?.contactName || '';
   runDefaultCompare();
+  uni.pageScrollTo({ selector: '#recent-list', duration: 220 });
+}
+
+function scrollToRecent() {
+  uni.pageScrollTo({ selector: '#recent-list', duration: 220 });
+}
+
+function handleBanner(action: string) {
+  if (action === 'manual-given') {
+    setManualDirection('GIVEN');
+    return;
+  }
+  if (action === 'compare') {
+    setCompareFromKeyword();
+    return;
+  }
+  setManualDirection('RECEIVED');
 }
 
 async function load() {
@@ -463,6 +488,7 @@ onMounted(load);
 .banner-card {
   position: relative;
   overflow: hidden;
+  height: 386rpx;
   border-radius: 24rpx;
   background: transparent;
   box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
@@ -471,16 +497,18 @@ onMounted(load);
 .banner-image {
   display: block;
   width: 100%;
-  height: auto;
+  height: 386rpx;
 }
 
 .banner-dots {
-  position: absolute;
-  right: 50%;
-  bottom: 20rpx;
+  position: relative;
+  z-index: 2;
   display: flex;
+  justify-content: center;
   gap: 18rpx;
-  transform: translateX(50%);
+  height: 24rpx;
+  margin-top: -44rpx;
+  margin-bottom: 20rpx;
 }
 
 .dot {
@@ -671,7 +699,7 @@ button::after {
 
 .favor-card-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 18rpx;
   margin-top: 22rpx;
 }
