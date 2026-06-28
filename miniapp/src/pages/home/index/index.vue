@@ -67,24 +67,24 @@
           <view class="banquet-main" @tap="openBanquet(latestBanquet.id)">
             <image class="banquet-cover" src="/static/home/banquet_cover.png" mode="aspectFill" />
             <view class="banquet-info">
-              <text class="banquet-title">{{ latestBanquet.name || mockBanquet.title }}</text>
+              <text class="banquet-title">{{ latestBanquet.name }}</text>
               <view class="meta-row">
                 <text class="meta-icon">◷</text>
-                <text>{{ formatTime(latestBanquet.banquetTime) || mockBanquet.time }}</text>
+                <text>{{ formatTime(latestBanquet.banquetTime) }}</text>
               </view>
               <view class="meta-row">
                 <text class="meta-icon">⌖</text>
-                <text>{{ latestBanquet.location || mockBanquet.place }}</text>
+                <text>{{ latestBanquet.location || '地点待定' }}</text>
               </view>
               <text class="status">已发布</text>
             </view>
             <view class="banquet-stats">
               <text class="stats-label">已回执</text>
-              <text class="stats-number">68</text>
+              <text class="stats-number">{{ latestRsvpGuests }}</text>
               <text class="stats-unit">人</text>
               <view class="stats-line"></view>
               <text class="stats-label">已收礼</text>
-              <text class="gift-number">¥12,800</text>
+              <text class="gift-number">{{ formatMoney(latestGiftAmount) }}</text>
             </view>
           </view>
           <view class="banquet-actions">
@@ -162,11 +162,14 @@ interface Banquet {
   location?: string;
 }
 
-const mockBanquet = {
-  title: '张先生&李女士婚宴',
-  time: '2026-10-18 12:18',
-  place: '喜来登宴会厅'
-};
+interface RsvpStats {
+  totalGuests: number;
+}
+
+interface GiftSummary {
+  totalAmount: number;
+}
+
 const eventTypes = [
   { code: 'WEDDING', name: '婚宴', subtitle: '喜结良缘', icon: '囍', tone: 'red' },
   { code: 'BIRTHDAY', name: '寿宴', subtitle: '福寿安康', icon: '寿', tone: 'orange' },
@@ -189,25 +192,47 @@ const packages = [
   { name: '简约时光', price: '9,999', image: '/static/home/package_gold.png' }
 ];
 const banquets = ref<Banquet[]>([]);
+const latestRsvpGuests = ref(0);
+const latestGiftAmount = ref(0);
 const loading = ref(false);
 const activeType = ref('WEDDING');
 const hasBanquet = computed(() => banquets.value.length > 0);
-const latestBanquet = computed(() => banquets.value[0] || { id: 0, name: mockBanquet.title, eventTypeCode: 'WEDDING', themeCode: 'wedding_red', banquetTime: mockBanquet.time, location: mockBanquet.place });
+const latestBanquet = computed(() => banquets.value[0] || { id: 0, name: '', eventTypeCode: '', themeCode: '', banquetTime: '', location: '' });
 const latestBanquetId = computed(() => latestBanquet.value?.id || 0);
 
 function formatTime(value?: string) {
-  return value ? value.replace('T', ' ').slice(0, 16) : mockBanquet.time;
+  return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
+}
+
+function formatMoney(value: unknown) {
+  return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 async function refresh() {
   loading.value = true;
   try {
     banquets.value = await request<Banquet[]>('/banquets');
+    await loadLatestStats();
   } catch (error) {
     uni.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
   } finally {
     loading.value = false;
   }
+}
+
+async function loadLatestStats() {
+  latestRsvpGuests.value = 0;
+  latestGiftAmount.value = 0;
+  const id = banquets.value[0]?.id;
+  if (!id) {
+    return;
+  }
+  const [rsvp, gifts] = await Promise.all([
+    request<RsvpStats>(`/rsvp/stats?banquetId=${id}`).catch(() => ({ totalGuests: 0 })),
+    request<GiftSummary>(`/gifts/summary?banquetId=${id}`).catch(() => ({ totalAmount: 0 }))
+  ]);
+  latestRsvpGuests.value = Number(rsvp.totalGuests || 0);
+  latestGiftAmount.value = Number(gifts.totalAmount || 0);
 }
 
 function createBanquet() {

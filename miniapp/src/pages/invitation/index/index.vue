@@ -108,27 +108,27 @@
       <view class="mine-card">
         <view class="section-head">
           <text class="section-title">我的请柬</text>
-          <text class="more">全部请柬 ›</text>
+          <text class="more" @tap="openMyInvitation()">全部请柬 ›</text>
         </view>
-        <view class="mine-row" @tap="openCreateEntry()">
+        <view v-if="myInvitation" class="mine-row" @tap="openMyInvitation()">
           <image class="mine-cover" src="/static/invitation/my_invite_cover.png" mode="aspectFill" />
           <view class="mine-main">
             <view class="mine-title-line">
-              <text class="mine-title">张先生 & 李女士婚礼邀请函</text>
-              <text class="published">已发布</text>
+              <text class="mine-title">{{ myInvitation.title }}</text>
+              <text class="published">{{ myInvitation.status }}</text>
             </view>
             <view class="mine-meta">
-              <text>婚宴</text>
-              <text>2026-10-18 12:18</text>
+              <text>{{ eventTypeLabel(myInvitation.eventTypeCode) }}</text>
+              <text>{{ formatTime(myInvitation.banquetTime) }}</text>
             </view>
           </view>
           <view class="mine-stats">
             <view>
-              <text class="mine-number">128</text>
+              <text class="mine-number">{{ myInvitation.visitCount }}</text>
               <text class="mine-label">浏览</text>
             </view>
             <view>
-              <text class="mine-number">86</text>
+              <text class="mine-number">{{ myInvitation.rsvpGuests }}</text>
               <text class="mine-label">已回执</text>
             </view>
             <view>
@@ -141,16 +141,54 @@
             </view>
           </view>
         </view>
+        <view v-else class="mine-empty" @tap="openCreateEntry()">
+          <text class="empty-title">还没有可分享的请柬</text>
+          <text class="empty-desc">创建宴席后，系统会自动生成基础请柬。</text>
+        </view>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import { request } from '../../../api/client';
+
+interface Banquet {
+  id: number;
+  name: string;
+  eventTypeCode: string;
+  banquetTime?: string;
+}
+
+interface BanquetDetail {
+  banquet: Banquet;
+  invitation?: {
+    id: number;
+    title: string;
+    shareSlug: string;
+    visitCount?: number;
+  };
+}
+
+interface RsvpStats {
+  totalGuests: number;
+}
+
+interface MyInvitation {
+  id: number;
+  title: string;
+  shareSlug: string;
+  eventTypeCode: string;
+  banquetTime?: string;
+  visitCount: number;
+  rsvpGuests: number;
+  status: string;
+}
 
 const activeType = ref('WEDDING');
 const activeFilter = ref('全部');
+const myInvitation = ref<MyInvitation>();
 const filters = ['全部', '免费', '付费', '定制', '热门'];
 const eventTypes = [
   { code: 'WEDDING', name: '婚宴', subtitle: '喜结良缘', icon: '囍', tone: 'red' },
@@ -180,9 +218,63 @@ function openCreateEntry() {
   uni.navigateTo({ url: '/pages/banquet/create/index' });
 }
 
+function openMyInvitation() {
+  if (!myInvitation.value) {
+    openCreateEntry();
+    return;
+  }
+  uni.navigateTo({ url: `/pages/invite/public/index?slug=${myInvitation.value.shareSlug}` });
+}
+
 function showComingSoon() {
   uni.showToast({ title: '后续版本开放', icon: 'none' });
 }
+
+function eventTypeLabel(code: string) {
+  const labels: Record<string, string> = {
+    WEDDING: '婚宴',
+    BIRTHDAY: '寿宴',
+    BABY: '满月',
+    HOUSEWARMING: '乔迁',
+    SCHOOL: '升学',
+    MEMORIAL: '追思会',
+    OTHER: '其他'
+  };
+  return labels[code] || code || '宴席';
+}
+
+function formatTime(value?: string) {
+  return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
+}
+
+async function loadMyInvitation() {
+  const banquets = await request<Banquet[]>('/banquets').catch(() => []);
+  const latest = banquets[0];
+  if (!latest?.id) {
+    myInvitation.value = undefined;
+    return;
+  }
+  const [detail, rsvp] = await Promise.all([
+    request<BanquetDetail>(`/banquets/${latest.id}`).catch(() => undefined),
+    request<RsvpStats>(`/rsvp/stats?banquetId=${latest.id}`).catch(() => ({ totalGuests: 0 }))
+  ]);
+  if (!detail?.invitation?.id) {
+    myInvitation.value = undefined;
+    return;
+  }
+  myInvitation.value = {
+    id: detail.invitation.id,
+    title: detail.invitation.title || `${detail.banquet.name}邀请函`,
+    shareSlug: detail.invitation.shareSlug,
+    eventTypeCode: detail.banquet.eventTypeCode,
+    banquetTime: detail.banquet.banquetTime,
+    visitCount: Number(detail.invitation.visitCount || 0),
+    rsvpGuests: Number(rsvp.totalGuests || 0),
+    status: '已发布'
+  };
+}
+
+onMounted(loadMyInvitation);
 </script>
 
 <style scoped>
@@ -759,5 +851,31 @@ button::after {
   margin-top: 8rpx;
   color: #6f7480;
   font-size: 20rpx;
+}
+
+.mine-empty {
+  margin-top: 22rpx;
+  padding: 28rpx;
+  border: 1rpx dashed #f0cfc3;
+  border-radius: 18rpx;
+  background: #fffaf6;
+}
+
+.empty-title,
+.empty-desc {
+  display: block;
+}
+
+.empty-title {
+  color: #171923;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.empty-desc {
+  margin-top: 10rpx;
+  color: #6f7480;
+  font-size: 23rpx;
+  line-height: 1.5;
 }
 </style>

@@ -20,12 +20,12 @@
 
     <view class="summary-card">
       <view class="summary-item">
-        <text class="summary-value">86</text>
+        <text class="summary-value">{{ rsvpStats?.totalGuests || 0 }}</text>
         <text class="summary-label">已回执</text>
       </view>
       <view class="summary-line"></view>
       <view class="summary-item">
-        <text class="summary-value red">¥12,800</text>
+        <text class="summary-value red">{{ formatMoney(giftSummary?.totalAmount || 0) }}</text>
         <text class="summary-label">已收礼</text>
       </view>
       <view class="summary-line"></view>
@@ -136,9 +136,19 @@ interface Entitlements {
   rightValues: Record<string, string>;
 }
 
+interface RsvpStats {
+  totalGuests: number;
+}
+
+interface GiftSummary {
+  totalAmount: number;
+}
+
 const detail = ref<BanquetDetail>();
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
+const rsvpStats = ref<RsvpStats>();
+const giftSummary = ref<GiftSummary>();
 const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
@@ -166,15 +176,19 @@ const invitationShareUrl = computed(() => {
 
 async function load(id: string) {
   pageState.value = 'loading';
-  const [runtimeFeatures, banquetDetail, result] = await Promise.all([
+  const [runtimeFeatures, banquetDetail, result, rsvp, gifts] = await Promise.all([
     loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
     request<BanquetDetail>(`/banquets/${id}`),
-    request<Entitlements>(`/plans/banquets/${id}/entitlements`)
+    request<Entitlements>(`/plans/banquets/${id}/entitlements`),
+    request<RsvpStats>(`/rsvp/stats?banquetId=${id}`).catch(() => ({ totalGuests: 0 })),
+    request<GiftSummary>(`/gifts/summary?banquetId=${id}`).catch(() => ({ totalAmount: 0 }))
   ]);
   features.value = runtimeFeatures;
   detail.value = banquetDetail;
   entitlements.currentPlan = result.currentPlan;
   entitlements.rightValues = result.rightValues || {};
+  rsvpStats.value = rsvp;
+  giftSummary.value = gifts;
   pageState.value = 'ready';
 }
 
@@ -197,6 +211,10 @@ function eventTypeLabel(code: string) {
 
 function formatTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
+}
+
+function formatMoney(value: unknown) {
+  return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 function handleAction(action: string) {

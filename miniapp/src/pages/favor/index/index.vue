@@ -55,12 +55,12 @@
           <view class="summary-item">
             <text class="summary-icon people">●●</text>
             <text class="summary-label">往来对象</text>
-            <text class="summary-value dark">{{ contacts.length || 128 }} 人</text>
+            <text class="summary-value dark">{{ contacts.length }} 人</text>
           </view>
           <view class="summary-item">
             <text class="summary-icon balance">¥</text>
             <text class="summary-label">收支差额</text>
-            <text class="summary-value red">{{ signedMoney(totalBalance || 8200) }}</text>
+            <text class="summary-value red">{{ signedMoney(totalBalance) }}</text>
           </view>
         </view>
         <view class="search-box">
@@ -132,6 +132,10 @@
             <text class="more">更多 ›</text>
           </view>
           <view v-if="loading" class="empty">同步中</view>
+          <view v-else-if="displayContacts.length === 0" class="empty">
+            <text class="empty-title">暂无往来记录</text>
+            <text class="empty-desc">线下记礼或手动补录后，会在这里形成亲友往来账。</text>
+          </view>
           <view v-for="item in displayContacts" :key="item.contactId" class="recent-row" @tap="openDetail(item.contactId)">
             <text class="avatar">{{ item.contactName.slice(0, 1) }}</text>
             <view class="recent-main">
@@ -139,7 +143,7 @@
               <text class="recent-meta">婚宴 · 今天 · 亲友</text>
             </view>
             <text class="direction" :class="Number(item.balance) >= 0 ? 'in' : 'out'">{{ Number(item.balance) >= 0 ? '收到' : '送出' }}</text>
-            <text class="recent-amount" :class="Number(item.balance) >= 0 ? 'in' : 'out'">{{ formatMoney(Math.abs(Number(item.balance || 0)) || 500) }}</text>
+            <text class="recent-amount" :class="Number(item.balance) >= 0 ? 'in' : 'out'">{{ formatMoney(Math.abs(Number(item.balance || 0))) }}</text>
           </view>
         </view>
 
@@ -148,15 +152,21 @@
             <text class="section-title small">往来对比</text>
             <text class="more">更多 ›</text>
           </view>
-          <view class="compare-person">
-            <text class="avatar large">{{ compareResult?.contact.contactName.slice(0, 1) || '张' }}</text>
-            <text class="compare-name">{{ compareResult?.contact.contactName || '张三' }}</text>
+          <view v-if="compareResult" class="compare-person">
+            <text class="avatar large">{{ compareResult.contact.contactName.slice(0, 1) }}</text>
+            <text class="compare-name">{{ compareResult.contact.contactName }}</text>
           </view>
-          <text class="compare-line">他送我：3次，合计 <text class="red-text">{{ formatMoney(compareResult?.receivedAmount || 1500) }}</text></text>
-          <text class="compare-line">我送他：2次，合计 <text class="green-text">{{ formatMoney(compareResult?.givenAmount || 1000) }}</text></text>
-          <view class="compare-divider"></view>
-          <text class="compare-line">差额：<text class="red-text">{{ signedMoney(compareResult?.balance || 500) }}</text></text>
-          <button class="detail-btn" @tap="runDefaultCompare()">查看详情</button>
+          <template v-if="compareResult">
+            <text class="compare-line">他送我合计 <text class="red-text">{{ formatMoney(compareResult.receivedAmount) }}</text></text>
+            <text class="compare-line">我送他合计 <text class="green-text">{{ formatMoney(compareResult.givenAmount) }}</text></text>
+            <view class="compare-divider"></view>
+            <text class="compare-line">差额：<text class="red-text">{{ signedMoney(compareResult.balance) }}</text></text>
+          </template>
+          <view v-else class="empty compact">
+            <text class="empty-title">暂无对比对象</text>
+            <text class="empty-desc">输入姓名或先添加一条人情记录。</text>
+          </view>
+          <button class="detail-btn" @tap="runDefaultCompare()">查看对比</button>
         </view>
       </view>
 
@@ -195,12 +205,6 @@ interface FavorCompare {
   balance: number;
 }
 
-const mockContacts: FavorContact[] = [
-  { contactId: 101, contactName: '张三', receivedAmount: 1500, givenAmount: 1000, balance: 500 },
-  { contactId: 102, contactName: '李四', receivedAmount: 600, givenAmount: 900, balance: -300 },
-  { contactId: 103, contactName: '王五', receivedAmount: 200, givenAmount: 0, balance: 200 },
-  { contactId: 104, contactName: '赵六', receivedAmount: 0, givenAmount: 600, balance: -600 }
-];
 const directions = [
   { label: '他送我的', value: 'RECEIVED' },
   { label: '我送他的', value: 'GIVEN' }
@@ -212,7 +216,7 @@ const compareResult = ref<FavorCompare>();
 const loading = ref(false);
 const directionIndex = ref(0);
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
-const sourceContacts = computed(() => contacts.value.length ? contacts.value : mockContacts);
+const sourceContacts = computed(() => contacts.value);
 const displayContacts = computed(() => sourceContacts.value.slice(0, 4));
 const totalReceived = computed(() => sum(sourceContacts.value.map((contact) => contact.receivedAmount)));
 const totalGiven = computed(() => sum(sourceContacts.value.map((contact) => contact.givenAmount)));
@@ -232,7 +236,7 @@ function setManualDirection(direction: string) {
 }
 
 function setCompareFromKeyword() {
-  compareName.value = keyword.value || sourceContacts.value[0]?.contactName || '张三';
+  compareName.value = keyword.value || sourceContacts.value[0]?.contactName || '';
   runDefaultCompare();
 }
 
@@ -264,17 +268,16 @@ async function addManual() {
 }
 
 async function runDefaultCompare() {
-  const name = (compareName.value || sourceContacts.value[0]?.contactName || '张三').trim();
+  const name = (compareName.value || sourceContacts.value[0]?.contactName || '').trim();
+  if (!name) {
+    uni.showToast({ title: '请先输入或选择对象', icon: 'none' });
+    return;
+  }
   compareName.value = name;
   try {
     compareResult.value = await request<FavorCompare>(`/favor/compare?contactName=${encodeURIComponent(name)}`);
   } catch {
-    compareResult.value = {
-      contact: { contactName: name },
-      receivedAmount: 1500,
-      givenAmount: 1000,
-      balance: 500
-    };
+    compareResult.value = undefined;
   }
 }
 
