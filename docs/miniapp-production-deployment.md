@@ -41,19 +41,22 @@ Build output:
 miniapp/dist/build/mp-weixin
 ```
 
-Before preview or upload, run the miniapp route registration check from the repository root:
+Before preview or upload, run the miniapp route and experience checks from the repository root:
 
 ```bash
 node deploy/scripts/miniapp-route-check.mjs
+node deploy/scripts/miniapp-experience-check.mjs
 ```
 
 Or from the miniapp directory:
 
 ```bash
 npm run check:routes
+npm run check:experience
 ```
 
 This fails when a static miniapp navigation target is missing from `miniapp/src/pages.json`, when a registered page file is missing, or when a tabBar page is not registered.
+The experience check also fails when required non-payment MVP copy, page entries or user-facing boundary prompts regress.
 
 Import this directory into WeChat DevTools.
 
@@ -110,6 +113,7 @@ Before experience-version testing:
 
 - `cd miniapp && npm run build` passes.
 - `node deploy/scripts/miniapp-route-check.mjs` or `cd miniapp && npm run check:routes` passes.
+- `node deploy/scripts/miniapp-experience-check.mjs` or `cd miniapp && npm run check:experience` passes.
 - `miniapp/src/manifest.json` contains the real AppID `wx5cbc30150256d707`.
 - WeChat request legal domain includes `https://yxt.yqej.cn`.
 - Complete `docs/miniapp-experience-regression-checklist.md` for the generated preview or experience version.
