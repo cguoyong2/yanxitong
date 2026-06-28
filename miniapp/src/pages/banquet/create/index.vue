@@ -44,17 +44,18 @@
         <view class="form-row picker-row">
           <text class="row-icon">▣</text>
           <text class="row-label">宴席时间</text>
-          <view class="datetime-field">
-            <text class="datetime-display" :class="{ placeholder: !banquetTimeDisplay }">{{ banquetTimeDisplay || '请选择宴席日期和时间' }}</text>
-            <view class="datetime-actions">
-              <picker mode="date" :value="selectedDate" @change="onDateChange">
-                <view class="picker-button">日期</view>
-              </picker>
-              <picker mode="time" :value="selectedTime" @change="onTimeChange">
-                <view class="picker-button">时间</view>
-              </picker>
+          <picker
+            mode="multiSelector"
+            :range="dateTimeRange"
+            :value="dateTimeIndex"
+            @change="onDateTimeChange"
+            @columnchange="onDateTimeColumnChange"
+          >
+            <view class="datetime-field">
+              <text class="datetime-display" :class="{ placeholder: !banquetTimeDisplay }">{{ banquetTimeDisplay || '请选择宴席日期和时间' }}</text>
+              <view class="picker-button">选择</view>
             </view>
-          </view>
+          </picker>
           <text class="row-arrow">›</text>
         </view>
         <view class="form-row location-row">
@@ -200,6 +201,7 @@ const submitting = ref(false);
 const customGiftSuccess = ref('');
 const selectedDate = ref('');
 const selectedTime = ref('');
+const dateTimeIndex = ref([0, 0, 0, 18, 0]);
 const displayForm = reactive({
   hostName: '',
   phone: ''
@@ -216,6 +218,26 @@ const initialTemplateId = ref<number>();
 
 const selectedTemplate = computed(() => templates.value.find((item) => item.id === form.templateId));
 const currentDesign = computed(() => designFor(form.eventTypeCode || 'OTHER'));
+const yearOptions = computed(() => {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 8 }, (_, index) => String(currentYear + index));
+});
+const monthOptions = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
+const hourOptions = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0'));
+const minuteOptions = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
+const dayOptions = computed(() => {
+  const year = Number(yearOptions.value[dateTimeIndex.value[0]] || new Date().getFullYear());
+  const month = Number(monthOptions[dateTimeIndex.value[1]] || 1);
+  const total = new Date(year, month, 0).getDate();
+  return Array.from({ length: total }, (_, index) => String(index + 1).padStart(2, '0'));
+});
+const dateTimeRange = computed(() => [
+  yearOptions.value,
+  monthOptions,
+  dayOptions.value,
+  hourOptions,
+  minuteOptions
+]);
 const banquetTimeDisplay = computed(() => {
   if (!selectedDate.value && !selectedTime.value) {
     return '';
@@ -237,30 +259,56 @@ function fillSampleData() {
   form.name = defaultBanquetName();
   selectedDate.value = '2026-10-01';
   selectedTime.value = '18:00';
+  syncDateTimeIndexFromSelected();
   syncBanquetTime();
   form.location = '体验宴会厅';
   displayForm.hostName = '宴席通用户';
   displayForm.phone = '13800000000';
 }
 
-function onDateChange(event: { detail: { value: string } }) {
-  selectedDate.value = event.detail.value;
-  if (!selectedTime.value) {
-    selectedTime.value = '18:00';
-  }
-  syncBanquetTime();
-}
-
-function onTimeChange(event: { detail: { value: string } }) {
-  selectedTime.value = event.detail.value;
-  if (!selectedDate.value) {
-    selectedDate.value = formatDateInput(new Date());
-  }
-  syncBanquetTime();
-}
-
 function syncBanquetTime() {
   form.banquetTime = selectedDate.value && selectedTime.value ? `${selectedDate.value}T${selectedTime.value}:00` : '';
+}
+
+function onDateTimeColumnChange(event: { detail: { column: number; value: number } }) {
+  const next = [...dateTimeIndex.value];
+  next[event.detail.column] = event.detail.value;
+  if (event.detail.column === 0 || event.detail.column === 1) {
+    const maxDayIndex = Math.max(0, dayOptions.value.length - 1);
+    next[2] = Math.min(next[2], maxDayIndex);
+  }
+  dateTimeIndex.value = next;
+}
+
+function onDateTimeChange(event: { detail: { value: number[] } }) {
+  dateTimeIndex.value = normalizeDateTimeIndex(event.detail.value);
+  applyDateTimeIndex();
+}
+
+function normalizeDateTimeIndex(indexes: number[]) {
+  const next = [indexes[0] || 0, indexes[1] || 0, indexes[2] || 0, indexes[3] || 0, indexes[4] || 0];
+  const maxDayIndex = Math.max(0, dayOptions.value.length - 1);
+  next[2] = Math.min(next[2], maxDayIndex);
+  return next;
+}
+
+function applyDateTimeIndex() {
+  const [yearIndex, monthIndex, dayIndex, hourIndex, minuteIndex] = dateTimeIndex.value;
+  selectedDate.value = `${yearOptions.value[yearIndex]}-${monthOptions[monthIndex]}-${dayOptions.value[dayIndex]}`;
+  selectedTime.value = `${hourOptions[hourIndex]}:${minuteOptions[minuteIndex]}`;
+  syncBanquetTime();
+}
+
+function syncDateTimeIndexFromSelected() {
+  const [year = '', month = '', day = ''] = selectedDate.value.split('-');
+  const [hour = '', minute = ''] = selectedTime.value.split(':');
+  dateTimeIndex.value = normalizeDateTimeIndex([
+    Math.max(0, yearOptions.value.indexOf(year)),
+    Math.max(0, monthOptions.indexOf(month)),
+    Math.max(0, dayOptions.value.indexOf(day)),
+    Math.max(0, hourOptions.indexOf(hour)),
+    Math.max(0, minuteOptions.indexOf(minute))
+  ]);
 }
 
 function formatDateInput(date: Date) {
@@ -282,18 +330,46 @@ function validatePhone(showToast = false) {
   return false;
 }
 
-function chooseBanquetLocation() {
-  uni.chooseLocation({
-    keyword: form.location || '',
-    success: (result) => {
-      const name = result.name || '';
-      const address = result.address || '';
-      form.location = name && address ? `${name} ${address}` : name || address || form.location;
-    },
-    fail: () => {
-      uni.showToast({ title: '地图选址不可用，可手动输入酒店或地址', icon: 'none' });
-    }
+async function chooseBanquetLocation() {
+  await requestLocationAuth();
+  try {
+    const result = await callChooseLocation();
+    applyChosenLocation(result);
+  } catch {
+    uni.showToast({ title: '地图选址不可用，可手动输入酒店或地址', icon: 'none' });
+  }
+}
+
+function requestLocationAuth() {
+  return new Promise<void>((resolve) => {
+    uni.authorize({
+      scope: 'scope.userLocation',
+      success: () => resolve(),
+      fail: () => resolve()
+    });
   });
+}
+
+function callChooseLocation() {
+  return new Promise<UniApp.ChooseLocationSuccess>((resolve, reject) => {
+    const wxApi = typeof wx !== 'undefined' ? wx : undefined;
+    if (wxApi?.chooseLocation) {
+      wxApi.chooseLocation({
+        success: resolve,
+        fail: () => {
+          uni.chooseLocation({ success: resolve, fail: reject });
+        }
+      });
+      return;
+    }
+    uni.chooseLocation({ success: resolve, fail: reject });
+  });
+}
+
+function applyChosenLocation(result: UniApp.ChooseLocationSuccess) {
+  const name = result.name || '';
+  const address = result.address || '';
+  form.location = name && address ? `${name} ${address}` : name || address || form.location;
 }
 
 function designFor(eventTypeCode: string) {
@@ -648,6 +724,10 @@ onMounted(() => {
 
 .picker-row {
   min-height: 96rpx;
+}
+
+.picker-row picker {
+  min-width: 0;
 }
 
 .datetime-field,

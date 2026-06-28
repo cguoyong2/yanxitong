@@ -7,3 +7,10 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+declare const wx: {
+  chooseLocation?: (options: {
+    success?: (result: UniApp.ChooseLocationSuccess) => void;
+    fail?: (error: unknown) => void;
+  }) => void;
+};
