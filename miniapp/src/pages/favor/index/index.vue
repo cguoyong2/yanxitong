@@ -290,7 +290,7 @@ function openFamily() {
 }
 
 function showComingSoon() {
-  uni.showToast({ title: '后续版本开放', icon: 'none' });
+  uni.showToast({ title: '批量导入和协作能力将在后续版本开放', icon: 'none' });
 }
 
 function sum(values: number[]) {

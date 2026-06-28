@@ -195,7 +195,7 @@ function handleAction(action: string) {
 }
 
 function showComingSoon() {
-  uni.showToast({ title: '后续版本开放', icon: 'none' });
+  uni.showToast({ title: '该设置将在后续运营版本开放', icon: 'none' });
 }
 
 async function loadProfileStats() {

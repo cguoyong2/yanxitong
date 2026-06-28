@@ -3,7 +3,7 @@
     <view class="hero">
       <text class="eyebrow">家庭共享</text>
       <text class="title">家庭人情簿</text>
-      <text class="subtitle">家庭协作功能后续接入，当前先保留入口与页面结构。</text>
+      <text class="subtitle">家庭协作功能将在后续版本开放，当前可先查看入口结构。</text>
     </view>
 
     <view class="summary-card">
@@ -71,7 +71,7 @@ const members: Array<{ name: string; role: string }> = [];
 const records: Array<{ id: number; type: string; name: string; event: string; date: string; owner: string; amount: number }> = [];
 
 function showComingSoon() {
-  uni.showToast({ title: '家庭协作功能后续接入', icon: 'none' });
+  uni.showToast({ title: '家庭协作功能将在后续版本开放', icon: 'none' });
 }
 </script>
 

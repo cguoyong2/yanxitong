@@ -70,7 +70,7 @@
 
     <view class="scope-card">
       <text class="section-title">MVP 权益说明</text>
-      <text class="scope-line">Excel 正式导出为 P1，本阶段只预留权益与提示。</text>
+      <text class="scope-line">Excel 正式导出将在后续版本开放，本阶段先预留权益与提示。</text>
       <text class="scope-line">设备租赁只做订单基础闭环，复杂库存、押金、维修、归还后续迭代。</text>
     </view>
   </view>

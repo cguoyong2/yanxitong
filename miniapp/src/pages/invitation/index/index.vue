@@ -219,7 +219,7 @@ const filteredTemplates = computed(() => templates.value
   .slice(0, 8));
 
 function previewTemplate(item: InvitationTemplate) {
-  uni.showToast({ title: `${item.name} 可在创建页预览`, icon: 'none' });
+  uni.showToast({ title: `${item.name} 可在创建宴席页预览`, icon: 'none' });
 }
 
 function useTemplate(item: InvitationTemplate) {
@@ -239,7 +239,7 @@ function openMyInvitation() {
 }
 
 function showComingSoon() {
-  uni.showToast({ title: '后续版本开放', icon: 'none' });
+  uni.showToast({ title: '定制请柬服务将在后续版本开放', icon: 'none' });
 }
 
 function eventTypeLabel(code: string) {

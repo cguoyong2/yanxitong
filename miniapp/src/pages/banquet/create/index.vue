@@ -247,7 +247,7 @@ function templateCoverStyle(item: InvitationTemplate) {
 }
 
 function showUploadTip() {
-  uni.showToast({ title: '封面上传后续接入', icon: 'none' });
+  uni.showToast({ title: '当前使用模板封面，自定义上传稍后开放', icon: 'none' });
 }
 
 async function loadEventTypes() {

@@ -284,7 +284,7 @@ function handleGuide(action: string) {
 }
 
 function showServiceTip() {
-  uni.showToast({ title: '后续版本开放', icon: 'none' });
+  uni.showToast({ title: '客服和消息中心将在正式运营版开放', icon: 'none' });
 }
 
 onMounted(refresh);

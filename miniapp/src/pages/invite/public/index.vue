@@ -320,15 +320,15 @@ function openGift(entrySource: string) {
 }
 
 function showGiftDisabled() {
-  uni.showToast({ title: '在线随礼暂未开放', icon: 'none' });
+  uni.showToast({ title: '在线随礼需完成微信支付配置后开放', icon: 'none' });
 }
 
 function showMapTip() {
-  uni.showToast({ title: '地图导航后续接入', icon: 'none' });
+  uni.showToast({ title: '地图导航将在地址坐标配置后开放', icon: 'none' });
 }
 
 function showComingSoon() {
-  uni.showToast({ title: '功能完善中', icon: 'none' });
+  uni.showToast({ title: '路线、停车和温馨提示将在请柬编辑中配置', icon: 'none' });
 }
 
 async function loadInvitation() {
