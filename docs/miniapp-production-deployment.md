@@ -97,6 +97,7 @@ Before experience-version testing:
 - `cd miniapp && npm run build` passes.
 - `miniapp/src/manifest.json` contains the real AppID `wx5cbc30150256d707`.
 - WeChat request legal domain includes `https://yxt.yqej.cn`.
+- Complete `docs/miniapp-experience-regression-checklist.md` for the generated preview or experience version.
 - `bash deploy/scripts/production-api-acceptance.sh` passes.
 - `bash deploy/scripts/production-browser-smoke.sh` passes.
 - `bash deploy/scripts/production-security-check.sh` passes.
