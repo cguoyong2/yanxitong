@@ -67,6 +67,11 @@
           <text class="search-icon">⌕</text>
           <input v-model="keyword" placeholder="搜索姓名、手机号、关系" confirm-type="search" @confirm="load()" />
         </view>
+        <view class="sync-tip" @tap="openLatestAutoContact">
+          <text class="sync-dot"></text>
+          <text>{{ autoSyncText }}</text>
+          <text class="sync-arrow">›</text>
+        </view>
       </view>
 
       <view class="mine-card">
@@ -152,6 +157,17 @@
             <text class="section-title small">往来对比</text>
             <text class="more" @tap="openCompareMore()">更多 ›</text>
           </view>
+          <view class="compare-chips" v-if="sourceContacts.length">
+            <text
+              v-for="item in compareCandidates"
+              :key="item.contactId"
+              class="compare-chip"
+              :class="{ active: compareResult?.contact?.contactName === item.contactName }"
+              @tap="selectCompareContact(item.contactName)"
+            >
+              {{ item.contactName }}
+            </text>
+          </view>
           <view v-if="compareResult" class="compare-person">
             <text class="avatar large">{{ contactInitial(compareResult.contact?.contactName) }}</text>
             <text class="compare-name">{{ compareResult.contact?.contactName || '未命名联系人' }}</text>
@@ -174,6 +190,10 @@
         <view class="section-head">
           <text class="section-title">手动记账</text>
           <text class="mode-badge">{{ directions[directionIndex].label }}</text>
+        </view>
+        <view v-if="lastManualText" class="manual-success" @tap="setCompareFromLastManual">
+          <text>{{ lastManualText }}</text>
+          <text>查看往来 ›</text>
         </view>
         <view class="record-form">
           <input v-model="manual.contactName" class="input" placeholder="对象姓名" />
@@ -222,6 +242,8 @@ const loading = ref(false);
 const directionIndex = ref(0);
 const bannerIndex = ref(0);
 const showAllContacts = ref(false);
+const lastManualName = ref('');
+const lastManualText = ref('');
 const activeType = ref(readActiveEventType());
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
 const activeTheme = computed(() => eventThemeFor(activeType.value));
@@ -233,9 +255,18 @@ const banners = [
 ];
 const sourceContacts = computed(() => contacts.value);
 const displayContacts = computed(() => showAllContacts.value ? sourceContacts.value : sourceContacts.value.slice(0, 4));
+const compareCandidates = computed(() => sourceContacts.value.slice(0, 6));
 const totalReceived = computed(() => sum(sourceContacts.value.map((contact) => contact.receivedAmount)));
 const totalGiven = computed(() => sum(sourceContacts.value.map((contact) => contact.givenAmount)));
 const totalBalance = computed(() => totalReceived.value - totalGiven.value);
+const autoGiftContacts = computed(() => sourceContacts.value.filter((contact) => Number(contact.receivedAmount || 0) > 0));
+const autoSyncText = computed(() => {
+  const latest = autoGiftContacts.value[0];
+  if (!latest) {
+    return '线下记礼保存后，会自动同步到这里形成人情往来。';
+  }
+  return `最近自动沉淀：${latest.contactName} · 收到 ${formatMoney(latest.receivedAmount)}`;
+});
 
 function onDirectionChange(event: { detail: { value: number | string } }) {
   directionIndex.value = Number(event.detail.value);
@@ -258,6 +289,22 @@ function setCompareFromKeyword() {
   uni.pageScrollTo({ selector: '#recent-list', duration: 220 });
 }
 
+function setCompareFromLastManual() {
+  if (!lastManualName.value) {
+    return;
+  }
+  selectCompareContact(lastManualName.value);
+}
+
+function openLatestAutoContact() {
+  const latest = autoGiftContacts.value[0];
+  if (!latest) {
+    setManualDirection('RECEIVED');
+    return;
+  }
+  openDetail(latest.contactId);
+}
+
 function scrollToRecent() {
   uni.pageScrollTo({ selector: '#recent-list', duration: 220 });
 }
@@ -270,6 +317,12 @@ function showAllRecent() {
 
 function openCompareMore() {
   setCompareFromKeyword();
+  uni.pageScrollTo({ selector: '#compare-panel', duration: 220 });
+}
+
+function selectCompareContact(name: string) {
+  compareName.value = name;
+  runDefaultCompare();
   uni.pageScrollTo({ selector: '#compare-panel', duration: 220 });
 }
 
@@ -305,12 +358,19 @@ async function addManual() {
     uni.showToast({ title: '请输入有效金额', icon: 'none' });
     return;
   }
-  await request('/favor/manual', { method: 'POST', data: { ...manual, amount: Number(manual.amount) } });
+  const savedName = manual.contactName.trim();
+  const savedDirection = manual.direction;
+  const savedAmount = Number(manual.amount);
+  await request('/favor/manual', { method: 'POST', data: { ...manual, amount: savedAmount } });
   uni.showToast({ title: '补录成功', icon: 'success' });
+  lastManualName.value = savedName;
+  lastManualText.value = `${savedName} · ${savedDirection === 'GIVEN' ? '我送出' : '我收到'} ${formatMoney(savedAmount)}，已写入人情账本`;
   manual.contactName = '';
   manual.amount = 0;
   manual.note = '';
   await load();
+  compareName.value = savedName;
+  await runDefaultCompare();
 }
 
 async function runDefaultCompare() {
@@ -377,6 +437,7 @@ function contactInitial(name?: string) {
 onMounted(load);
 onShow(() => {
   activeType.value = readActiveEventType();
+  load();
 });
 </script>
 
@@ -755,6 +816,39 @@ onShow(() => {
   font-size: 25rpx;
 }
 
+.sync-tip {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 18rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 16rpx;
+  background: #fff8ef;
+  color: #9a5a2c;
+  font-size: 23rpx;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.sync-tip text:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+.sync-dot {
+  flex: 0 0 auto;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #e60012;
+}
+
+.sync-arrow {
+  flex: 0 0 auto;
+  color: #c7191e;
+  font-size: 30rpx;
+}
+
 .family-link {
   margin: -4rpx 0 0;
   padding: 0 18rpx;
@@ -1020,6 +1114,34 @@ button::after {
   color: #168a45;
 }
 
+.compare-chips {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 16rpx;
+  overflow-x: auto;
+}
+
+.compare-chip {
+  flex: 0 0 auto;
+  max-width: 180rpx;
+  padding: 10rpx 18rpx;
+  border: 1rpx solid #ead8ca;
+  border-radius: 999rpx;
+  background: #fffaf6;
+  color: #6d5848;
+  font-size: 23rpx;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compare-chip.active {
+  border-color: transparent;
+  background: #fff0ee;
+  color: #e60012;
+}
+
 .compare-person {
   display: flex;
   align-items: center;
@@ -1076,6 +1198,29 @@ button::after {
   display: grid;
   gap: 14rpx;
   margin-top: 18rpx;
+}
+
+.manual-success {
+  display: grid;
+  gap: 8rpx;
+  margin-top: 18rpx;
+  padding: 18rpx;
+  border: 1rpx solid #ccebd7;
+  border-radius: 16rpx;
+  background: #f5fff8;
+}
+
+.manual-success text:first-child {
+  color: #176b3a;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.manual-success text:last-child {
+  color: #168447;
+  font-size: 23rpx;
+  font-weight: 900;
 }
 
 .input {

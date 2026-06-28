@@ -26,6 +26,11 @@
       </view>
     </view>
 
+    <view class="action-card">
+      <button class="ghost-button" @tap="copySummary">复制往来摘要</button>
+      <button class="ghost-button" @tap="goFavor">返回人情账本</button>
+    </view>
+
     <view class="section-card">
       <view class="section-head">
         <text class="section-title">往来明细</text>
@@ -34,7 +39,7 @@
       <view v-if="entries.length === 0" class="empty">
         <text>暂无人情往来明细</text>
       </view>
-      <view v-for="entry in entries" :key="entry.id" class="entry-row">
+      <view v-for="entry in entries" :key="entry.id" class="entry-row" @tap="copyEntry(entry)">
         <text class="entry-badge" :class="entry.direction === 'GIVEN' ? 'given' : 'received'">{{ entry.direction === 'GIVEN' ? '送' : '收' }}</text>
         <view class="entry-main">
           <text class="entry-title">{{ directionLabel(entry.direction) }}</text>
@@ -126,6 +131,28 @@ function balanceClass(value: unknown) {
 
 function contactInitial(name?: string) {
   return (name || '人').slice(0, 1);
+}
+
+function copySummary() {
+  if (!detail.value) {
+    return;
+  }
+  const name = detail.value.contact?.contactName || '未命名联系人';
+  const text = `${name} 人情往来：他送我 ${formatMoney(detail.value.receivedAmount)}，我送他 ${formatMoney(detail.value.givenAmount)}，差额 ${signedMoney(detail.value.balance)}。`;
+  uni.setClipboardData({
+    data: text,
+    success: () => uni.showToast({ title: '已复制摘要', icon: 'success' }),
+    fail: () => uni.showToast({ title: '复制失败', icon: 'none' })
+  });
+}
+
+function copyEntry(entry: FavorDetail['entries'][number]) {
+  const text = `${directionLabel(entry.direction)} ${formatMoney(entry.amount)} ${sourceLabel(entry.sourceType)} ${formatTime(entry.occurredAt)} ${entry.note || ''}`.trim();
+  uni.setClipboardData({
+    data: text,
+    success: () => uni.showToast({ title: '已复制明细', icon: 'success' }),
+    fail: () => uni.showToast({ title: '复制失败', icon: 'none' })
+  });
 }
 
 async function bootstrap() {
@@ -299,6 +326,29 @@ onMounted(bootstrap);
   grid-template-columns: repeat(3, 1fr);
   gap: 14rpx;
   margin-top: 24rpx;
+}
+
+.action-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.ghost-button {
+  height: 78rpx;
+  margin: 0;
+  border: 1rpx solid #ead8ca;
+  border-radius: 16rpx;
+  background: #fff;
+  color: #9e4d32;
+  font-size: 26rpx;
+  font-weight: 900;
+  line-height: 78rpx;
+}
+
+.ghost-button::after {
+  border: 0;
 }
 
 .summary-item,
