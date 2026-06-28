@@ -92,7 +92,7 @@
       <text class="success-text">{{ successText }}</text>
     </view>
     <view class="success-actions">
-      <button class="primary-button" @tap="openGift">去随礼</button>
+      <button class="primary-button" @tap="openGift">{{ giftActionText }}</button>
       <button class="ghost-button" @tap="backToInvitation">返回请柬</button>
       <button class="text-button" @tap="editAgain">修改回执</button>
     </view>
@@ -101,7 +101,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { request } from '../../../api/client';
+import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 const statuses = [
@@ -114,6 +114,7 @@ const invitationId = ref('');
 const shareUrl = ref('');
 const submitting = ref(false);
 const submitted = ref(false);
+const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const submitResult = ref<{ id: number; created?: boolean; attendanceStatus: string; guestCount: number }>();
 const form = reactive({
   guestName: '',
@@ -143,6 +144,7 @@ const successText = computed(() => {
   }
   return `已记录 ${submitResult.value.guestCount || 1} 位来宾出席。`;
 });
+const giftActionText = computed(() => features.value.mockPaymentEnabled ? '去随礼' : '去线下记礼');
 
 function selectStatus(value: string) {
   form.attendanceStatus = value;
@@ -206,9 +208,14 @@ function validate() {
 }
 
 function openGift() {
-  if (banquetId.value) {
-    uni.navigateTo({ url: `/pages/gift/pay/index?banquetId=${banquetId.value}&entrySource=ONLINE_GIFT&guestName=${encodeURIComponent(form.guestName)}` });
+  if (!banquetId.value) {
+    return;
   }
+  if (!features.value.mockPaymentEnabled) {
+    uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${banquetId.value}` });
+    return;
+  }
+  uni.navigateTo({ url: `/pages/gift/pay/index?banquetId=${banquetId.value}&entrySource=ONLINE_GIFT&guestName=${encodeURIComponent(form.guestName)}` });
 }
 
 function backToInvitation() {
@@ -239,7 +246,12 @@ onMounted(async () => {
     requireBanquetToast();
   }
   invitationId.value = current.options?.invitationId || '';
-  await loadInvitationShareUrl();
+  await Promise.all([
+    loadInvitationShareUrl(),
+    loadRuntimeFeatures().then((result) => {
+      features.value = result;
+    }).catch(() => ({ mockPaymentEnabled: false }))
+  ]);
 });
 </script>
 

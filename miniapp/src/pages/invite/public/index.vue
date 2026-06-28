@@ -114,6 +114,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { onShareAppMessage } from '@dcloudio/uni-app';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 
 interface PublicInvitation {
@@ -359,6 +360,12 @@ onMounted(async () => {
   slug.value = current.options?.slug || '';
   await loadInvitation();
 });
+
+onShareAppMessage(() => ({
+  title: data.value?.invitation.title || pageHeadline.value || '宴席请柬',
+  path: slug.value ? `/pages/invite/public/index?slug=${encodeURIComponent(slug.value)}` : '/pages/home/index/index',
+  imageUrl: heroImage.value
+}));
 </script>
 
 <style scoped>
