@@ -249,18 +249,25 @@ function openGift() {
     return;
   }
   if (!features.value.mockPaymentEnabled) {
-    uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${banquetId.value}` });
+    safeNavigate(`/pages/gift/offline/index?banquetId=${banquetId.value}`, `${activeTheme.value.offlineGiftLabel}打开失败`);
     return;
   }
-  uni.navigateTo({ url: `/pages/gift/pay/index?banquetId=${banquetId.value}&entrySource=ONLINE_GIFT&guestName=${encodeURIComponent(form.guestName)}` });
+  safeNavigate(`/pages/gift/pay/index?banquetId=${banquetId.value}&entrySource=ONLINE_GIFT&guestName=${encodeURIComponent(form.guestName)}`, `${activeTheme.value.onlineGiftLabel}打开失败`);
 }
 
 function backToInvitation() {
   if (shareUrl.value) {
-    uni.navigateTo({ url: shareUrl.value });
+    safeNavigate(shareUrl.value, '请柬页面打开失败');
     return;
   }
   uni.navigateBack();
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+  });
 }
 
 function openRsvpStats() {

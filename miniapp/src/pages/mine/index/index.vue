@@ -194,7 +194,7 @@ function handleAction(action: string) {
     return;
   }
   if (action === 'gift') {
-    uni.navigateTo({ url: '/pages/gift/list/index' });
+    openGiftRecords();
     return;
   }
   if (action === 'plan') {
@@ -214,7 +214,7 @@ function handleBanner(action: string) {
 
 function openLatestBanquet() {
   if (latestBanquetId.value) {
-    uni.navigateTo({ url: `/pages/banquet/detail/index?id=${latestBanquetId.value}` });
+    safeNavigate(`/pages/banquet/detail/index?id=${latestBanquetId.value}`, '宴席详情打开失败');
     return;
   }
   uni.switchTab({ url: '/pages/home/index/index' });
@@ -222,20 +222,35 @@ function openLatestBanquet() {
 
 function openLatestInvitation() {
   if (latestInvitationSlug.value) {
-    uni.navigateTo({ url: `/pages/invite/public/index?slug=${latestInvitationSlug.value}` });
+    safeNavigate(`/pages/invite/public/index?slug=${latestInvitationSlug.value}`, '请柬公开页打开失败');
     return;
   }
   uni.switchTab({ url: '/pages/invitation/index/index' });
 }
 
+function openGiftRecords() {
+  if (!latestBanquetId.value) {
+    uni.showToast({ title: '请先创建宴席', icon: 'none' });
+    return;
+  }
+  safeNavigate(`/pages/gift/list/index?banquetId=${latestBanquetId.value}`, '收礼记录打开失败');
+}
+
 function openPlanOrders() {
   const query = latestBanquetId.value ? `?banquetId=${latestBanquetId.value}` : '';
-  uni.navigateTo({ url: `/pages/order/plan/index${query}` });
+  safeNavigate(`/pages/order/plan/index${query}`, '版本订单打开失败');
 }
 
 function openDeviceOrders() {
   const query = latestBanquetId.value ? `?banquetId=${latestBanquetId.value}` : '';
-  uni.navigateTo({ url: `/pages/device/select/index${query}` });
+  safeNavigate(`/pages/device/select/index${query}`, '设备订单打开失败');
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+  });
 }
 
 function showComingSoon() {

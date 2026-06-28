@@ -151,7 +151,10 @@ async function submit() {
       method: 'POST',
       data: { ...form, banquetId: Number(banquetId.value), clientRequestId: ensureClientRequestId() }
     });
-    uni.navigateTo({ url: `/pages/gift/success/index?orderNo=${result.order.orderNo}&banquetId=${banquetId.value}&amount=${form.amount || 0}&guestName=${encodeURIComponent(form.guestName)}` });
+    safeNavigate(
+      `/pages/gift/success/index?orderNo=${result.order.orderNo}&banquetId=${banquetId.value}&amount=${form.amount || 0}&guestName=${encodeURIComponent(form.guestName)}`,
+      `${activeTheme.value.giftLabel}成功页打开失败`
+    );
   } finally {
     submitting.value = false;
   }
@@ -185,7 +188,14 @@ function openOfflineGift() {
     uni.showToast({ title: '缺少宴席信息', icon: 'none' });
     return;
   }
-  uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${banquetId.value}` });
+  safeNavigate(`/pages/gift/offline/index?banquetId=${banquetId.value}`, `${activeTheme.value.offlineGiftLabel}打开失败`);
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+  });
 }
 
 onMounted(async () => {

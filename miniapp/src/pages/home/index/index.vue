@@ -264,7 +264,7 @@ function selectType(code: string) {
 }
 
 function createBanquet() {
-  uni.navigateTo({ url: `/pages/banquet/create/index?eventTypeCode=${activeType.value}` });
+  safeNavigate(`/pages/banquet/create/index?eventTypeCode=${activeType.value}`, '创建宴席页面打开失败');
 }
 
 function handleBanner(action: string) {
@@ -274,7 +274,7 @@ function handleBanner(action: string) {
   }
   if (action === 'plan') {
     if (latestBanquetId.value) {
-      uni.navigateTo({ url: `/pages/order/plan/index?banquetId=${latestBanquetId.value}` });
+      safeNavigate(`/pages/order/plan/index?banquetId=${latestBanquetId.value}`, '版本页面打开失败');
       return;
     }
     createBanquet();
@@ -293,7 +293,7 @@ function openBanquet(id: number) {
     writeLastBanquetContext(target);
     activeType.value = writeActiveEventType(target.eventTypeCode || activeType.value);
   }
-  uni.navigateTo({ url: `/pages/banquet/detail/index?id=${id}` });
+  safeNavigate(`/pages/banquet/detail/index?id=${id}`, '宴席详情打开失败');
 }
 
 function openLatestOrCreate() {
@@ -309,7 +309,7 @@ function openLatestRsvpStats() {
     uni.showToast({ title: '请先创建宴席', icon: 'none' });
     return;
   }
-  uni.navigateTo({ url: `/pages/rsvp/stats/index?banquetId=${latestBanquetId.value}` });
+  safeNavigate(`/pages/rsvp/stats/index?banquetId=${latestBanquetId.value}`, '回执统计打开失败');
 }
 
 function openLatestOfflineGift() {
@@ -317,11 +317,18 @@ function openLatestOfflineGift() {
     uni.showToast({ title: '请先创建宴席', icon: 'none' });
     return;
   }
-  uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${latestBanquetId.value}` });
+  safeNavigate(`/pages/gift/offline/index?banquetId=${latestBanquetId.value}`, '线下记礼打开失败');
 }
 
 function openInvitationTab() {
   uni.switchTab({ url: '/pages/invitation/index/index' });
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+  });
 }
 
 function handleGuide(action: string) {

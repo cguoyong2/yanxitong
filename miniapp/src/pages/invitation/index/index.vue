@@ -225,11 +225,11 @@ function previewTemplate(item: InvitationTemplate) {
 }
 
 function useTemplate(item: InvitationTemplate) {
-  uni.navigateTo({ url: `/pages/banquet/create/index?eventTypeCode=${activeType.value}&templateId=${item.id}` });
+  safeNavigate(`/pages/banquet/create/index?eventTypeCode=${activeType.value}&templateId=${item.id}`, '创建宴席页面打开失败');
 }
 
 function openCreateEntry() {
-  uni.navigateTo({ url: `/pages/banquet/create/index?eventTypeCode=${activeType.value}` });
+  safeNavigate(`/pages/banquet/create/index?eventTypeCode=${activeType.value}`, '创建宴席页面打开失败');
 }
 
 function openMyInvitation() {
@@ -237,7 +237,7 @@ function openMyInvitation() {
     openCreateEntry();
     return;
   }
-  uni.navigateTo({ url: `/pages/invite/public/index?slug=${myInvitation.value.shareSlug}` });
+  safeNavigate(`/pages/invite/public/index?slug=${myInvitation.value.shareSlug}`, '请柬公开页打开失败');
 }
 
 function showComingSoon() {
@@ -258,6 +258,13 @@ function handleBanner(action: string) {
     return;
   }
   showComingSoon();
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+  });
 }
 
 function eventTypeLabel(code: string) {

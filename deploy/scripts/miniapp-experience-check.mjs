@@ -76,6 +76,7 @@ const requiredTexts = [
   ['miniapp/src/pages/home/index/index.vue', 'writeActiveEventType(code)', 'home persists selected event type'],
   ['miniapp/src/pages/home/index/index.vue', 'readLastBanquetContext', 'home can recover latest banquet from local context'],
   ['miniapp/src/pages/home/index/index.vue', 'writeLastBanquetContext', 'home stores latest banquet context'],
+  ['miniapp/src/pages/home/index/index.vue', 'safeNavigate', 'home workflow entries have navigation failure feedback'],
   ['miniapp/src/pages/banquet/create/index.vue', '填入体验数据', 'create page sample-data helper'],
   ['miniapp/src/pages/banquet/create/index.vue', '慎终追远，思念长存', 'create page memorial copy'],
   ['miniapp/src/pages/banquet/create/index.vue', 'currentDesign.mark', 'create page hero mark follows event type'],
@@ -112,6 +113,7 @@ const requiredTexts = [
   ['miniapp/src/pages/rsvp/submit/index.vue', 'activeTheme.value.giftActionLabel', 'RSVP success action follows event type'],
   ['miniapp/src/pages/rsvp/submit/index.vue', '回执摘要', 'RSVP success page shows submitted summary'],
   ['miniapp/src/pages/rsvp/submit/index.vue', 'openRsvpStats', 'RSVP success can open stats page'],
+  ['miniapp/src/pages/rsvp/submit/index.vue', 'safeNavigate', 'RSVP success actions have navigation failure feedback'],
   ['miniapp/src/pages/rsvp/submit/index.vue', '^1[3-9]\\d{9}$', 'RSVP phone validation uses mainland mobile prefix range'],
   ['miniapp/src/pages/rsvp/stats/index.vue', 'shareSlug', 'RSVP stats can return to public invitation'],
   ['miniapp/src/pages/rsvp/stats/index.vue', 'safeNavigate(`/pages/banquet/detail/index?id=${banquetId.value}`', 'RSVP stats returns to banquet detail'],
@@ -133,6 +135,7 @@ const requiredTexts = [
   ['miniapp/src/pages/gift/list/index.vue', 'current.options?.source', 'gift list can receive source preset from entry page'],
   ['miniapp/src/pages/gift/list/index.vue', 'highlightId', 'gift list can highlight latest saved record'],
   ['miniapp/src/pages/gift/pay/index.vue', 'activeTheme.onlineGiftLabel', 'payment page labels follow event type'],
+  ['miniapp/src/pages/gift/pay/index.vue', 'safeNavigate', 'payment page navigation has failure feedback'],
   ['miniapp/src/pages/gift/success/index.vue', 'activeTheme.giftRecordLabel', 'payment success copy follows event type'],
   ['miniapp/src/pages/favor/family/index.vue', '家庭协作功能将在后续版本开放', 'family favor boundary'],
   ['miniapp/src/pages/favor/index/index.vue', "setManualDirection('RECEIVED')", 'favor received card action'],
@@ -155,6 +158,7 @@ const requiredTexts = [
   ['miniapp/src/pages/invitation/index/index.vue', 'writeActiveEventType(code)', 'invitation type selector persists event type'],
   ['miniapp/src/pages/invitation/index/index.vue', 'readLastBanquetContext', 'invitation tab can recover latest invitation from local context'],
   ['miniapp/src/pages/invitation/index/index.vue', 'eventTypeCode=${activeType.value}', 'invitation create entry keeps selected event type'],
+  ['miniapp/src/pages/invitation/index/index.vue', 'safeNavigate', 'invitation tab workflow entries have navigation failure feedback'],
   ['miniapp/src/pages/mine/index/index.vue', '{{ activeTheme.mark }}', 'mine tab hero follows selected event type'],
   ['miniapp/src/pages/mine/index/index.vue', '{{ activeTheme.mineText }}', 'mine tab copy follows selected event type'],
   ['miniapp/src/pages/mine/index/index.vue', 'readLastBanquetContext', 'mine tab can recover latest services from local context'],
@@ -165,7 +169,9 @@ const requiredTexts = [
   ['miniapp/src/pages/mine/index/index.vue', '绑定记录', 'mine device label'],
   ['miniapp/src/pages/mine/index/index.vue', '交付说明', 'mine delivery label'],
   ['miniapp/src/pages/mine/index/index.vue', 'openLatestBanquet', 'mine service opens latest banquet'],
-  ['miniapp/src/pages/mine/index/index.vue', 'openLatestInvitation', 'mine service opens latest invitation']
+  ['miniapp/src/pages/mine/index/index.vue', 'openLatestInvitation', 'mine service opens latest invitation'],
+  ['miniapp/src/pages/mine/index/index.vue', 'openGiftRecords', 'mine gift records require latest banquet context'],
+  ['miniapp/src/pages/mine/index/index.vue', 'safeNavigate', 'mine workflow entries have navigation failure feedback']
 ];
 
 for (const [file, text, reason] of requiredTexts) {
