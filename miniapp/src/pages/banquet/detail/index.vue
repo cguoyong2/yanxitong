@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
+import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 interface BanquetDetail {
   banquet: {
@@ -285,13 +286,15 @@ function openFavor() {
   uni.switchTab({ url: '/pages/favor/index/index' });
 }
 
-onMounted(() => {
+onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
-  const id = current.options?.id;
+  const id = await resolveBanquetId(current.options?.id);
   if (id) {
-    load(id);
+    await load(id);
+    return;
   }
+  requireBanquetToast();
 });
 </script>
 
