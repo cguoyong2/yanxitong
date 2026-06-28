@@ -109,6 +109,24 @@ Coverage:
 - document-level horizontal overflow
 - console errors and failed frontend/API requests
 
+## Miniapp Preview
+
+`miniapp-preview.sh` runs the miniapp experience check, route check and production build, then asks WeChat DevTools CLI to generate a preview QR code.
+
+```bash
+bash deploy/scripts/miniapp-preview.sh
+```
+
+Environment variables:
+
+- `WECHAT_CLI`: WeChat DevTools CLI path, default `/Applications/wechatwebdevtools.app/Contents/MacOS/cli`
+- `ARTIFACTS_DIR`: output directory, default `.artifacts/wechat-preview`
+- `QR_OUTPUT`: QR image path, default `.artifacts/wechat-preview/latest-miniapp-preview.png`
+- `INFO_OUTPUT`: preview info JSON path, default `.artifacts/wechat-preview/latest-miniapp-preview.json`
+- `SKIP_BUILD`: set to `1` only when `miniapp/dist/build/mp-weixin` is already fresh
+
+Generated preview files are local artifacts and should not be committed.
+
 ## Production Database Backup
 
 `production-db-backup.sh` creates a compressed MySQL dump on the production server, plus a SHA-256 checksum and JSON manifest.

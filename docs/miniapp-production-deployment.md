@@ -60,6 +60,21 @@ The experience check also fails when required non-payment MVP copy, page entries
 
 Import this directory into WeChat DevTools.
 
+To generate a preview QR code through WeChat DevTools CLI:
+
+```bash
+bash deploy/scripts/miniapp-preview.sh
+```
+
+Default output:
+
+```text
+.artifacts/wechat-preview/latest-miniapp-preview.png
+.artifacts/wechat-preview/latest-miniapp-preview.json
+```
+
+The preview script runs the miniapp experience check, route check and build before calling the WeChat DevTools CLI. Set `SKIP_BUILD=1` only when the build output is already fresh.
+
 ## Required WeChat Console Settings
 
 Before preview, upload or experience-version testing:
