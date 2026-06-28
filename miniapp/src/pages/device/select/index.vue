@@ -21,6 +21,8 @@
       <text v-else class="right-ok">可租用</text>
     </view>
 
+    <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail">返回宴席管理台</button>
+
     <view class="time-card">
       <text class="section-title">租用时间</text>
       <view class="time-grid">
@@ -244,8 +246,22 @@ function validateRentWindow() {
 
 function openPlan() {
   if (banquetId.value) {
-    uni.navigateTo({ url: `/pages/order/plan/index?banquetId=${banquetId.value}` });
+    uni.navigateTo({
+      url: `/pages/order/plan/index?banquetId=${banquetId.value}`,
+      fail: () => uni.showToast({ title: '版本页面打开失败', icon: 'none' })
+    });
   }
+}
+
+function returnBanquetDetail() {
+  if (!banquetId.value) {
+    requireBanquetToast();
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/banquet/detail/index?id=${banquetId.value}`,
+    fail: () => uni.redirectTo({ url: `/pages/banquet/detail/index?id=${banquetId.value}` })
+  });
 }
 
 function setDefaultDate() {
@@ -466,8 +482,21 @@ onMounted(async () => {
 
 .small-button::after,
 .pay-button::after,
-.rent-button::after {
+.rent-button::after,
+.return-button::after {
   border: 0;
+}
+
+.return-button {
+  height: 76rpx;
+  margin: 24rpx 0 0;
+  border: 1rpx solid #ead8ca;
+  border-radius: 18rpx;
+  background: #fff;
+  color: #9e4d32;
+  font-size: 27rpx;
+  font-weight: 900;
+  line-height: 76rpx;
 }
 
 .right-ok {

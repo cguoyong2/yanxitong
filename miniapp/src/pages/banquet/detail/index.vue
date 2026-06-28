@@ -51,6 +51,23 @@
         </view>
       </view>
 
+      <view class="section-card progress-card">
+        <view class="section-head">
+          <text class="section-title">管理进度</text>
+          <text class="section-more">返回页面会自动刷新</text>
+        </view>
+        <view class="progress-list">
+          <view v-for="item in progressItems" :key="item.title" class="progress-row" @tap="handleAction(item.action)">
+            <text class="progress-dot" :class="{ done: item.done }">{{ item.done ? '✓' : '·' }}</text>
+            <view class="progress-main">
+              <text class="progress-title">{{ item.title }}</text>
+              <text class="progress-desc">{{ item.desc }}</text>
+            </view>
+            <text class="progress-link">{{ item.done ? '查看' : '去完成' }}</text>
+          </view>
+        </view>
+      </view>
+
       <view class="section-card">
         <view class="section-head">
           <text class="section-title">宴席操作</text>
@@ -127,6 +144,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId, writeLastBanquetContext } from '../../../utils/banquet';
 import { eventThemeFor, eventToneClass, type EventTheme, writeActiveEventType } from '../../../utils/event-theme';
@@ -159,14 +177,17 @@ interface Entitlements {
 }
 
 interface RsvpStats {
+  totalRecords?: number;
   totalGuests: number;
 }
 
 interface GiftSummary {
+  totalRecords?: number;
   totalAmount: number;
 }
 
 const detail = ref<BanquetDetail>();
+const currentBanquetId = ref('');
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const rsvpStats = ref<RsvpStats>();
@@ -182,6 +203,32 @@ const actionItems = computed(() => [
   { title: activeTheme.value.giftRecordLabel, desc: `${activeTheme.value.giftLabel}明细`, icon: '▤', tone: 'red', action: 'giftList' },
   { title: '人情账本', desc: '自动沉淀往来', icon: '账', tone: 'green', action: 'favor' },
   { title: activeTheme.value.onlineGiftLabel, desc: paymentTip(activeTheme.value), icon: '¥', tone: 'purple', action: 'onlineGift' }
+]);
+const progressItems = computed(() => [
+  {
+    title: '请柬已生成',
+    desc: detail.value?.invitation?.shareSlug ? `分享码 ${detail.value.invitation.shareSlug}` : '暂无请柬分享码',
+    done: Boolean(detail.value?.invitation?.shareSlug),
+    action: 'invite'
+  },
+  {
+    title: '回执收集',
+    desc: `${rsvpStats.value?.totalRecords || 0} 条回执 · ${rsvpStats.value?.totalGuests || 0} 人`,
+    done: Number(rsvpStats.value?.totalRecords || 0) > 0,
+    action: 'rsvp'
+  },
+  {
+    title: `${activeTheme.value.giftRecordLabel}登记`,
+    desc: `${giftSummary.value?.totalRecords || 0} 笔 · ${formatMoney(giftSummary.value?.totalAmount || 0)}`,
+    done: Number(giftSummary.value?.totalRecords || 0) > 0,
+    action: 'giftList'
+  },
+  {
+    title: '版本与设备',
+    desc: `${entitlements.currentPlan?.name || '基础版'} · ${hasDeviceRight.value ? '设备已开通' : '设备未开通'}`,
+    done: Boolean(entitlements.currentPlan || hasDeviceRight.value),
+    action: hasDeviceRight.value ? 'device' : 'plan'
+  }
 ]);
 const hasDeviceRight = computed(() => Boolean(entitlements.rightValues.DEVICE_RENTAL));
 const hasExportRight = computed(() => Boolean(entitlements.rightValues.EXCEL_EXPORT));
@@ -202,6 +249,7 @@ const invitationShareUrl = computed(() => {
 });
 
 async function load(id: string) {
+  currentBanquetId.value = id;
   pageState.value = 'loading';
   const [runtimeFeatures, banquetDetail, result, rsvp, gifts] = await Promise.all([
     loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
@@ -276,6 +324,14 @@ function handleAction(action: string) {
     openFavor();
     return;
   }
+  if (action === 'plan') {
+    openPlan();
+    return;
+  }
+  if (action === 'device') {
+    openDevice();
+    return;
+  }
   if (action === 'onlineGift') {
     if (!paymentEntryEnabled.value) {
       uni.showToast({ title: `${activeTheme.value.onlineGiftLabel}暂未开放`, icon: 'none' });
@@ -288,10 +344,7 @@ function handleAction(action: string) {
 function openInvite() {
   const slug = detail.value?.invitation?.shareSlug;
   if (slug) {
-    uni.navigateTo({
-      url: `/pages/invite/public/index?slug=${slug}`,
-      fail: () => uni.showToast({ title: '请柬公开页打开失败', icon: 'none' })
-    });
+    safeNavigate(`/pages/invite/public/index?slug=${slug}`, '请柬公开页打开失败');
     return;
   }
   uni.showToast({ title: '暂无请柬分享链接', icon: 'none' });
@@ -300,10 +353,10 @@ function openInvite() {
 function editInvite() {
   const invitation = detail.value?.invitation;
   if (invitation) {
-    uni.navigateTo({
-      url: `/pages/invite/edit-basic/index?invitationId=${invitation.id}&banquetId=${detail.value?.banquet.id || ''}&title=${encodeURIComponent(invitation.title || '')}`,
-      fail: () => uni.showToast({ title: '请柬编辑页打开失败', icon: 'none' })
-    });
+    safeNavigate(
+      `/pages/invite/edit-basic/index?invitationId=${invitation.id}&banquetId=${detail.value?.banquet.id || ''}&title=${encodeURIComponent(invitation.title || '')}`,
+      '请柬编辑页打开失败'
+    );
     return;
   }
   uni.showToast({ title: '暂无可编辑请柬', icon: 'none' });
@@ -311,6 +364,7 @@ function editInvite() {
 
 function copyInviteLink() {
   if (invitationShareUrl.value === '-') {
+    uni.showToast({ title: '暂无可复制路径', icon: 'none' });
     return;
   }
   uni.setClipboardData({
@@ -321,51 +375,54 @@ function copyInviteLink() {
 
 function openPlan() {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({ url: `/pages/order/plan/index?banquetId=${detail.value.banquet.id}` });
+    safeNavigate(`/pages/order/plan/index?banquetId=${detail.value.banquet.id}`, '版本页面打开失败');
   }
 }
 
 function openDevice() {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({ url: `/pages/device/select/index?banquetId=${detail.value.banquet.id}` });
+    safeNavigate(`/pages/device/select/index?banquetId=${detail.value.banquet.id}`, '设备页面打开失败');
   }
 }
 
 function openRsvpStats() {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({
-      url: `/pages/rsvp/stats/index?banquetId=${detail.value.banquet.id}`,
-      fail: () => uni.showToast({ title: '回执统计打开失败', icon: 'none' })
-    });
+    safeNavigate(`/pages/rsvp/stats/index?banquetId=${detail.value.banquet.id}`, '回执统计打开失败');
   }
 }
 
 function openGiftPay(entrySource: string) {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({ url: `/pages/gift/pay/index?banquetId=${detail.value.banquet.id}&entrySource=${entrySource}` });
+    safeNavigate(`/pages/gift/pay/index?banquetId=${detail.value.banquet.id}&entrySource=${entrySource}`, `${activeTheme.value.onlineGiftLabel}打开失败`);
   }
 }
 
 function openOfflineGift() {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({
-      url: `/pages/gift/offline/index?banquetId=${detail.value.banquet.id}`,
-      fail: () => uni.showToast({ title: `${activeTheme.value.offlineGiftLabel}打开失败`, icon: 'none' })
-    });
+    safeNavigate(`/pages/gift/offline/index?banquetId=${detail.value.banquet.id}`, `${activeTheme.value.offlineGiftLabel}打开失败`);
   }
 }
 
 function openGiftList() {
   if (detail.value?.banquet.id) {
-    uni.navigateTo({
-      url: `/pages/gift/list/index?banquetId=${detail.value.banquet.id}`,
-      fail: () => uni.showToast({ title: `${activeTheme.value.giftRecordLabel}打开失败`, icon: 'none' })
-    });
+    safeNavigate(`/pages/gift/list/index?banquetId=${detail.value.banquet.id}`, `${activeTheme.value.giftRecordLabel}打开失败`);
   }
 }
 
 function openFavor() {
   uni.switchTab({ url: '/pages/favor/index/index' });
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
+  });
 }
 
 async function bootstrap() {
@@ -389,6 +446,13 @@ function goHome() {
 }
 
 onMounted(bootstrap);
+onShow(() => {
+  if (currentBanquetId.value && pageState.value === 'ready') {
+    load(currentBanquetId.value).catch(() => {
+      pageState.value = 'error';
+    });
+  }
+});
 </script>
 
 <style scoped>
@@ -740,6 +804,75 @@ onMounted(bootstrap);
   width: 1rpx;
   height: 58rpx;
   background: #efe4dd;
+}
+
+.progress-card {
+  padding-bottom: 14rpx;
+}
+
+.progress-list {
+  margin-top: 18rpx;
+}
+
+.progress-row {
+  display: grid;
+  grid-template-columns: 48rpx 1fr auto;
+  gap: 16rpx;
+  align-items: center;
+  min-height: 84rpx;
+  border-bottom: 1rpx solid #f0e6e0;
+}
+
+.progress-row:last-child {
+  border-bottom: 0;
+}
+
+.progress-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 50%;
+  background: #f3eee8;
+  color: #9b8a7c;
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
+.progress-dot.done {
+  background: #ecfdf3;
+  color: #138a45;
+}
+
+.progress-main {
+  min-width: 0;
+}
+
+.progress-title,
+.progress-desc {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-title {
+  color: #171923;
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
+.progress-desc {
+  margin-top: 6rpx;
+  color: #7a7f8c;
+  font-size: 22rpx;
+}
+
+.progress-link {
+  color: #e60012;
+  font-size: 23rpx;
+  font-weight: 900;
 }
 
 .section-title {

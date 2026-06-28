@@ -31,6 +31,8 @@
       <text v-else class="pending-text">等待真实支付回调</text>
     </view>
 
+    <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail">返回宴席管理台</button>
+
     <view class="plans-list">
       <view
         v-for="plan in plans"
@@ -253,6 +255,17 @@ function buttonText(plan: Plan) {
   return '立即开通';
 }
 
+function returnBanquetDetail() {
+  if (!banquetId.value) {
+    requireBanquetToast();
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/banquet/detail/index?id=${banquetId.value}`,
+    fail: () => uni.redirectTo({ url: `/pages/banquet/detail/index?id=${banquetId.value}` })
+  });
+}
+
 onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
@@ -421,8 +434,21 @@ onMounted(async () => {
 }
 
 .small-button::after,
-.open-button::after {
+.open-button::after,
+.return-button::after {
   border: 0;
+}
+
+.return-button {
+  height: 76rpx;
+  margin: 24rpx 0 0;
+  border: 1rpx solid #ead8ca;
+  border-radius: 18rpx;
+  background: #fff;
+  color: #9e4d32;
+  font-size: 27rpx;
+  font-weight: 900;
+  line-height: 76rpx;
 }
 
 .plans-list {
