@@ -1,32 +1,54 @@
 <template>
   <view class="page" v-if="detail">
-    <text class="title">{{ detail.contact.contactName }}</text>
-    <view class="stats">
-      <view class="stats-main">
-        <text class="stats-label">当前差额</text>
-        <text class="stats-amount" :class="balanceClass(detail.balance)">{{ formatMoney(detail.balance) }}</text>
-        <text class="stats-note">{{ balanceText(detail.balance) }}</text>
-      </view>
-      <view class="stats-grid">
-        <text>他送我的：{{ formatMoney(detail.receivedAmount) }}</text>
-        <text>我送他的：{{ formatMoney(detail.givenAmount) }}</text>
-        <text>往来笔数：{{ detail.entries.length }}</text>
-        <text>联系人：{{ detail.contact.contactName }}</text>
+    <view class="hero-card">
+      <view class="avatar">{{ detail.contact.contactName.slice(0, 1) }}</view>
+      <text class="hero-label">人情往来详情</text>
+      <text class="hero-name">{{ detail.contact.contactName }}</text>
+      <text class="hero-note">{{ balanceText(detail.balance) }}</text>
+      <view class="balance-box">
+        <text class="balance-label">当前差额</text>
+        <text class="balance-amount" :class="balanceClass(detail.balance)">{{ signedMoney(detail.balance) }}</text>
       </view>
     </view>
-    <view v-if="detail.entries.length === 0" class="empty">
-      <text>暂无人情往来明细</text>
+
+    <view class="summary-grid">
+      <view class="summary-item">
+        <text class="summary-label">他送我的</text>
+        <text class="summary-value red">{{ formatMoney(detail.receivedAmount) }}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">我送他的</text>
+        <text class="summary-value green">{{ formatMoney(detail.givenAmount) }}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">往来笔数</text>
+        <text class="summary-value">{{ detail.entries.length }}</text>
+      </view>
     </view>
-    <view v-for="entry in detail.entries" :key="entry.id" class="row">
-      <view>
-        <text class="name">{{ directionLabel(entry.direction) }}：{{ formatMoney(entry.amount) }}</text>
-        <text class="meta">{{ sourceLabel(entry.sourceType) }} / {{ formatTime(entry.occurredAt) }}</text>
-        <text v-if="entry.banquetId" class="meta">宴席 ID：{{ entry.banquetId }}</text>
-        <text v-if="entry.note" class="note">{{ entry.note }}</text>
+
+    <view class="section-card">
+      <view class="section-head">
+        <text class="section-title">往来明细</text>
+        <text class="section-note">{{ detail.entries.length }} 条</text>
+      </view>
+      <view v-if="detail.entries.length === 0" class="empty">
+        <text>暂无人情往来明细</text>
+      </view>
+      <view v-for="entry in detail.entries" :key="entry.id" class="entry-row">
+        <text class="entry-badge" :class="entry.direction === 'GIVEN' ? 'given' : 'received'">{{ entry.direction === 'GIVEN' ? '送' : '收' }}</text>
+        <view class="entry-main">
+          <text class="entry-title">{{ directionLabel(entry.direction) }}</text>
+          <text class="entry-meta">{{ sourceLabel(entry.sourceType) }} · {{ formatTime(entry.occurredAt) }}</text>
+          <text v-if="entry.banquetId" class="entry-meta">宴席 ID：{{ entry.banquetId }}</text>
+          <text v-if="entry.note" class="entry-note">{{ entry.note }}</text>
+        </view>
+        <text class="entry-amount" :class="entry.direction === 'GIVEN' ? 'given' : 'received'">
+          {{ entry.direction === 'GIVEN' ? '-' : '+' }}{{ formatMoney(entry.amount) }}
+        </text>
       </view>
     </view>
   </view>
-  <view class="page" v-else>加载中</view>
+  <view class="page loading" v-else>加载中</view>
 </template>
 
 <script setup lang="ts">
@@ -44,11 +66,18 @@ interface FavorDetail {
 const detail = ref<FavorDetail>();
 
 function formatTime(value?: string) {
-  return value ? value.replace('T', ' ') : '';
+  return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
 }
 
 function formatMoney(value: unknown) {
-  return `¥${Number(value || 0).toFixed(2)}`;
+  return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function signedMoney(value: unknown) {
+  const amount = Number(value || 0);
+  if (amount > 0) return `+${formatMoney(amount)}`;
+  if (amount < 0) return `-${formatMoney(Math.abs(amount))}`;
+  return formatMoney(0);
 }
 
 function directionLabel(value: string) {
@@ -98,20 +127,250 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.page { padding: 24rpx; }
-.title { display: block; margin-bottom: 24rpx; font-size: 40rpx; font-weight: 600; }
-.stats { display: grid; gap: 16rpx; margin-bottom: 24rpx; padding: 20rpx; border: 1px solid #e5e7eb; border-radius: 8rpx; background: #fff; }
-.stats-main { display: grid; gap: 6rpx; }
-.stats-label { color: #64748b; font-size: 24rpx; }
-.stats-amount { font-size: 44rpx; font-weight: 700; }
-.stats-note { color: #64748b; font-size: 24rpx; }
-.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10rpx; color: #374151; font-size: 24rpx; }
-.empty { padding: 36rpx 20rpx; border: 1px dashed #d1d5db; border-radius: 8rpx; color: #64748b; text-align: center; }
-.row { padding: 18rpx 0; border-bottom: 1px solid #eee; }
-.name, .meta, .note { display: block; }
-.meta { margin-top: 6rpx; color: #666; font-size: 24rpx; }
-.note { margin-top: 10rpx; padding: 10rpx 12rpx; border-radius: 8rpx; background: #f8fafc; color: #374151; font-size: 24rpx; line-height: 1.5; }
-.positive { color: #b91c1c; }
-.negative { color: #2563eb; }
-.neutral { color: #64748b; }
+.page {
+  min-height: 100vh;
+  padding: 24rpx;
+  background: #fff8ef;
+  box-sizing: border-box;
+  color: #171c2a;
+}
+
+.loading {
+  display: grid;
+  place-items: center;
+  color: #8a7768;
+}
+
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  padding: 34rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 84% 18%, rgba(255, 217, 150, 0.38), transparent 180rpx),
+    linear-gradient(135deg, #e71921 0%, #c9161c 62%, #9b0e13 100%);
+  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  background: rgba(255, 247, 225, 0.92);
+  color: #c7191e;
+  font-size: 42rpx;
+  font-weight: 900;
+}
+
+.hero-label,
+.hero-name,
+.hero-note {
+  display: block;
+}
+
+.hero-label {
+  margin-top: 24rpx;
+  color: #ffe2ba;
+  font-size: 25rpx;
+  font-weight: 800;
+}
+
+.hero-name {
+  margin-top: 10rpx;
+  color: #fff8df;
+  font-size: 54rpx;
+  font-weight: 900;
+}
+
+.hero-note {
+  margin-top: 10rpx;
+  color: rgba(255, 248, 232, 0.94);
+  font-size: 27rpx;
+}
+
+.balance-box {
+  margin-top: 26rpx;
+  padding: 22rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.balance-label,
+.balance-amount {
+  display: block;
+}
+
+.balance-label {
+  color: rgba(255, 248, 232, 0.82);
+  font-size: 24rpx;
+}
+
+.balance-amount {
+  margin-top: 8rpx;
+  font-size: 46rpx;
+  font-weight: 900;
+}
+
+.balance-amount.positive {
+  color: #fff2cc;
+}
+
+.balance-amount.negative {
+  color: #cfe7ff;
+}
+
+.balance-amount.neutral {
+  color: #fff;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+  margin-top: 24rpx;
+}
+
+.summary-item,
+.section-card {
+  border: 1rpx solid #f0dfcf;
+  border-radius: 22rpx;
+  background: #fff;
+  box-shadow: 0 12rpx 32rpx rgba(82, 45, 24, 0.07);
+}
+
+.summary-item {
+  padding: 22rpx 10rpx;
+  text-align: center;
+}
+
+.summary-label,
+.summary-value {
+  display: block;
+}
+
+.summary-label {
+  color: #8a7768;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.summary-value {
+  margin-top: 10rpx;
+  color: #171c2a;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.summary-value.red {
+  color: #c7191e;
+}
+
+.summary-value.green {
+  color: #168447;
+}
+
+.section-card {
+  margin-top: 24rpx;
+  padding: 28rpx;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+
+.section-title {
+  color: #171c2a;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.section-note {
+  color: #8a7768;
+  font-size: 24rpx;
+}
+
+.empty {
+  padding: 48rpx 20rpx;
+  border: 1rpx dashed #ead8ca;
+  border-radius: 18rpx;
+  background: #fffaf6;
+  color: #9a6a4c;
+  text-align: center;
+}
+
+.entry-row {
+  display: grid;
+  grid-template-columns: 58rpx 1fr auto;
+  gap: 18rpx;
+  align-items: start;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f0dfcf;
+}
+
+.entry-row:last-child {
+  border-bottom: 0;
+}
+
+.entry-badge {
+  display: grid;
+  place-items: center;
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.entry-badge.received {
+  background: #d92323;
+}
+
+.entry-badge.given {
+  background: #d6a55d;
+}
+
+.entry-title,
+.entry-meta,
+.entry-note {
+  display: block;
+}
+
+.entry-title {
+  color: #171c2a;
+  font-size: 29rpx;
+  font-weight: 900;
+}
+
+.entry-meta {
+  margin-top: 7rpx;
+  color: #8d929d;
+  font-size: 23rpx;
+}
+
+.entry-note {
+  margin-top: 12rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 14rpx;
+  background: #fff8ef;
+  color: #865b3e;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.entry-amount {
+  color: #c7191e;
+  font-size: 28rpx;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.entry-amount.given {
+  color: #168447;
+}
 </style>
