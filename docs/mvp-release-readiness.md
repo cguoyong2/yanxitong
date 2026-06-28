@@ -79,6 +79,7 @@ The MVP baseline can be treated as locally accepted only when all gates pass:
 - `mvn -q test` passes in `server`.
 - `npm run build` passes in `admin`.
 - `npm run build` passes in `confirm-screen`.
+- `node deploy/scripts/miniapp-route-check.mjs` passes, unless miniapp checks are explicitly skipped with `SKIP_MINIAPP_BUILD=1`.
 - `npm run build` passes in `miniapp`, unless explicitly skipped with `SKIP_MINIAPP_BUILD=1` for a backend/admin-only check.
 - `bash deploy/scripts/local-acceptance.sh` passes.
 - `/api/health/readiness` has been reviewed. `READY` is required before production, while local demo may show expected default-credential warnings or blockers.

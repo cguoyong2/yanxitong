@@ -38,6 +38,7 @@ write_summary() {
   BACKEND_TEST_STATUS="${BACKEND_TEST_STATUS:-not_run}" \
   ADMIN_BUILD_STATUS="${ADMIN_BUILD_STATUS:-not_run}" \
   CONFIRM_SCREEN_BUILD_STATUS="${CONFIRM_SCREEN_BUILD_STATUS:-not_run}" \
+  MINIAPP_ROUTE_STATUS="${MINIAPP_ROUTE_STATUS:-not_run}" \
   MINIAPP_BUILD_STATUS="${MINIAPP_BUILD_STATUS:-not_run}" \
   READINESS_STATUS="${READINESS_STATUS:-not_checked}" \
   READINESS_HTTP_STATUS="${READINESS_HTTP_STATUS:-}" \
@@ -89,6 +90,11 @@ const summary = {
       log: path.join(artifactsRoot, 'confirm-screen-build.log'),
       tail: tail(path.join(artifactsRoot, 'confirm-screen-build.log'))
     },
+    miniappRouteCheck: {
+      status: process.env.MINIAPP_ROUTE_STATUS,
+      log: path.join(artifactsRoot, 'miniapp-route-check.log'),
+      tail: tail(path.join(artifactsRoot, 'miniapp-route-check.log'))
+    },
     miniappBuild: {
       status: process.env.MINIAPP_BUILD_STATUS,
       log: path.join(artifactsRoot, 'miniapp-build.log'),
@@ -135,9 +141,14 @@ run_step confirm-screen-build bash -lc "cd '${REPO_ROOT}/confirm-screen' && npm 
 CONFIRM_SCREEN_BUILD_STATUS="passed"
 
 if [[ "${SKIP_MINIAPP_BUILD}" == "1" ]]; then
+  MINIAPP_ROUTE_STATUS="skipped"
   MINIAPP_BUILD_STATUS="skipped"
-  log "Skipping miniapp build."
+  log "Skipping miniapp route check and build."
 else
+  MINIAPP_ROUTE_STATUS="running"
+  run_step miniapp-route-check node "${REPO_ROOT}/deploy/scripts/miniapp-route-check.mjs"
+  MINIAPP_ROUTE_STATUS="passed"
+
   MINIAPP_BUILD_STATUS="running"
   run_step miniapp-build bash -lc "cd '${REPO_ROOT}/miniapp' && npm run build"
   MINIAPP_BUILD_STATUS="passed"
