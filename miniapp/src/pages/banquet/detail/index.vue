@@ -301,7 +301,7 @@ function editInvite() {
   const invitation = detail.value?.invitation;
   if (invitation) {
     uni.navigateTo({
-      url: `/pages/invite/edit-basic/index?invitationId=${invitation.id}`,
+      url: `/pages/invite/edit-basic/index?invitationId=${invitation.id}&banquetId=${detail.value?.banquet.id || ''}&title=${encodeURIComponent(invitation.title || '')}`,
       fail: () => uni.showToast({ title: '请柬编辑页打开失败', icon: 'none' })
     });
     return;

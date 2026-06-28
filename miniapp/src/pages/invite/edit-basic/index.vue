@@ -38,12 +38,18 @@
     </view>
 
     <view class="section-card">
-      <text class="section-title">邀请文案</text>
+      <view class="section-head">
+        <text class="section-title">邀请文案</text>
+        <button class="inline-button" @tap="applyThemeCopy">套用推荐</button>
+      </view>
       <textarea v-model="form.greeting" class="textarea" placeholder="欢迎语" placeholder-class="placeholder" />
     </view>
 
     <view class="section-card">
-      <text class="section-title">宴席流程</text>
+      <view class="section-head">
+        <text class="section-title">宴席流程</text>
+        <button class="inline-button" @tap="applyDefaultSchedule">填入流程</button>
+      </view>
       <textarea v-model="form.scheduleText" class="textarea tall" placeholder="每行一个节点，如：17:30 签到" placeholder-class="placeholder" />
     </view>
 
@@ -81,6 +87,8 @@
 
     <view class="footer-safe"></view>
     <view class="sticky-submit">
+      <button class="ghost-button compact" @tap="returnBanquetDetail">返回管理台</button>
+      <button class="ghost-button compact" @tap="saveAndPreview">保存预览</button>
       <button class="primary-button" :loading="submitting" @tap="submit">保存请柬</button>
     </view>
   </view>
@@ -90,12 +98,26 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { request } from '../../../api/client';
 import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
+import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
 
 const invitationId = ref('');
+const banquetId = ref('');
 const submitting = ref(false);
 const shareUrl = ref('');
 const lastSavedAt = ref('');
 const activeTheme = computed(() => eventThemeFor(readActiveEventType()));
+const defaultSchedule = computed(() => {
+  if (activeTheme.value.code === 'MEMORIAL') {
+    return ['09:30 来宾签到', '10:00 追思仪式', '10:30 缅怀致辞', '11:00 亲友致意'].join('\n');
+  }
+  if (activeTheme.value.code === 'SCHOOL') {
+    return ['17:30 来宾签到', '18:00 开席致谢', '18:30 宴席用餐', '20:00 合影留念'].join('\n');
+  }
+  if (activeTheme.value.code === 'BIRTHDAY') {
+    return ['17:30 来宾签到', '18:00 祝寿仪式', '18:30 宴席用餐', '20:00 合影留念'].join('\n');
+  }
+  return ['17:30 来宾签到', '18:00 仪式开始', '18:30 宴席用餐', '20:00 合影留念'].join('\n');
+});
 const form = reactive({
   title: '',
   hostName: '',
@@ -129,6 +151,17 @@ function fillForm(detail: InvitationDetail) {
   form.showGiftEntry = fields.showGiftEntry !== '0';
   form.showDeviceEntry = fields.showDeviceEntry !== '0';
   shareUrl.value = detail.shareUrl || '';
+  const cached = readLastBanquetContext();
+  if (!banquetId.value && cached?.id) {
+    banquetId.value = String(cached.id);
+  }
+  if (cached?.id) {
+    writeLastBanquetContext({
+      id: cached.id,
+      invitationId: Number(invitationId.value) || cached.invitationId,
+      shareSlug: shareUrl.value.split('slug=')[1] || cached.shareSlug
+    });
+  }
 }
 
 async function loadInvitation() {
@@ -142,7 +175,10 @@ async function loadInvitation() {
 async function submit() {
   if (!invitationId.value || !form.title.trim()) {
     uni.showToast({ title: '请填写标题', icon: 'none' });
-    return;
+    return false;
+  }
+  if (!validateContactPhone()) {
+    return false;
   }
   submitting.value = true;
   try {
@@ -153,10 +189,41 @@ async function submit() {
     await loadInvitation();
     lastSavedAt.value = new Date().toLocaleTimeString();
     uni.showToast({ title: '已保存', icon: 'success' });
+    return true;
   } catch (error) {
     uni.showToast({ title: error instanceof Error ? error.message : '保存请柬失败', icon: 'none' });
+    return false;
   } finally {
     submitting.value = false;
+  }
+}
+
+function validateContactPhone() {
+  const phone = form.contactPhone.trim();
+  if (!phone) {
+    return true;
+  }
+  if (/^1[3-9]\d{9}$/.test(phone)) {
+    return true;
+  }
+  uni.showToast({ title: '联系电话需为11位手机号', icon: 'none' });
+  return false;
+}
+
+function applyThemeCopy() {
+  form.greeting = activeTheme.value.invitationCopy;
+  uni.showToast({ title: '已套用推荐文案', icon: 'success' });
+}
+
+function applyDefaultSchedule() {
+  form.scheduleText = defaultSchedule.value;
+  uni.showToast({ title: '已填入默认流程', icon: 'success' });
+}
+
+async function saveAndPreview() {
+  const saved = await submit();
+  if (saved) {
+    previewInvite();
   }
 }
 
@@ -175,6 +242,15 @@ function previewInvite() {
   safeNavigate(shareUrl.value, '请柬预览打开失败');
 }
 
+function returnBanquetDetail() {
+  const targetId = banquetId.value || String(readLastBanquetContext()?.id || '');
+  if (!targetId) {
+    uni.navigateBack();
+    return;
+  }
+  safeNavigate(`/pages/banquet/detail/index?id=${targetId}`, '宴席管理台打开失败');
+}
+
 function safeNavigate(url: string, failTitle: string) {
   uni.navigateTo({
     url,
@@ -191,6 +267,7 @@ onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
   invitationId.value = current.options?.invitationId || '';
+  banquetId.value = current.options?.banquetId || String(readLastBanquetContext()?.id || '');
   form.title = current.options?.title ? decodeURIComponent(current.options.title) : '';
   if (!invitationId.value) {
     uni.showToast({ title: '缺少请柬信息', icon: 'none' });
@@ -345,6 +422,36 @@ onMounted(async () => {
   margin-bottom: 18rpx;
 }
 
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 18rpx;
+}
+
+.section-head .section-title {
+  margin-bottom: 0;
+}
+
+.inline-button {
+  flex: 0 0 auto;
+  height: 58rpx;
+  margin: 0;
+  padding: 0 22rpx;
+  border: 1rpx solid #ead8ca;
+  border-radius: 999rpx;
+  background: #fff8ef;
+  color: #9e4d32;
+  font-size: 24rpx;
+  font-weight: 900;
+  line-height: 58rpx;
+}
+
+.inline-button::after {
+  border: 0;
+}
+
 .textarea {
   box-sizing: border-box;
   width: 100%;
@@ -418,11 +525,14 @@ onMounted(async () => {
 }
 
 .footer-safe {
-  height: 132rpx;
+  height: 152rpx;
 }
 
 .sticky-submit {
   position: fixed;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.35fr;
+  gap: 12rpx;
   right: 0;
   bottom: 0;
   left: 0;
@@ -430,6 +540,18 @@ onMounted(async () => {
   padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
   background: rgba(255, 248, 239, 0.96);
   box-shadow: 0 -8rpx 28rpx rgba(72, 45, 24, 0.08);
+}
+
+.sticky-submit .ghost-button,
+.sticky-submit .primary-button {
+  height: 84rpx;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  line-height: 84rpx;
+}
+
+.sticky-submit .compact {
+  font-size: 24rpx;
 }
 
 .primary-button {
