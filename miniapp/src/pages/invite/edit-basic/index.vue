@@ -68,7 +68,10 @@
     <view v-if="shareUrl" class="share-card">
       <text class="section-title">分享路径</text>
       <text class="share-url">{{ shareUrl }}</text>
-      <button class="ghost-button" @tap="copyShareUrl">复制分享路径</button>
+      <view class="share-actions">
+        <button class="ghost-button" @tap="previewInvite">预览请柬</button>
+        <button class="ghost-button" @tap="copyShareUrl">复制路径</button>
+      </view>
     </view>
 
     <view class="footer-safe"></view>
@@ -139,8 +142,8 @@ async function submit() {
       method: 'PUT',
       data: form
     });
+    await loadInvitation();
     uni.showToast({ title: '已保存', icon: 'success' });
-    setTimeout(() => uni.navigateBack(), 600);
   } finally {
     submitting.value = false;
   }
@@ -151,6 +154,14 @@ function copyShareUrl() {
     data: shareUrl.value,
     success: () => uni.showToast({ title: '已复制', icon: 'success' })
   });
+}
+
+function previewInvite() {
+  if (!shareUrl.value) {
+    uni.showToast({ title: '暂无分享路径', icon: 'none' });
+    return;
+  }
+  uni.navigateTo({ url: shareUrl.value });
 }
 
 onMounted(async () => {
@@ -357,9 +368,16 @@ onMounted(async () => {
   word-break: break-all;
 }
 
+.share-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 18rpx;
+}
+
 .ghost-button {
   height: 78rpx;
-  margin: 18rpx 0 0;
+  margin: 0;
   border: 1rpx solid #ead8ca;
   border-radius: 18rpx;
   background: #fffaf5;
