@@ -95,7 +95,13 @@
       <text class="copy-text">{{ detail.giftSuccessCopywriting.content }}</text>
     </view>
   </view>
-  <view class="loading" v-else>加载中</view>
+  <view class="loading" v-else-if="pageState === 'loading'">加载中</view>
+  <view class="state-page" v-else>
+    <text class="state-title">宴席加载失败</text>
+    <text class="state-desc">宴席可能已删除，或当前网络不可用。</text>
+    <button class="state-button" @tap="bootstrap">重新加载</button>
+    <button class="state-link" @tap="goHome">返回首页</button>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -131,6 +137,7 @@ interface Entitlements {
 }
 
 const detail = ref<BanquetDetail>();
+const pageState = ref<'loading' | 'ready' | 'error'>('loading');
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const entitlements = reactive<Entitlements>({
   rightValues: {}
@@ -158,6 +165,7 @@ const invitationShareUrl = computed(() => {
 });
 
 async function load(id: string) {
+  pageState.value = 'loading';
   const [runtimeFeatures, banquetDetail, result] = await Promise.all([
     loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
     request<BanquetDetail>(`/banquets/${id}`),
@@ -167,6 +175,7 @@ async function load(id: string) {
   detail.value = banquetDetail;
   entitlements.currentPlan = result.currentPlan;
   entitlements.rightValues = result.rightValues || {};
+  pageState.value = 'ready';
 }
 
 function paymentTip() {
@@ -286,16 +295,27 @@ function openFavor() {
   uni.switchTab({ url: '/pages/favor/index/index' });
 }
 
-onMounted(async () => {
+async function bootstrap() {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
   const id = await resolveBanquetId(current.options?.id);
   if (id) {
-    await load(id);
+    try {
+      await load(id);
+    } catch {
+      pageState.value = 'error';
+    }
     return;
   }
   requireBanquetToast();
-});
+  pageState.value = 'error';
+}
+
+function goHome() {
+  uni.switchTab({ url: '/pages/home/index/index' });
+}
+
+onMounted(bootstrap);
 </script>
 
 <style scoped>
@@ -313,6 +333,52 @@ onMounted(async () => {
   background: #fff8ef;
   color: #7a7f8c;
   text-align: center;
+}
+
+.state-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 120rpx 48rpx;
+  background: #fff8ef;
+  color: #171c2a;
+  text-align: center;
+}
+
+.state-title,
+.state-desc {
+  display: block;
+}
+
+.state-title {
+  font-size: 40rpx;
+  font-weight: 900;
+}
+
+.state-desc {
+  margin-top: 18rpx;
+  color: #8a7768;
+  font-size: 27rpx;
+  line-height: 1.6;
+}
+
+.state-button,
+.state-link {
+  margin-top: 34rpx;
+}
+
+.state-button {
+  height: 88rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #e71921, #c7191e);
+  color: #fff8df;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.state-link {
+  background: transparent;
+  color: #9c4b31;
+  font-size: 27rpx;
 }
 
 .hero-card {

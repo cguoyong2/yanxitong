@@ -48,7 +48,13 @@
       </view>
     </view>
   </view>
-  <view class="page loading" v-else>加载中</view>
+  <view class="page loading" v-else-if="pageState === 'loading'">加载中</view>
+  <view class="page state-page" v-else>
+    <text class="state-title">人情详情加载失败</text>
+    <text class="state-desc">该联系人可能不存在，或网络暂时不可用。</text>
+    <button class="state-button" @tap="bootstrap">重新加载</button>
+    <button class="state-link" @tap="goFavor">返回人情账本</button>
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -64,6 +70,7 @@ interface FavorDetail {
 }
 
 const detail = ref<FavorDetail>();
+const pageState = ref<'loading' | 'ready' | 'error'>('loading');
 
 function formatTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
@@ -116,14 +123,29 @@ function balanceClass(value: unknown) {
   return 'neutral';
 }
 
-onMounted(async () => {
+async function bootstrap() {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
   const id = current.options?.id;
   if (id) {
-    detail.value = await request<FavorDetail>(`/favor/contacts/${id}`);
+    pageState.value = 'loading';
+    try {
+      detail.value = await request<FavorDetail>(`/favor/contacts/${id}`);
+      pageState.value = 'ready';
+    } catch {
+      pageState.value = 'error';
+    }
+    return;
   }
-});
+  uni.showToast({ title: '缺少联系人信息', icon: 'none' });
+  pageState.value = 'error';
+}
+
+function goFavor() {
+  uni.switchTab({ url: '/pages/favor/index/index' });
+}
+
+onMounted(bootstrap);
 </script>
 
 <style scoped>
@@ -139,6 +161,48 @@ onMounted(async () => {
   display: grid;
   place-items: center;
   color: #8a7768;
+}
+
+.state-page {
+  padding-top: 120rpx;
+  text-align: center;
+}
+
+.state-title,
+.state-desc {
+  display: block;
+}
+
+.state-title {
+  font-size: 40rpx;
+  font-weight: 900;
+}
+
+.state-desc {
+  margin-top: 18rpx;
+  color: #8a7768;
+  font-size: 27rpx;
+  line-height: 1.6;
+}
+
+.state-button,
+.state-link {
+  margin-top: 34rpx;
+}
+
+.state-button {
+  height: 88rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #e71921, #c7191e);
+  color: #fff8df;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.state-link {
+  background: transparent;
+  color: #9c4b31;
+  font-size: 27rpx;
 }
 
 .hero-card {

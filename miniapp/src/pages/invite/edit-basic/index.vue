@@ -158,6 +158,11 @@ onMounted(async () => {
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
   invitationId.value = current.options?.invitationId || '';
   form.title = current.options?.title ? decodeURIComponent(current.options.title) : '';
+  if (!invitationId.value) {
+    uni.showToast({ title: '缺少请柬信息', icon: 'none' });
+    setTimeout(() => uni.navigateBack(), 700);
+    return;
+  }
   await loadInvitation();
 });
 </script>
