@@ -191,6 +191,9 @@ async function createOrder(config: DeviceConfig) {
     uni.showToast({ title: '请先开通包含设备租赁的版本', icon: 'none' });
     return;
   }
+  if (!validateRentWindow()) {
+    return;
+  }
   submittingId.value = config.id;
   try {
     const order = await request<DeviceOrder>('/devices/orders', {
@@ -223,6 +226,20 @@ async function mockPay(orderNo: string) {
 
 function toLocalDateTime(date: string, time: string) {
   return date && time ? `${date}T${time}:00` : undefined;
+}
+
+function validateRentWindow() {
+  const start = toLocalDateTime(rentDate.value, rentStartTime.value);
+  const end = toLocalDateTime(rentDate.value, rentEndTime.value);
+  if (!start || !end) {
+    uni.showToast({ title: '请选择完整租用时间', icon: 'none' });
+    return false;
+  }
+  if (new Date(end).getTime() <= new Date(start).getTime()) {
+    uni.showToast({ title: '结束时间需晚于开始时间', icon: 'none' });
+    return false;
+  }
+  return true;
 }
 
 function openPlan() {

@@ -59,6 +59,7 @@
         <button
           class="open-button"
           :class="{ ghost: isCurrent(plan) }"
+          :disabled="isCurrent(plan)"
           :loading="submittingId === plan.id"
           @tap="createOrder(plan.id)"
         >
@@ -141,6 +142,11 @@ async function loadEntitlements() {
 async function createOrder(planId: number) {
   if (!banquetId.value) {
     uni.showToast({ title: '缺少宴席ID', icon: 'none' });
+    return;
+  }
+  const plan = plans.value.find((item) => item.id === planId);
+  if (plan && isCurrent(plan)) {
+    uni.showToast({ title: '当前版本已启用', icon: 'none' });
     return;
   }
   submittingId.value = planId;
