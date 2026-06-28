@@ -114,6 +114,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
+import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 interface DeviceConfig {
   id: number;
@@ -292,12 +293,15 @@ function orderStatusLabel(value: string) {
   return labels[value] || value;
 }
 
-onMounted(() => {
+onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
-  banquetId.value = current.options?.banquetId || '';
+  banquetId.value = await resolveBanquetId(current.options?.banquetId);
+  if (!banquetId.value) {
+    requireBanquetToast();
+  }
   setDefaultDate();
-  load();
+  await load();
 });
 </script>
 

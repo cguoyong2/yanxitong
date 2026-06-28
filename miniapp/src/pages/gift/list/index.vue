@@ -70,6 +70,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { request } from '../../../api/client';
+import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 interface GiftRecord {
   id: number;
@@ -172,11 +173,14 @@ async function load() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
-  banquetId.value = current.options?.banquetId || '';
-  load();
+  banquetId.value = await resolveBanquetId(current.options?.banquetId);
+  if (!banquetId.value) {
+    requireBanquetToast();
+  }
+  await load();
 });
 </script>
 
