@@ -6,6 +6,10 @@
 
     <view class="content">
       <view class="form-card">
+        <view class="form-tools">
+          <text class="form-title">填写宴席信息</text>
+          <button class="sample-button" @tap="fillSampleData()">填入体验数据</button>
+        </view>
         <view class="form-row">
           <text class="row-icon">▤</text>
           <text class="row-label">宴席名称</text>
@@ -167,10 +171,10 @@ const displayForm = reactive({
   guestCount: ''
 });
 const form = reactive({
-  name: defaultBanquetName(),
+  name: '',
   eventTypeCode: '',
-  banquetTime: '2026-10-01T18:00:00',
-  location: '体验宴会厅',
+  banquetTime: '',
+  location: '',
   templateId: undefined as number | undefined
 });
 
@@ -184,6 +188,15 @@ function defaultBanquetName() {
   const now = new Date();
   const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
   return `体验宴席 ${stamp}`;
+}
+
+function fillSampleData() {
+  form.name = defaultBanquetName();
+  form.banquetTime = '2026-10-01T18:00:00';
+  form.location = '体验宴会厅';
+  displayForm.hostName = '宴席通用户';
+  displayForm.phone = '13800000000';
+  displayForm.guestCount = '80';
 }
 
 function designFor(eventTypeCode: string) {
@@ -331,6 +344,34 @@ onMounted(loadEventTypes);
 
 .form-card {
   margin-top: 0;
+}
+
+.form-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding-bottom: 18rpx;
+  border-bottom: 1rpx solid #efe6df;
+}
+
+.form-title {
+  color: #171923;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.sample-button {
+  flex: 0 0 auto;
+  height: 58rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid #f0cfb6;
+  border-radius: 999rpx;
+  background: #fffaf4;
+  color: #a65a28;
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 58rpx;
 }
 
 .form-row {
