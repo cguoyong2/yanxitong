@@ -119,6 +119,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { request } from '../../../api/client';
+import { writeLastBanquetContext } from '../../../utils/banquet';
+import { writeActiveEventType } from '../../../utils/event-theme';
 
 interface EventType {
   eventTypeCode: string;
@@ -295,7 +297,7 @@ async function submit() {
   submitting.value = true;
   uni.showLoading({ title: '创建中' });
   try {
-    const result = await request<{ banquet: { id: number }; invitation?: { id: number } }>('/banquets', {
+    const result = await request<{ banquet: { id: number; name?: string; eventTypeCode?: string; themeCode?: string; banquetTime?: string; location?: string }; invitation?: { id: number; shareSlug?: string } }>('/banquets', {
       method: 'POST',
       data: {
         ...form,
@@ -308,6 +310,17 @@ async function submit() {
     await syncInvitationBasic(result.invitation?.id).catch(() => {
       uni.showToast({ title: '宴席已创建，请柬信息稍后可编辑', icon: 'none' });
     });
+    writeLastBanquetContext({
+      id: result.banquet.id,
+      name: result.banquet.name || form.name,
+      eventTypeCode: result.banquet.eventTypeCode || form.eventTypeCode,
+      themeCode: result.banquet.themeCode,
+      banquetTime: result.banquet.banquetTime || form.banquetTime,
+      location: result.banquet.location || form.location,
+      invitationId: result.invitation?.id,
+      shareSlug: result.invitation?.shareSlug
+    });
+    writeActiveEventType(result.banquet.eventTypeCode || form.eventTypeCode);
     uni.showToast({ title: '创建成功', icon: 'success' });
     setTimeout(() => {
       uni.redirectTo({ url: `/pages/banquet/detail/index?id=${result.banquet.id}` });

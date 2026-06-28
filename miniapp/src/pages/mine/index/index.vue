@@ -131,7 +131,8 @@
 import { computed, onMounted, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
-import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
+import { eventThemeFor, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
+import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
 
 interface Banquet {
   id: number;
@@ -247,15 +248,41 @@ async function loadProfileStats() {
   invitationCount.value = banquets.length;
   pendingCount.value = 0;
   latestBanquetId.value = banquets[0]?.id || 0;
+  if (!latestBanquetId.value) {
+    const cached = readLastBanquetContext();
+    if (cached?.id) {
+      banquetCount.value = 1;
+      invitationCount.value = cached.shareSlug ? 1 : 0;
+      latestBanquetId.value = cached.id;
+      latestInvitationSlug.value = cached.shareSlug || '';
+      activeType.value = writeActiveEventType(cached.eventTypeCode || activeType.value);
+    }
+    return;
+  }
+  writeLastBanquetContext({ id: latestBanquetId.value, name: banquets[0]?.name });
   if (latestBanquetId.value) {
-    const detail = await request<{ invitation?: { shareSlug?: string } }>(`/banquets/${latestBanquetId.value}`).catch(() => undefined);
+    const detail = await request<{ banquet?: { eventTypeCode?: string; name?: string; banquetTime?: string; location?: string; themeCode?: string }; invitation?: { id?: number; shareSlug?: string } }>(`/banquets/${latestBanquetId.value}`).catch(() => undefined);
     latestInvitationSlug.value = detail?.invitation?.shareSlug || '';
+    writeLastBanquetContext({
+      id: latestBanquetId.value,
+      name: detail?.banquet?.name || banquets[0]?.name,
+      eventTypeCode: detail?.banquet?.eventTypeCode,
+      themeCode: detail?.banquet?.themeCode,
+      banquetTime: detail?.banquet?.banquetTime,
+      location: detail?.banquet?.location,
+      invitationId: detail?.invitation?.id,
+      shareSlug: detail?.invitation?.shareSlug
+    });
+    if (detail?.banquet?.eventTypeCode) {
+      activeType.value = writeActiveEventType(detail.banquet.eventTypeCode);
+    }
   }
 }
 
 onMounted(loadProfileStats);
 onShow(() => {
   activeType.value = readActiveEventType();
+  loadProfileStats();
 });
 </script>
 

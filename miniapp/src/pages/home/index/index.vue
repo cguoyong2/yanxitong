@@ -157,6 +157,7 @@ import { computed, onMounted, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
 import { EVENT_THEMES, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
+import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
 
 interface Banquet {
   id: number;
@@ -217,8 +218,26 @@ async function refresh() {
   loading.value = true;
   try {
     banquets.value = await request<Banquet[]>('/banquets');
+    if (banquets.value[0]?.id) {
+      writeLastBanquetContext(banquets.value[0]);
+      activeType.value = writeActiveEventType(banquets.value[0].eventTypeCode || activeType.value);
+    }
     await loadLatestStats();
   } catch (error) {
+    const cached = readLastBanquetContext();
+    if (cached?.id) {
+      banquets.value = [{
+        id: cached.id,
+        name: cached.name || '最近宴席',
+        eventTypeCode: cached.eventTypeCode || activeType.value,
+        themeCode: cached.themeCode || '',
+        banquetTime: cached.banquetTime,
+        location: cached.location
+      }];
+      activeType.value = writeActiveEventType(cached.eventTypeCode || activeType.value);
+      await loadLatestStats();
+      return;
+    }
     uni.showToast({ title: error instanceof Error ? error.message : '加载失败', icon: 'none' });
   } finally {
     loading.value = false;
@@ -269,6 +288,11 @@ function openBanquet(id: number) {
     createBanquet();
     return;
   }
+  const target = banquets.value.find((item) => item.id === id);
+  if (target) {
+    writeLastBanquetContext(target);
+    activeType.value = writeActiveEventType(target.eventTypeCode || activeType.value);
+  }
   uni.navigateTo({ url: `/pages/banquet/detail/index?id=${id}` });
 }
 
@@ -315,6 +339,7 @@ function showServiceTip() {
 onMounted(refresh);
 onShow(() => {
   activeType.value = readActiveEventType();
+  refresh();
 });
 </script>
 

@@ -128,8 +128,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
-import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
-import { eventThemeFor, eventToneClass, type EventTheme } from '../../../utils/event-theme';
+import { requireBanquetToast, resolveBanquetId, writeLastBanquetContext } from '../../../utils/banquet';
+import { eventThemeFor, eventToneClass, type EventTheme, writeActiveEventType } from '../../../utils/event-theme';
 
 interface BanquetDetail {
   banquet: {
@@ -212,6 +212,17 @@ async function load(id: string) {
   ]);
   features.value = runtimeFeatures;
   detail.value = banquetDetail;
+  writeLastBanquetContext({
+    id: banquetDetail.banquet.id,
+    name: banquetDetail.banquet.name,
+    eventTypeCode: banquetDetail.banquet.eventTypeCode,
+    themeCode: banquetDetail.banquet.themeCode,
+    banquetTime: banquetDetail.banquet.banquetTime,
+    location: banquetDetail.banquet.location,
+    invitationId: banquetDetail.invitation?.id,
+    shareSlug: banquetDetail.invitation?.shareSlug
+  });
+  writeActiveEventType(banquetDetail.banquet.eventTypeCode);
   entitlements.currentPlan = result.currentPlan;
   entitlements.rightValues = result.rightValues || {};
   rsvpStats.value = rsvp;

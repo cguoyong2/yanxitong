@@ -157,6 +157,7 @@ import { computed, onMounted, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
 import { EVENT_THEMES, eventThemeFor, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
+import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
 
 interface Banquet {
   id: number;
@@ -228,7 +229,7 @@ function useTemplate(item: InvitationTemplate) {
 }
 
 function openCreateEntry() {
-  uni.navigateTo({ url: '/pages/banquet/create/index' });
+  uni.navigateTo({ url: `/pages/banquet/create/index?eventTypeCode=${activeType.value}` });
 }
 
 function openMyInvitation() {
@@ -325,6 +326,21 @@ async function loadMyInvitation() {
   const banquets = await request<Banquet[]>('/banquets').catch(() => []);
   const latest = banquets[0];
   if (!latest?.id) {
+    const cached = readLastBanquetContext();
+    if (cached?.id && cached.shareSlug) {
+      myInvitation.value = {
+        id: cached.invitationId || 0,
+        title: cached.name ? `${cached.name}邀请函` : activeTheme.value.invitationTitle,
+        shareSlug: cached.shareSlug,
+        eventTypeCode: cached.eventTypeCode || activeType.value,
+        banquetTime: cached.banquetTime,
+        visitCount: 0,
+        rsvpGuests: 0,
+        status: '已发布'
+      };
+      activeType.value = writeActiveEventType(cached.eventTypeCode || activeType.value);
+      return;
+    }
     myInvitation.value = undefined;
     return;
   }
@@ -336,6 +352,15 @@ async function loadMyInvitation() {
     myInvitation.value = undefined;
     return;
   }
+  writeLastBanquetContext({
+    id: detail.banquet.id,
+    name: detail.banquet.name,
+    eventTypeCode: detail.banquet.eventTypeCode,
+    banquetTime: detail.banquet.banquetTime,
+    invitationId: detail.invitation.id,
+    shareSlug: detail.invitation.shareSlug
+  });
+  activeType.value = writeActiveEventType(detail.banquet.eventTypeCode || activeType.value);
   myInvitation.value = {
     id: detail.invitation.id,
     title: detail.invitation.title || `${detail.banquet.name}邀请函`,
@@ -354,6 +379,7 @@ onMounted(() => {
 });
 onShow(() => {
   activeType.value = readActiveEventType();
+  loadMyInvitation();
 });
 </script>
 
