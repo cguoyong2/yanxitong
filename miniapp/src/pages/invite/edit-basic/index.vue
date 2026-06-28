@@ -74,6 +74,11 @@
       </view>
     </view>
 
+    <view v-if="lastSavedAt" class="saved-card">
+      <text class="section-title">保存结果</text>
+      <text class="share-url">已保存：{{ lastSavedAt }}</text>
+    </view>
+
     <view class="footer-safe"></view>
     <view class="sticky-submit">
       <button class="primary-button" :loading="submitting" @tap="submit">保存请柬</button>
@@ -88,6 +93,7 @@ import { request } from '../../../api/client';
 const invitationId = ref('');
 const submitting = ref(false);
 const shareUrl = ref('');
+const lastSavedAt = ref('');
 const form = reactive({
   title: '',
   hostName: '',
@@ -143,6 +149,7 @@ async function submit() {
       data: form
     });
     await loadInvitation();
+    lastSavedAt.value = new Date().toLocaleTimeString();
     uni.showToast({ title: '已保存', icon: 'success' });
   } catch (error) {
     uni.showToast({ title: error instanceof Error ? error.message : '保存请柬失败', icon: 'none' });
@@ -163,7 +170,19 @@ function previewInvite() {
     uni.showToast({ title: '暂无分享路径', icon: 'none' });
     return;
   }
-  uni.navigateTo({ url: shareUrl.value });
+  safeNavigate(shareUrl.value, '请柬预览打开失败');
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
+  });
 }
 
 onMounted(async () => {
@@ -252,7 +271,8 @@ onMounted(async () => {
 
 .form-card,
 .section-card,
-.share-card {
+.share-card,
+.saved-card {
   margin-top: 24rpx;
   border: 1rpx solid #f0dfcf;
   border-radius: 24rpx;
@@ -308,8 +328,14 @@ onMounted(async () => {
 }
 
 .section-card,
-.share-card {
+.share-card,
+.saved-card {
   padding: 28rpx;
+}
+
+.saved-card {
+  border-color: #bfe6c9;
+  background: #f4fff6;
 }
 
 .section-title {

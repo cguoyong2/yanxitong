@@ -148,18 +148,34 @@ async function load() {
 
 function shareInvite() {
   if (shareSlug.value) {
-    uni.navigateTo({ url: `/pages/invite/public/index?slug=${shareSlug.value}` });
+    safeNavigate(`/pages/invite/public/index?slug=${shareSlug.value}`, '请柬页面打开失败');
     return;
   }
   if (!banquetId.value) {
     uni.showToast({ title: '缺少宴席信息', icon: 'none' });
     return;
   }
-  uni.navigateTo({ url: `/pages/banquet/detail/index?id=${banquetId.value}` });
+  safeNavigate(`/pages/banquet/detail/index?id=${banquetId.value}`, '宴席管理台打开失败');
 }
 
 function openBanquetDetail() {
-  shareInvite();
+  if (!banquetId.value) {
+    uni.showToast({ title: '缺少宴席信息', icon: 'none' });
+    return;
+  }
+  safeNavigate(`/pages/banquet/detail/index?id=${banquetId.value}`, '宴席管理台打开失败');
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
+  });
 }
 
 onMounted(async () => {

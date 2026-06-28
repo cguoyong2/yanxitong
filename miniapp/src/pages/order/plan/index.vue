@@ -117,6 +117,7 @@ const entitlements = reactive<Entitlements>({
 });
 const hasDeviceRight = computed(() => Boolean(entitlements.rightValues.DEVICE_RENTAL));
 const hasExportRight = computed(() => Boolean(entitlements.rightValues.EXCEL_EXPORT));
+const localOrderKey = computed(() => banquetId.value ? `plan-order:${banquetId.value}` : '');
 
 async function load() {
   const [runtimeFeatures, planList] = await Promise.all([
@@ -143,7 +144,7 @@ async function loadOrders() {
   if (!banquetId.value) {
     return;
   }
-  const orders = await request<PlanOrder[]>(`/plans/orders?banquetId=${banquetId.value}`).catch(() => []);
+  const orders = await request<PlanOrder[]>(`/plans/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
   pendingOrder.value = orders.find((item) => item.payStatus !== 'PAID');
 }
 
@@ -169,6 +170,7 @@ async function createOrder(planId: number) {
       uni.showToast({ title: '版本已启用', icon: 'success' });
     } else {
       pendingOrder.value = order;
+      cacheOrder(order);
       uni.showToast({ title: '订单已创建', icon: 'success' });
     }
   } finally {
@@ -181,11 +183,35 @@ async function mockPay(orderNo: string) {
   try {
     await request(`/plans/orders/${orderNo}/mock-success`, { method: 'POST' });
     pendingOrder.value = undefined;
+    clearCachedOrder(orderNo);
     await loadEntitlements();
     uni.showToast({ title: '版本已开通', icon: 'success' });
   } finally {
     paying.value = false;
   }
+}
+
+function cachedOrders(): PlanOrder[] {
+  if (!localOrderKey.value) {
+    return [];
+  }
+  return uni.getStorageSync(localOrderKey.value) || [];
+}
+
+function cacheOrder(order: PlanOrder) {
+  if (!localOrderKey.value) {
+    return;
+  }
+  const orders = [order, ...cachedOrders().filter((item) => item.orderNo !== order.orderNo)];
+  uni.setStorageSync(localOrderKey.value, orders);
+}
+
+function clearCachedOrder(orderNo: string) {
+  if (!localOrderKey.value) {
+    return;
+  }
+  const orders = cachedOrders().filter((item) => item.orderNo !== orderNo);
+  uni.setStorageSync(localOrderKey.value, orders);
 }
 
 function formatMoney(value: unknown) {

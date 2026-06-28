@@ -309,10 +309,10 @@ function openRsvp() {
     uni.showToast({ title: '请柬信息未加载', icon: 'none' });
     return;
   }
-  uni.navigateTo({
-    url: data.value.actionUrls?.rsvp || `/pages/rsvp/submit/index?banquetId=${data.value.banquet.id}&invitationId=${data.value.invitation.id}`,
-    fail: () => uni.showToast({ title: '回执页面打开失败', icon: 'none' })
-  });
+  safeNavigate(
+    data.value.actionUrls?.rsvp || `/pages/rsvp/submit/index?banquetId=${data.value.banquet.id}&invitationId=${data.value.invitation.id}`,
+    '回执页面打开失败'
+  );
 }
 
 function openGift(entrySource: string) {
@@ -321,9 +321,18 @@ function openGift(entrySource: string) {
     return;
   }
   const url = entrySource === 'ONSITE_QR' ? data.value.actionUrls?.onsiteGift : data.value.actionUrls?.onlineGift;
+  safeNavigate(url || `/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=${entrySource}`, '随礼页面打开失败');
+}
+
+function safeNavigate(url: string, failTitle: string) {
   uni.navigateTo({
-    url: url || `/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=${entrySource}`,
-    fail: () => uni.showToast({ title: '随礼页面打开失败', icon: 'none' })
+    url,
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
   });
 }
 

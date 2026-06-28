@@ -40,6 +40,12 @@
       </view>
     </view>
 
+    <view v-if="lastSavedText" class="saved-card">
+      <text class="saved-title">最近保存成功</text>
+      <text class="saved-desc">{{ lastSavedText }}</text>
+      <button class="saved-link" @tap="openGiftList">查看收礼记录</button>
+    </view>
+
     <view class="footer-safe"></view>
     <view class="sticky-submit">
       <button class="primary-button" :loading="submitting" @tap="submit">保存记礼</button>
@@ -55,6 +61,7 @@ import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 const banquetId = ref('');
 const submitting = ref(false);
+const lastSavedText = ref('');
 const quickAmounts = [200, 500, 800, 1000, 1200, 2000];
 const form = reactive({ guestName: '', amount: undefined as number | undefined, blessing: '' });
 
@@ -65,6 +72,7 @@ async function submit() {
   submitting.value = true;
   try {
     await request('/gifts/offline', { method: 'POST', data: { ...form, banquetId: Number(banquetId.value) } });
+    lastSavedText.value = `${form.guestName} · ¥${Number(form.amount || 0).toLocaleString('zh-CN')}`;
     uni.showToast({ title: '已保存', icon: 'success' });
     form.guestName = '';
     form.amount = undefined;
@@ -108,7 +116,19 @@ function openGiftList() {
     requireBanquetToast();
     return;
   }
-  uni.navigateTo({ url: `/pages/gift/list/index?banquetId=${banquetId.value}` });
+  safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}`, '收礼记录打开失败');
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
+  });
 }
 
 onMounted(async () => {
@@ -216,7 +236,8 @@ onMounted(async () => {
 }
 
 .amount-card,
-.form-card {
+.form-card,
+.saved-card {
   margin-top: 24rpx;
   border: 1rpx solid #f0dfcf;
   border-radius: 24rpx;
@@ -330,6 +351,41 @@ onMounted(async () => {
   color: #9a5b30;
   font-size: 25rpx;
   line-height: 1.5;
+}
+
+.saved-card {
+  padding: 26rpx 28rpx;
+  border-color: #bfe6c9;
+  background: #f4fff6;
+}
+
+.saved-title,
+.saved-desc {
+  display: block;
+}
+
+.saved-title {
+  color: #187a42;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.saved-desc {
+  margin-top: 10rpx;
+  color: #35423a;
+  font-size: 25rpx;
+}
+
+.saved-link {
+  width: 220rpx;
+  height: 62rpx;
+  margin: 18rpx 0 0;
+  border-radius: 999rpx;
+  background: #18a058;
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 900;
+  line-height: 62rpx;
 }
 
 .footer-safe {

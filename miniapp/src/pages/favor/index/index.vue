@@ -42,12 +42,12 @@
           </view>
         </view>
         <view class="summary-grid">
-          <view class="summary-item" @tap="setManualDirection('RECEIVED')">
+          <view class="summary-item" :class="{ selected: manual.direction === 'RECEIVED' }" @tap="setManualDirection('RECEIVED')">
             <text class="summary-icon receive">♥</text>
             <text class="summary-label">累计收到</text>
             <text class="summary-value red">{{ formatMoney(totalReceived) }}</text>
           </view>
-          <view class="summary-item" @tap="setManualDirection('GIVEN')">
+          <view class="summary-item" :class="{ selected: manual.direction === 'GIVEN' }" @tap="setManualDirection('GIVEN')">
             <text class="summary-icon give">▣</text>
             <text class="summary-label">累计送出</text>
             <text class="summary-value red">{{ formatMoney(totalGiven) }}</text>
@@ -75,7 +75,7 @@
           <button class="family-link" @tap="openFamily()">家庭人情 ›</button>
         </view>
         <view class="favor-card-list">
-          <view class="favor-card receive-card" @tap="setManualDirection('RECEIVED')">
+          <view class="favor-card receive-card" :class="{ selected: manual.direction === 'RECEIVED' }" @tap="setManualDirection('RECEIVED')">
             <text class="favor-card-icon">▰</text>
             <view class="favor-card-copy">
               <text class="favor-card-title">我收到的人情</text>
@@ -83,7 +83,7 @@
             </view>
             <text class="chevron">›</text>
           </view>
-          <view class="favor-card give-card" @tap="setManualDirection('GIVEN')">
+          <view class="favor-card give-card" :class="{ selected: manual.direction === 'GIVEN' }" @tap="setManualDirection('GIVEN')">
             <text class="favor-card-icon">▣</text>
             <view class="favor-card-copy">
               <text class="favor-card-title">我送出的人情</text>
@@ -106,11 +106,11 @@
           <text class="vip-badge">尊享</text>
         </view>
         <view class="quick-list">
-          <view class="quick-item" @tap="setManualDirection('RECEIVED')">
+          <view class="quick-item" :class="{ selected: manual.direction === 'RECEIVED' }" @tap="setManualDirection('RECEIVED')">
             <text class="quick-icon red">✓</text>
             <text>记收到</text>
           </view>
-          <view class="quick-item" @tap="setManualDirection('GIVEN')">
+          <view class="quick-item" :class="{ selected: manual.direction === 'GIVEN' }" @tap="setManualDirection('GIVEN')">
             <text class="quick-icon orange">✓</text>
             <text>记送出</text>
           </view>
@@ -129,7 +129,7 @@
           <view id="recent-list" class="recent-card">
           <view class="section-head">
             <text class="section-title small">最近往来</text>
-            <text class="more" @tap="scrollToRecent()">更多 ›</text>
+            <text class="more" @tap="showAllRecent()">更多 ›</text>
           </view>
           <view v-if="loading" class="empty">同步中</view>
           <view v-else-if="displayContacts.length === 0" class="empty">
@@ -147,10 +147,10 @@
           </view>
         </view>
 
-        <view class="compare-card-panel">
+        <view id="compare-panel" class="compare-card-panel">
           <view class="section-head">
             <text class="section-title small">往来对比</text>
-            <text class="more" @tap="setCompareFromKeyword()">更多 ›</text>
+            <text class="more" @tap="openCompareMore()">更多 ›</text>
           </view>
           <view v-if="compareResult" class="compare-person">
             <text class="avatar large">{{ contactInitial(compareResult.contact?.contactName) }}</text>
@@ -166,12 +166,15 @@
             <text class="empty-title">暂无对比对象</text>
             <text class="empty-desc">输入姓名或先添加一条人情记录。</text>
           </view>
-          <button class="detail-btn" @tap="runDefaultCompare()">查看对比</button>
+          <button class="detail-btn" @tap="openCompareDetail()">查看对比</button>
         </view>
       </view>
 
       <view id="manual-form" class="record-panel">
-        <text class="section-title">手动记账</text>
+        <view class="section-head">
+          <text class="section-title">手动记账</text>
+          <text class="mode-badge">{{ directions[directionIndex].label }}</text>
+        </view>
         <view class="record-form">
           <input v-model="manual.contactName" class="input" placeholder="对象姓名" />
           <input v-model.number="manual.amount" class="input" type="digit" placeholder="金额" />
@@ -199,7 +202,7 @@ interface FavorContact {
 }
 
 interface FavorCompare {
-  contact: { contactName: string };
+  contact: { id?: number; contactName: string };
   receivedAmount: number;
   givenAmount: number;
   balance: number;
@@ -216,6 +219,7 @@ const compareResult = ref<FavorCompare>();
 const loading = ref(false);
 const directionIndex = ref(0);
 const bannerIndex = ref(0);
+const showAllContacts = ref(false);
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
 const banners = [
   { image: '/static/favor/favor_banner.png', action: 'manual-received' },
@@ -223,7 +227,7 @@ const banners = [
   { image: '/static/home/package_red.png', action: 'compare' }
 ];
 const sourceContacts = computed(() => contacts.value);
-const displayContacts = computed(() => sourceContacts.value.slice(0, 4));
+const displayContacts = computed(() => showAllContacts.value ? sourceContacts.value : sourceContacts.value.slice(0, 4));
 const totalReceived = computed(() => sum(sourceContacts.value.map((contact) => contact.receivedAmount)));
 const totalGiven = computed(() => sum(sourceContacts.value.map((contact) => contact.givenAmount)));
 const totalBalance = computed(() => totalReceived.value - totalGiven.value);
@@ -239,7 +243,7 @@ function setManualDirection(direction: string) {
     directionIndex.value = index;
     manual.direction = direction;
   }
-  uni.pageScrollTo({ selector: '#manual-form', duration: 220 });
+  setTimeout(() => uni.pageScrollTo({ selector: '#manual-form', duration: 260 }), 30);
   uni.showToast({ title: direction === 'GIVEN' ? '已切换为记送出' : '已切换为记收到', icon: 'none' });
 }
 
@@ -251,6 +255,17 @@ function setCompareFromKeyword() {
 
 function scrollToRecent() {
   uni.pageScrollTo({ selector: '#recent-list', duration: 220 });
+}
+
+function showAllRecent() {
+  showAllContacts.value = true;
+  scrollToRecent();
+  uni.showToast({ title: `已展开 ${sourceContacts.value.length} 条往来`, icon: 'none' });
+}
+
+function openCompareMore() {
+  setCompareFromKeyword();
+  uni.pageScrollTo({ selector: '#compare-panel', duration: 220 });
 }
 
 function handleBanner(action: string) {
@@ -270,6 +285,7 @@ async function load() {
   loading.value = true;
   try {
     contacts.value = await request<FavorContact[]>(`/favor/contacts${query}`);
+    showAllContacts.value = false;
   } finally {
     loading.value = false;
   }
@@ -304,6 +320,18 @@ async function runDefaultCompare() {
   } catch {
     compareResult.value = undefined;
   }
+}
+
+async function openCompareDetail() {
+  if (!compareResult.value) {
+    await runDefaultCompare();
+  }
+  const id = compareResult.value?.contact?.id || sourceContacts.value.find((item) => item.contactName === compareName.value)?.contactId;
+  if (id) {
+    openDetail(Number(id));
+    return;
+  }
+  uni.showToast({ title: '请先选择有往来的对象', icon: 'none' });
 }
 
 function openDetail(id: number) {
@@ -591,7 +619,14 @@ onMounted(load);
 
 .summary-item {
   position: relative;
+  padding: 10rpx 0;
+  border-radius: 16rpx;
   text-align: center;
+}
+
+.summary-item.selected {
+  background: #fff0ee;
+  box-shadow: inset 0 0 0 2rpx rgba(230, 0, 18, 0.16);
 }
 
 .summary-item::after {
@@ -714,6 +749,11 @@ button::after {
   border-radius: 16rpx;
 }
 
+.favor-card.selected {
+  border-color: #e60012;
+  box-shadow: inset 0 0 0 2rpx rgba(230, 0, 18, 0.12);
+}
+
 .receive-card {
   background: #fff4f3;
 }
@@ -804,6 +844,13 @@ button::after {
   gap: 12rpx;
   color: #171923;
   font-size: 24rpx;
+}
+
+.quick-item.selected {
+  border-radius: 999rpx;
+  background: #fff0ee;
+  color: #e60012;
+  font-weight: 900;
 }
 
 .quick-icon {
@@ -968,7 +1015,17 @@ button::after {
 }
 
 .record-panel {
-  display: none;
+  display: block;
+}
+
+.mode-badge {
+  flex: 0 0 auto;
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: #fff0ee;
+  color: #e60012;
+  font-size: 22rpx;
+  font-weight: 900;
 }
 
 .record-form {
