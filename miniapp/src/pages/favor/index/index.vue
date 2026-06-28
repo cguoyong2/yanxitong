@@ -1,14 +1,14 @@
 <template>
-  <view class="page">
+  <view class="page" :class="activeTheme.tone">
     <view class="red-stage">
       <view class="stage-art">
         <text class="firework">✦</text>
-        <text class="stage-knot">囍</text>
+        <text class="stage-knot">{{ activeTheme.mark }}</text>
       </view>
       <view class="topbar">
         <view class="brand-row">
           <text class="brand">宴席通</text>
-          <text class="hello">记人情，查往来，更清楚</text>
+          <text class="hello">{{ activeTheme.favorText }}</text>
         </view>
         <view class="top-actions">
           <view class="top-action" @tap="showComingSoon()">
@@ -191,7 +191,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
+import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
 
 interface FavorContact {
   contactId: number;
@@ -220,7 +222,9 @@ const loading = ref(false);
 const directionIndex = ref(0);
 const bannerIndex = ref(0);
 const showAllContacts = ref(false);
+const activeType = ref(readActiveEventType());
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
+const activeTheme = computed(() => eventThemeFor(activeType.value));
 const banners = [
   { image: '/static/favor/favor_banner.png', action: 'manual-received' },
   { image: '/static/home/package_gold.png', action: 'manual-given' },
@@ -370,6 +374,9 @@ function contactInitial(name?: string) {
 }
 
 onMounted(load);
+onShow(() => {
+  activeType.value = readActiveEventType();
+});
 </script>
 
 <style scoped>
@@ -388,6 +395,42 @@ onMounted(load);
     radial-gradient(circle at 72% 38%, rgba(255, 190, 80, 0.18), transparent 26%),
     linear-gradient(135deg, #d8000f 0%, #c40005 58%, #a80000 100%);
   color: #fff;
+}
+
+.page.orange .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 218, 138, 0.2), transparent 26%),
+    linear-gradient(135deg, #c15b10 0%, #a64209 58%, #7a2d08 100%);
+}
+
+.page.pink .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 198, 212, 0.26), transparent 26%),
+    linear-gradient(135deg, #e7566f 0%, #c73655 58%, #932742 100%);
+}
+
+.page.green .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(185, 245, 202, 0.22), transparent 26%),
+    linear-gradient(135deg, #1b8a58 0%, #116943 58%, #0b4b31 100%);
+}
+
+.page.blue .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(186, 220, 255, 0.24), transparent 26%),
+    linear-gradient(135deg, #2563eb 0%, #1d4ed8 58%, #1e3a8a 100%);
+}
+
+.page.black .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 255, 255, 0.08), transparent 26%),
+    linear-gradient(135deg, #202124 0%, #111315 58%, #050607 100%);
+}
+
+.page.purple .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(218, 200, 255, 0.24), transparent 26%),
+    linear-gradient(135deg, #7c3aed 0%, #5b21b6 58%, #3b0764 100%);
 }
 
 .red-stage::after {

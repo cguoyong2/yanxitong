@@ -1,14 +1,14 @@
 <template>
-  <view class="page">
+  <view class="page" :class="activeTheme.tone">
     <view class="red-stage">
       <view class="stage-art">
         <text class="firework">✦</text>
-        <text class="stage-knot">囍</text>
+        <text class="stage-knot">{{ activeTheme.mark }}</text>
       </view>
       <view class="topbar">
         <view class="brand-row">
           <text class="brand">宴席通</text>
-          <text class="hello">选请柬，发请柬，更体面</text>
+          <text class="hello">{{ activeTheme.invitationText }}</text>
         </view>
         <view class="top-actions">
           <view class="top-action" @tap="showComingSoon()">
@@ -48,7 +48,7 @@
               :key="type.code"
               class="type-item"
               :class="[type.tone, { active: type.code === activeType }]"
-              @tap="activeType = type.code"
+              @tap="selectType(type.code)"
             >
               <text class="type-icon">{{ type.icon }}</text>
               <text class="type-name">{{ type.name }}</text>
@@ -154,7 +154,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
+import { EVENT_THEMES, eventThemeFor, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 interface Banquet {
   id: number;
@@ -198,7 +200,7 @@ interface MyInvitation {
   status: string;
 }
 
-const activeType = ref('WEDDING');
+const activeType = ref(readActiveEventType());
 const activeFilter = ref('全部');
 const myInvitation = ref<MyInvitation>();
 const templates = ref<InvitationTemplate[]>([]);
@@ -210,15 +212,8 @@ const banners = [
   { image: '/static/invitation/tpl_red.png', action: 'create' },
   { image: '/static/invitation/tpl_gold.png', action: 'custom' }
 ];
-const eventTypes = [
-  { code: 'WEDDING', name: '婚宴', subtitle: '喜结良缘', icon: '囍', tone: 'red' },
-  { code: 'BIRTHDAY', name: '寿宴', subtitle: '福寿安康', icon: '寿', tone: 'orange' },
-  { code: 'BABY', name: '满月', subtitle: '喜迎新生', icon: '🍼', tone: 'pink' },
-  { code: 'HOUSEWARMING', name: '乔迁', subtitle: '乔迁之喜', icon: '⌂', tone: 'green' },
-  { code: 'SCHOOL', name: '升学', subtitle: '金榜题名', icon: '◆', tone: 'blue' },
-  { code: 'MEMORIAL', name: '追思会', subtitle: '追思缅怀', icon: '✿', tone: 'black' },
-  { code: 'OTHER', name: '其他', subtitle: '更多类型', icon: '▦', tone: 'purple' }
-];
+const eventTypes = EVENT_THEMES;
+const activeTheme = computed(() => eventThemeFor(activeType.value));
 const filteredTemplates = computed(() => templates.value
   .filter((item) => matchesEventType(item, activeType.value))
   .filter((item) => matchesFilter(item, activeFilter.value))
@@ -246,6 +241,10 @@ function openMyInvitation() {
 
 function showComingSoon() {
   uni.showToast({ title: '定制请柬服务将在后续版本开放', icon: 'none' });
+}
+
+function selectType(code: string) {
+  activeType.value = writeActiveEventType(code);
 }
 
 function handleBanner(action: string) {
@@ -353,6 +352,9 @@ onMounted(() => {
   loadMyInvitation();
   loadTemplates();
 });
+onShow(() => {
+  activeType.value = readActiveEventType();
+});
 </script>
 
 <style scoped>
@@ -371,6 +373,42 @@ onMounted(() => {
     radial-gradient(circle at 72% 38%, rgba(255, 190, 80, 0.18), transparent 26%),
     linear-gradient(135deg, #d8000f 0%, #c40005 58%, #a80000 100%);
   color: #fff;
+}
+
+.page.orange .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 218, 138, 0.2), transparent 26%),
+    linear-gradient(135deg, #c15b10 0%, #a64209 58%, #7a2d08 100%);
+}
+
+.page.pink .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 198, 212, 0.26), transparent 26%),
+    linear-gradient(135deg, #e7566f 0%, #c73655 58%, #932742 100%);
+}
+
+.page.green .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(185, 245, 202, 0.22), transparent 26%),
+    linear-gradient(135deg, #1b8a58 0%, #116943 58%, #0b4b31 100%);
+}
+
+.page.blue .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(186, 220, 255, 0.24), transparent 26%),
+    linear-gradient(135deg, #2563eb 0%, #1d4ed8 58%, #1e3a8a 100%);
+}
+
+.page.black .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(255, 255, 255, 0.08), transparent 26%),
+    linear-gradient(135deg, #202124 0%, #111315 58%, #050607 100%);
+}
+
+.page.purple .red-stage {
+  background:
+    radial-gradient(circle at 72% 38%, rgba(218, 200, 255, 0.24), transparent 26%),
+    linear-gradient(135deg, #7c3aed 0%, #5b21b6 58%, #3b0764 100%);
 }
 
 .red-stage::after {
