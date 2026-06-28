@@ -51,6 +51,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
 import { request } from '../../../api/client';
+import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 const banquetId = ref('');
 const submitting = ref(false);
@@ -96,10 +97,13 @@ function openGiftList() {
   uni.navigateTo({ url: `/pages/gift/list/index?banquetId=${banquetId.value}` });
 }
 
-onMounted(() => {
+onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
-  banquetId.value = current.options?.banquetId || '';
+  banquetId.value = await resolveBanquetId(current.options?.banquetId);
+  if (!banquetId.value) {
+    requireBanquetToast();
+  }
 });
 </script>
 

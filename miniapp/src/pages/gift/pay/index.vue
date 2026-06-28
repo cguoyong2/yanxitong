@@ -90,6 +90,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
+import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 const sources = [
   { label: '线上随礼', value: 'ONLINE_GIFT' },
@@ -182,7 +183,10 @@ function openOfflineGift() {
 onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
-  banquetId.value = current.options?.banquetId || '';
+  banquetId.value = await resolveBanquetId(current.options?.banquetId);
+  if (!banquetId.value) {
+    requireBanquetToast();
+  }
   form.entrySource = current.options?.entrySource || 'ONLINE_GIFT';
   form.guestName = current.options?.guestName ? decodeURIComponent(current.options.guestName) : '';
   form.amount = current.options?.amount ? Number(current.options.amount) : undefined;

@@ -102,6 +102,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { request } from '../../../api/client';
+import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 
 const statuses = [
   { label: '参加', shortLabel: '出席', value: 'ATTENDING' },
@@ -233,7 +234,10 @@ async function loadInvitationShareUrl() {
 onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
-  banquetId.value = current.options?.banquetId || '';
+  banquetId.value = await resolveBanquetId(current.options?.banquetId);
+  if (!banquetId.value) {
+    requireBanquetToast();
+  }
   invitationId.value = current.options?.invitationId || '';
   await loadInvitationShareUrl();
 });
