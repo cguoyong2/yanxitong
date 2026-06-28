@@ -91,8 +91,34 @@
       <text class="success-title">{{ submitResult?.created ? '回执已提交' : '回执已更新' }}</text>
       <text class="success-text">{{ successText }}</text>
     </view>
+    <view class="result-card">
+      <view class="result-head">
+        <text class="result-title">回执摘要</text>
+        <text class="result-status">{{ currentStatusLabel }}</text>
+      </view>
+      <view class="result-row">
+        <text class="result-label">宾客姓名</text>
+        <text class="result-value">{{ form.guestName }}</text>
+      </view>
+      <view class="result-row" v-if="form.phone">
+        <text class="result-label">联系电话</text>
+        <text class="result-value">{{ form.phone }}</text>
+      </view>
+      <view class="result-row" v-if="isSubmittedAttending">
+        <text class="result-label">出席人数</text>
+        <text class="result-value">{{ submitResult?.guestCount || form.guestCount }} 人</text>
+      </view>
+      <view class="result-row" v-if="isSubmittedAttending">
+        <text class="result-label">用餐 / 住宿</text>
+        <text class="result-value">{{ form.mealRequired ? '用餐' : '不用餐' }} · {{ form.accommodationRequired ? '住宿' : '不住宿' }}</text>
+      </view>
+      <view class="result-message" v-if="form.message">
+        <text>{{ form.message }}</text>
+      </view>
+    </view>
     <view class="success-actions">
       <button class="primary-button" @tap="openGift">{{ giftActionText }}</button>
+      <button class="ghost-button" @tap="openRsvpStats">查看回执统计</button>
       <button class="ghost-button" @tap="backToInvitation">返回请柬</button>
       <button class="text-button" @tap="editAgain">修改回执</button>
     </view>
@@ -148,6 +174,14 @@ const successText = computed(() => {
   return activeTheme.value.rsvpSuccessText || `已记录 ${submitResult.value.guestCount || 1} 位来宾出席。`;
 });
 const giftActionText = computed(() => features.value.mockPaymentEnabled ? activeTheme.value.giftActionLabel : `去${activeTheme.value.offlineGiftLabel}`);
+const currentStatusLabel = computed(() => {
+  const value = submitResult.value?.attendanceStatus || form.attendanceStatus;
+  return statuses.find((item) => item.value === value)?.label || '已提交';
+});
+const isSubmittedAttending = computed(() => {
+  const value = submitResult.value?.attendanceStatus || form.attendanceStatus;
+  return value === 'ATTENDING' || value === 'ATTEND';
+});
 
 function selectStatus(value: string) {
   form.attendanceStatus = value;
@@ -199,7 +233,7 @@ function validate() {
     uni.showToast({ title: '请填写姓名', icon: 'none' });
     return false;
   }
-  if (form.phone && !/^1\d{10}$/.test(form.phone)) {
+  if (form.phone && !/^1[3-9]\d{9}$/.test(form.phone)) {
     uni.showToast({ title: '手机号格式不正确', icon: 'none' });
     return false;
   }
@@ -227,6 +261,17 @@ function backToInvitation() {
     return;
   }
   uni.navigateBack();
+}
+
+function openRsvpStats() {
+  if (!banquetId.value) {
+    uni.showToast({ title: '缺少宴席信息', icon: 'none' });
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/rsvp/stats/index?banquetId=${banquetId.value}`,
+    fail: () => uni.showToast({ title: '回执统计打开失败', icon: 'none' })
+  });
 }
 
 function editAgain() {
@@ -556,6 +601,74 @@ onMounted(async () => {
   border-radius: 28rpx;
   background: #fff;
   box-shadow: 0 12rpx 36rpx rgba(92, 48, 30, 0.08);
+}
+
+.result-card {
+  margin-top: 24rpx;
+  padding: 28rpx;
+  border: 1rpx solid #f0dfcf;
+  border-radius: 24rpx;
+  background: #fff;
+  box-shadow: 0 12rpx 36rpx rgba(92, 48, 30, 0.08);
+}
+
+.result-head,
+.result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.result-head {
+  margin-bottom: 18rpx;
+}
+
+.result-title {
+  color: #151824;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.result-status {
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  background: #fff1ee;
+  color: #c7191e;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.result-row {
+  min-height: 58rpx;
+  border-bottom: 1rpx solid #f4ebe3;
+}
+
+.result-row:last-child {
+  border-bottom: 0;
+}
+
+.result-label {
+  color: #8a7768;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.result-value {
+  max-width: 420rpx;
+  color: #171c2a;
+  font-size: 27rpx;
+  font-weight: 800;
+  text-align: right;
+}
+
+.result-message {
+  margin-top: 16rpx;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  background: #fff8ef;
+  color: #7a5a44;
+  font-size: 25rpx;
+  line-height: 1.6;
 }
 
 .success-icon {

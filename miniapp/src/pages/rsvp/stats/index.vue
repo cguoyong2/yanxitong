@@ -60,6 +60,42 @@
 
     <view class="section-card">
       <view class="section-head">
+        <text class="section-title">回执明细</text>
+        <text class="section-note">{{ filteredRecords.length }} 条</text>
+      </view>
+      <view class="filter-tabs">
+        <view
+          v-for="item in filterItems"
+          :key="item.value"
+          class="filter-tab"
+          :class="{ active: activeFilter === item.value }"
+          @tap="activeFilter = item.value"
+        >
+          {{ item.label }}
+        </view>
+      </view>
+      <view v-if="filteredRecords.length" class="record-list">
+        <view v-for="record in filteredRecords" :key="record.id" class="record-row">
+          <view class="record-main">
+            <view class="record-title-line">
+              <text class="record-name">{{ record.guestName || '未填写姓名' }}</text>
+              <text class="record-status" :class="statusTone(record.attendanceStatus)">{{ statusLabel(record.attendanceStatus) }}</text>
+            </view>
+            <text class="record-meta">
+              {{ record.guestCount || 1 }} 人 · {{ record.mealRequired ? '用餐' : '不用餐' }} · {{ record.accommodationRequired ? '住宿' : '不住宿' }}
+            </text>
+            <text v-if="record.message" class="record-message">{{ record.message }}</text>
+          </view>
+          <text class="record-time">{{ formatDate(record.updatedAt || record.createdAt) }}</text>
+        </view>
+      </view>
+      <view v-else class="record-empty">
+        <text>当前筛选暂无回执。</text>
+      </view>
+    </view>
+
+    <view class="section-card">
+      <view class="section-head">
         <text class="section-title">{{ activeTheme.prepTitle }}</text>
         <text class="section-note">按当前回执估算</text>
       </view>
@@ -80,6 +116,7 @@
     </view>
 
     <view class="action-card">
+      <button class="ghost-button wide" @tap="copyInvitePath">复制请柬路径</button>
       <button class="primary-button" @tap="shareInvite">继续发送请柬</button>
       <button class="ghost-button" @tap="openBanquetDetail">返回宴席管理台</button>
     </view>
@@ -108,12 +145,34 @@ interface RsvpStats {
   accommodationRequiredGuests: number;
 }
 
+interface RsvpRecord {
+  id: number;
+  guestName?: string;
+  phone?: string;
+  attendanceStatus: string;
+  mealRequired?: number;
+  accommodationRequired?: number;
+  guestCount?: number;
+  message?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 const stats = ref<RsvpStats>();
+const records = ref<RsvpRecord[]>([]);
 const banquetId = ref('');
 const shareSlug = ref('');
 const loading = ref(false);
+const activeFilter = ref('ALL');
 const eventType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(eventType.value));
+const filterItems = computed(() => [
+  { label: `全部 ${records.value.length}`, value: 'ALL' },
+  { label: `出席 ${stats.value?.attendingRecords || 0}`, value: 'ATTENDING' },
+  { label: `待定 ${stats.value?.pendingRecords || 0}`, value: 'PENDING' },
+  { label: `不出席 ${stats.value?.declinedRecords || 0}`, value: 'DECLINED' }
+]);
+const invitePath = computed(() => shareSlug.value ? `/pages/invite/public/index?slug=${shareSlug.value}` : '');
 const attendingRate = computed(() => {
   const total = Number(stats.value?.totalRecords || 0);
   if (!total) return 0;
@@ -136,6 +195,12 @@ const statusItems = computed(() => {
     { label: '不便出席', value: declined, rate: rate(declined), tone: 'gray' }
   ];
 });
+const filteredRecords = computed(() => {
+  if (activeFilter.value === 'ALL') {
+    return records.value;
+  }
+  return records.value.filter((record) => normalizeStatus(record.attendanceStatus) === activeFilter.value);
+});
 
 async function load() {
   if (!banquetId.value) {
@@ -143,7 +208,12 @@ async function load() {
   }
   loading.value = true;
   try {
-    stats.value = await request<RsvpStats>(`/rsvp/stats?banquetId=${banquetId.value}`);
+    const [nextStats, nextRecords] = await Promise.all([
+      request<RsvpStats>(`/rsvp/stats?banquetId=${banquetId.value}`),
+      request<RsvpRecord[]>(`/rsvp/list?banquetId=${banquetId.value}`).catch(() => [])
+    ]);
+    stats.value = nextStats;
+    records.value = nextRecords || [];
   } finally {
     loading.value = false;
   }
@@ -167,6 +237,46 @@ function openBanquetDetail() {
     return;
   }
   safeNavigate(`/pages/banquet/detail/index?id=${banquetId.value}`, '宴席管理台打开失败');
+}
+
+function copyInvitePath() {
+  if (!invitePath.value) {
+    uni.showToast({ title: '暂无请柬路径', icon: 'none' });
+    return;
+  }
+  uni.setClipboardData({
+    data: invitePath.value,
+    success: () => uni.showToast({ title: '已复制请柬路径', icon: 'success' }),
+    fail: () => uni.showToast({ title: '复制失败', icon: 'none' })
+  });
+}
+
+function normalizeStatus(status?: string) {
+  if (status === 'ATTEND') {
+    return 'ATTENDING';
+  }
+  return status || 'PENDING';
+}
+
+function statusLabel(status?: string) {
+  const value = normalizeStatus(status);
+  if (value === 'ATTENDING') return '确认出席';
+  if (value === 'DECLINED') return '不便出席';
+  return '暂未确定';
+}
+
+function statusTone(status?: string) {
+  const value = normalizeStatus(status);
+  if (value === 'ATTENDING') return 'red';
+  if (value === 'DECLINED') return 'gray';
+  return 'orange';
+}
+
+function formatDate(value?: string) {
+  if (!value) {
+    return '';
+  }
+  return value.replace('T', ' ').slice(5, 16);
 }
 
 function safeNavigate(url: string, failTitle: string) {
@@ -479,6 +589,116 @@ onMounted(async () => {
   transition: width 0.2s ease;
 }
 
+.filter-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.filter-tab {
+  min-width: 0;
+  height: 62rpx;
+  border: 1rpx solid #ead8ca;
+  border-radius: 999rpx;
+  background: #fffaf5;
+  color: #7e7168;
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 62rpx;
+  text-align: center;
+}
+
+.filter-tab.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, #e83a32, #c91419);
+  color: #fff;
+}
+
+.record-list {
+  display: grid;
+  gap: 14rpx;
+}
+
+.record-row {
+  display: flex;
+  gap: 18rpx;
+  justify-content: space-between;
+  padding: 20rpx;
+  border: 1rpx solid #f1e4d6;
+  border-radius: 18rpx;
+  background: #fffdfb;
+}
+
+.record-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.record-title-line {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.record-name {
+  overflow: hidden;
+  max-width: 220rpx;
+  color: #171c2a;
+  font-size: 29rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-status {
+  padding: 5rpx 12rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.record-status.red {
+  background: #fff0f0;
+  color: #c7191e;
+}
+
+.record-status.orange {
+  background: #fff3e5;
+  color: #c45a16;
+}
+
+.record-status.gray {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.record-meta,
+.record-message {
+  display: block;
+  margin-top: 9rpx;
+  color: #83766d;
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
+.record-message {
+  color: #9e4d32;
+}
+
+.record-time {
+  flex: none;
+  color: #9ca3af;
+  font-size: 22rpx;
+}
+
+.record-empty {
+  padding: 30rpx 0 8rpx;
+  color: #9ca3af;
+  font-size: 25rpx;
+  text-align: center;
+}
+
 .prep-list {
   display: grid;
   gap: 4rpx;
@@ -518,6 +738,10 @@ onMounted(async () => {
   gap: 16rpx;
   margin-top: 24rpx;
   padding: 22rpx;
+}
+
+.action-card .wide {
+  grid-column: 1 / -1;
 }
 
 .primary-button,
