@@ -56,6 +56,7 @@
               </view>
             </picker>
             <view class="picker-button" @tap="fillDefaultTime">默认18:00</view>
+            <view class="picker-button strong" @tap="openTimePanel">手动填写</view>
           </view>
         </view>
         <view v-if="banquetTimeDisplay" class="selected-time-row">
@@ -73,6 +74,7 @@
               @blur="locationInputFocused = false"
             />
             <button class="map-button" @tap.stop="chooseBanquetLocation">地图选点</button>
+            <button class="map-button secondary" @tap.stop="openLocationPanel">手动填写</button>
           </view>
           <text class="row-arrow" @tap.stop="chooseBanquetLocation">›</text>
         </view>
@@ -146,6 +148,56 @@
         {{ submitting ? '创建中...' : '创建宴席' }}
       </button>
     </view>
+
+    <view v-if="showTimePanel" class="modal-mask" @tap="closeTimePanel">
+      <view class="modal-panel" @tap.stop>
+        <view class="modal-head">
+          <text class="modal-title">填写宴席时间</text>
+          <text class="modal-close" @tap="closeTimePanel">×</text>
+        </view>
+        <text class="modal-desc">如果系统日期选择器没有弹出，可直接在这里填写日期和时间。</text>
+        <view class="quick-grid">
+          <view v-for="item in quickTimeOptions" :key="item.label" class="quick-chip" @tap="applyQuickTime(item)">
+            <text>{{ item.label }}</text>
+            <text>{{ item.date }} {{ item.time }}</text>
+          </view>
+        </view>
+        <view class="manual-form">
+          <view class="manual-row">
+            <text>日期</text>
+            <input v-model="manualTime.date" class="manual-input" placeholder="YYYY-MM-DD" />
+          </view>
+          <view class="manual-row">
+            <text>时间</text>
+            <input v-model="manualTime.time" class="manual-input" placeholder="HH:mm" />
+          </view>
+        </view>
+        <view class="modal-actions">
+          <button class="plain-button" @tap="closeTimePanel">取消</button>
+          <button class="confirm-button" @tap="applyManualDateTime">确认填入</button>
+        </view>
+      </view>
+    </view>
+
+    <view v-if="showLocationPanel" class="modal-mask" @tap="closeLocationPanel">
+      <view class="modal-panel" @tap.stop>
+        <view class="modal-head">
+          <text class="modal-title">填写宴席地点</text>
+          <text class="modal-close" @tap="closeLocationPanel">×</text>
+        </view>
+        <text class="modal-desc">可以手动输入酒店、宴会厅或详细地址；地图权限可用时也能继续选点。</text>
+        <input v-model="manualLocation" class="manual-input location-input" placeholder="请输入酒店、宴会厅或地址" />
+        <view class="quick-grid location">
+          <view v-for="item in locationSuggestions" :key="item" class="quick-chip" @tap="applyLocationSuggestion(item)">
+            <text>{{ item }}</text>
+          </view>
+        </view>
+        <view class="modal-actions">
+          <button class="plain-button" @tap="chooseLocationFromPanel">地图选点</button>
+          <button class="confirm-button" @tap="applyManualLocation">确认填入</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -210,6 +262,13 @@ const customGiftSuccess = ref('');
 const selectedDate = ref('');
 const selectedTime = ref('');
 const locationInputFocused = ref(false);
+const showTimePanel = ref(false);
+const showLocationPanel = ref(false);
+const manualTime = reactive({
+  date: '',
+  time: ''
+});
+const manualLocation = ref('');
 const displayForm = reactive({
   hostName: '',
   phone: ''
@@ -232,6 +291,19 @@ const yearOptions = computed(() => {
 });
 const dateStart = computed(() => `${yearOptions.value[0]}-01-01`);
 const dateEnd = computed(() => `${yearOptions.value[yearOptions.value.length - 1]}-12-31`);
+const quickTimeOptions = computed(() => {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const afterSevenDays = new Date(today);
+  afterSevenDays.setDate(today.getDate() + 7);
+  return [
+    { label: '今天晚宴', date: formatDateInput(today), time: '18:00' },
+    { label: '明天晚宴', date: formatDateInput(tomorrow), time: '18:00' },
+    { label: '一周后中午', date: formatDateInput(afterSevenDays), time: '12:00' },
+    { label: '国庆晚宴', date: `${today.getFullYear()}-10-01`, time: '18:00' }
+  ];
+});
 const banquetTimeDisplay = computed(() => {
   if (!selectedDate.value && !selectedTime.value) {
     return '';
@@ -242,6 +314,7 @@ const filteredTemplates = computed(() => {
   const rows = templates.value.filter((item) => matchesEventType(item, form.eventTypeCode));
   return (rows.length ? rows : templates.value).slice(0, 8);
 });
+const locationSuggestions = ['幸福大酒店宴会厅', '体验宴会厅', '福泽园宴会厅A厅', '清风园礼仪厅'];
 
 function defaultBanquetName() {
   const now = new Date();
@@ -282,6 +355,47 @@ function fillDefaultTime() {
   selectedTime.value = '18:00';
   syncBanquetTime();
   uni.showToast({ title: '已填入默认时间', icon: 'none' });
+}
+
+function openTimePanel() {
+  manualTime.date = selectedDate.value || formatDateInput(new Date());
+  manualTime.time = selectedTime.value || '18:00';
+  showTimePanel.value = true;
+}
+
+function closeTimePanel() {
+  showTimePanel.value = false;
+}
+
+function applyQuickTime(item: { label: string; date: string; time: string }) {
+  selectedDate.value = item.date;
+  selectedTime.value = item.time;
+  syncBanquetTime();
+  showTimePanel.value = false;
+  uni.showToast({ title: '时间已填入', icon: 'success' });
+}
+
+function applyManualDateTime() {
+  const date = manualTime.date.trim();
+  const time = manualTime.time.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    uni.showToast({ title: '日期格式应为YYYY-MM-DD', icon: 'none' });
+    return;
+  }
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    uni.showToast({ title: '时间格式应为HH:mm', icon: 'none' });
+    return;
+  }
+  const parsed = new Date(`${date}T${time}:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    uni.showToast({ title: '请填写有效日期时间', icon: 'none' });
+    return;
+  }
+  selectedDate.value = date;
+  selectedTime.value = time;
+  syncBanquetTime();
+  showTimePanel.value = false;
+  uni.showToast({ title: '时间已填入', icon: 'success' });
 }
 
 function formatDateInput(date: Date) {
@@ -327,6 +441,38 @@ async function chooseBanquetLocation() {
 
 function focusLocationInput() {
   locationInputFocused.value = true;
+}
+
+function openLocationPanel() {
+  manualLocation.value = form.location;
+  showLocationPanel.value = true;
+}
+
+function closeLocationPanel() {
+  showLocationPanel.value = false;
+}
+
+function applyLocationSuggestion(value: string) {
+  manualLocation.value = value;
+}
+
+function applyManualLocation() {
+  const value = manualLocation.value.trim();
+  if (!value) {
+    uni.showToast({ title: '请填写宴席地点', icon: 'none' });
+    return;
+  }
+  form.location = value;
+  showLocationPanel.value = false;
+  uni.showToast({ title: '地点已填入', icon: 'success' });
+}
+
+async function chooseLocationFromPanel() {
+  await chooseBanquetLocation();
+  if (form.location) {
+    manualLocation.value = form.location;
+    showLocationPanel.value = false;
+  }
 }
 
 function ensureLocationPermission() {
@@ -753,6 +899,7 @@ onMounted(() => {
 .location-field {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12rpx;
   min-width: 0;
 }
@@ -826,11 +973,22 @@ onMounted(() => {
   line-height: 58rpx;
 }
 
+.picker-button.strong,
+.map-button.secondary {
+  border-color: #e8c09b;
+  background: #fff2e6;
+  color: #b42318;
+}
+
 .map-button {
   flex: 0 0 auto;
   min-width: 92rpx;
   margin: 0;
   padding: 0 18rpx;
+}
+
+.map-button.secondary {
+  min-width: 104rpx;
 }
 
 .map-button::after {
@@ -1042,5 +1200,169 @@ button::after {
   font-size: 30rpx;
   font-weight: 900;
   line-height: 88rpx;
+}
+
+.modal-mask {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 28rpx;
+  box-sizing: border-box;
+  background: rgba(17, 24, 39, 0.42);
+}
+
+.modal-panel {
+  width: 100%;
+  max-height: 78vh;
+  overflow-y: auto;
+  padding: 30rpx;
+  border-radius: 30rpx;
+  background: #fffaf4;
+  box-shadow: 0 -18rpx 48rpx rgba(17, 24, 39, 0.22);
+  box-sizing: border-box;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.modal-title {
+  color: #171923;
+  font-size: 34rpx;
+  font-weight: 900;
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58rpx;
+  height: 58rpx;
+  border-radius: 999rpx;
+  background: #f4e8dc;
+  color: #7b4a2b;
+  font-size: 38rpx;
+  font-weight: 700;
+}
+
+.modal-desc {
+  display: block;
+  margin-top: 12rpx;
+  color: #7d6b5f;
+  font-size: 25rpx;
+  line-height: 1.5;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.quick-grid.location {
+  grid-template-columns: 1fr;
+}
+
+.quick-chip {
+  min-height: 82rpx;
+  padding: 18rpx;
+  border: 1rpx solid #ecd8c7;
+  border-radius: 18rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.quick-chip text {
+  display: block;
+  color: #171923;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.quick-chip text + text {
+  margin-top: 6rpx;
+  color: #8a7768;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.manual-form {
+  margin-top: 24rpx;
+  border: 1rpx solid #ecd8c7;
+  border-radius: 20rpx;
+  background: #fff;
+}
+
+.manual-row {
+  display: grid;
+  grid-template-columns: 110rpx 1fr;
+  align-items: center;
+  min-height: 84rpx;
+  padding: 0 22rpx;
+  border-bottom: 1rpx solid #f0e4da;
+  box-sizing: border-box;
+}
+
+.manual-row:last-child {
+  border-bottom: 0;
+}
+
+.manual-row text {
+  color: #171923;
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.manual-input {
+  min-height: 74rpx;
+  color: #171923;
+  font-size: 27rpx;
+}
+
+.manual-input.location-input {
+  width: 100%;
+  min-height: 84rpx;
+  margin-top: 22rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid #ecd8c7;
+  border-radius: 18rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 18rpx;
+  margin-top: 28rpx;
+}
+
+.plain-button,
+.confirm-button {
+  height: 84rpx;
+  border-radius: 18rpx;
+  font-size: 28rpx;
+  font-weight: 900;
+  line-height: 84rpx;
+}
+
+.plain-button {
+  border: 1rpx solid #e7d4c3;
+  background: #fff;
+  color: #7b4a2b;
+}
+
+.confirm-button {
+  border: 0;
+  background: linear-gradient(135deg, #d71920, #b91c1c);
+  color: #fff8df;
 }
 </style>
