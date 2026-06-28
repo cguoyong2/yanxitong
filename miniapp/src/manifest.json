@@ -9,6 +9,14 @@
     "setting": {
       "urlCheck": true
     },
+    "permission": {
+      "scope.userLocation": {
+        "desc": "用于选择宴席酒店、宴会厅或举办地址"
+      }
+    },
+    "requiredPrivateInfos": [
+      "chooseLocation"
+    ],
     "usingComponents": true
   }
 }

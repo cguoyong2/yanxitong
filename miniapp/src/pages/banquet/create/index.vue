@@ -44,26 +44,31 @@
         <view class="form-row picker-row">
           <text class="row-icon">▣</text>
           <text class="row-label">宴席时间</text>
-          <view class="datetime-pickers">
-            <picker mode="date" :value="selectedDate" @change="onDateChange">
-              <view class="picker-value" :class="{ placeholder: !selectedDate }">{{ selectedDate || '选择日期' }}</view>
-            </picker>
-            <picker mode="time" :value="selectedTime" @change="onTimeChange">
-              <view class="picker-value" :class="{ placeholder: !selectedTime }">{{ selectedTime || '选择时间' }}</view>
-            </picker>
+          <view class="datetime-field">
+            <text class="datetime-display" :class="{ placeholder: !banquetTimeDisplay }">{{ banquetTimeDisplay || '请选择宴席日期和时间' }}</text>
+            <view class="datetime-actions">
+              <picker mode="date" :value="selectedDate" @change="onDateChange">
+                <view class="picker-button">日期</view>
+              </picker>
+              <picker mode="time" :value="selectedTime" @change="onTimeChange">
+                <view class="picker-button">时间</view>
+              </picker>
+            </view>
           </view>
           <text class="row-arrow">›</text>
         </view>
-        <view class="form-row" @tap="chooseBanquetLocation">
+        <view class="form-row location-row">
           <text class="row-icon">⌖</text>
           <text class="row-label">宴席地点</text>
-          <input
-            v-model="form.location"
-            class="row-input"
-            placeholder="搜索酒店或宴会厅"
-            @tap.stop
-          />
-          <text class="row-arrow">›</text>
+          <view class="location-field">
+            <input
+              v-model="form.location"
+              class="row-input"
+              placeholder="可手动输入酒店或宴会厅"
+            />
+            <button class="map-button" @tap="chooseBanquetLocation">地图</button>
+          </view>
+          <text class="row-arrow" @tap="chooseBanquetLocation">›</text>
         </view>
       </view>
 
@@ -211,6 +216,12 @@ const initialTemplateId = ref<number>();
 
 const selectedTemplate = computed(() => templates.value.find((item) => item.id === form.templateId));
 const currentDesign = computed(() => designFor(form.eventTypeCode || 'OTHER'));
+const banquetTimeDisplay = computed(() => {
+  if (!selectedDate.value && !selectedTime.value) {
+    return '';
+  }
+  return `${selectedDate.value || '请选择日期'} ${selectedTime.value || '请选择时间'}`;
+});
 const filteredTemplates = computed(() => {
   const rows = templates.value.filter((item) => matchesEventType(item, form.eventTypeCode));
   return (rows.length ? rows : templates.value).slice(0, 8);
@@ -639,31 +650,59 @@ onMounted(() => {
   min-height: 96rpx;
 }
 
-.datetime-pickers {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 144rpx;
+.datetime-field,
+.location-field {
+  display: flex;
+  align-items: center;
   gap: 12rpx;
   min-width: 0;
 }
 
-.picker-value {
+.datetime-display {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
-  height: 58rpx;
-  padding: 0 16rpx;
-  border: 1rpx solid #efe1d5;
-  border-radius: 12rpx;
-  background: #fffaf5;
   color: #171923;
-  font-size: 25rpx;
-  font-weight: 700;
-  line-height: 58rpx;
+  font-size: 26rpx;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.picker-value.placeholder {
+.datetime-display.placeholder {
   color: #9aa0aa;
   font-weight: 600;
+}
+
+.datetime-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10rpx;
+}
+
+.picker-button,
+.map-button {
+  overflow: hidden;
+  height: 58rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #efe1d5;
+  border-radius: 999rpx;
+  background: #fffaf5;
+  color: #a65a28;
+  font-size: 25rpx;
+  font-weight: 700;
+  line-height: 58rpx;
+}
+
+.map-button {
+  flex: 0 0 auto;
+  min-width: 92rpx;
+  margin: 0;
+  padding: 0 18rpx;
+}
+
+.map-button::after {
+  border: 0;
 }
 
 .row-arrow,
