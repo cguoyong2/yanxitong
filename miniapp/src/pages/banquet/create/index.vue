@@ -44,21 +44,24 @@
         <view class="form-row picker-row">
           <text class="row-icon">▣</text>
           <text class="row-label">宴席时间</text>
-          <picker
-            mode="multiSelector"
-            :range="dateTimeRange"
-            :value="dateTimeIndex"
-            @change="onDateTimeChange"
-            @columnchange="onDateTimeColumnChange"
-          >
-            <view class="datetime-field">
-              <text class="datetime-display" :class="{ placeholder: !banquetTimeDisplay }">{{ banquetTimeDisplay || '请选择宴席日期和时间' }}</text>
-              <view class="picker-button">选择</view>
-            </view>
-          </picker>
-          <text class="row-arrow">›</text>
+          <view class="datetime-field">
+            <picker mode="date" :value="selectedDate" :start="dateStart" :end="dateEnd" @change="onDateChange">
+              <view class="datetime-picker-cell">
+                <text class="datetime-display" :class="{ placeholder: !selectedDate }">{{ selectedDate || '选择日期' }}</text>
+              </view>
+            </picker>
+            <picker mode="time" :value="selectedTime" @change="onTimeChange">
+              <view class="datetime-picker-cell time">
+                <text class="datetime-display" :class="{ placeholder: !selectedTime }">{{ selectedTime || '选择时间' }}</text>
+              </view>
+            </picker>
+            <view class="picker-button" @tap="fillDefaultTime">默认18:00</view>
+          </view>
         </view>
-        <view class="form-row location-row">
+        <view v-if="banquetTimeDisplay" class="selected-time-row">
+          <text>已选择：{{ banquetTimeDisplay }}</text>
+        </view>
+        <view class="form-row location-row" @tap="focusLocationInput">
           <text class="row-icon">⌖</text>
           <text class="row-label">宴席地点</text>
           <view class="location-field">
@@ -66,10 +69,15 @@
               v-model="form.location"
               class="row-input"
               placeholder="可手动输入酒店或宴会厅"
+              :focus="locationInputFocused"
+              @blur="locationInputFocused = false"
             />
-            <button class="map-button" @tap="chooseBanquetLocation">地图</button>
+            <button class="map-button" @tap.stop="chooseBanquetLocation">地图选点</button>
           </view>
-          <text class="row-arrow" @tap="chooseBanquetLocation">›</text>
+          <text class="row-arrow" @tap.stop="chooseBanquetLocation">›</text>
+        </view>
+        <view class="map-tip-row">
+          <text>可手动输入，也可点“地图选点”搜索酒店、宴会厅或地址。</text>
         </view>
       </view>
 
@@ -201,7 +209,7 @@ const submitting = ref(false);
 const customGiftSuccess = ref('');
 const selectedDate = ref('');
 const selectedTime = ref('');
-const dateTimeIndex = ref([0, 0, 0, 18, 0]);
+const locationInputFocused = ref(false);
 const displayForm = reactive({
   hostName: '',
   phone: ''
@@ -222,22 +230,8 @@ const yearOptions = computed(() => {
   const currentYear = new Date().getFullYear();
   return Array.from({ length: 8 }, (_, index) => String(currentYear + index));
 });
-const monthOptions = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
-const hourOptions = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0'));
-const minuteOptions = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
-const dayOptions = computed(() => {
-  const year = Number(yearOptions.value[dateTimeIndex.value[0]] || new Date().getFullYear());
-  const month = Number(monthOptions[dateTimeIndex.value[1]] || 1);
-  const total = new Date(year, month, 0).getDate();
-  return Array.from({ length: total }, (_, index) => String(index + 1).padStart(2, '0'));
-});
-const dateTimeRange = computed(() => [
-  yearOptions.value,
-  monthOptions,
-  dayOptions.value,
-  hourOptions,
-  minuteOptions
-]);
+const dateStart = computed(() => `${yearOptions.value[0]}-01-01`);
+const dateEnd = computed(() => `${yearOptions.value[yearOptions.value.length - 1]}-12-31`);
 const banquetTimeDisplay = computed(() => {
   if (!selectedDate.value && !selectedTime.value) {
     return '';
@@ -259,7 +253,6 @@ function fillSampleData() {
   form.name = defaultBanquetName();
   selectedDate.value = '2026-10-01';
   selectedTime.value = '18:00';
-  syncDateTimeIndexFromSelected();
   syncBanquetTime();
   form.location = '体验宴会厅';
   displayForm.hostName = '宴席通用户';
@@ -270,45 +263,25 @@ function syncBanquetTime() {
   form.banquetTime = selectedDate.value && selectedTime.value ? `${selectedDate.value}T${selectedTime.value}:00` : '';
 }
 
-function onDateTimeColumnChange(event: { detail: { column: number; value: number } }) {
-  const next = [...dateTimeIndex.value];
-  next[event.detail.column] = event.detail.value;
-  if (event.detail.column === 0 || event.detail.column === 1) {
-    const maxDayIndex = Math.max(0, dayOptions.value.length - 1);
-    next[2] = Math.min(next[2], maxDayIndex);
-  }
-  dateTimeIndex.value = next;
-}
-
-function onDateTimeChange(event: { detail: { value: number[] } }) {
-  dateTimeIndex.value = normalizeDateTimeIndex(event.detail.value);
-  applyDateTimeIndex();
-}
-
-function normalizeDateTimeIndex(indexes: number[]) {
-  const next = [indexes[0] || 0, indexes[1] || 0, indexes[2] || 0, indexes[3] || 0, indexes[4] || 0];
-  const maxDayIndex = Math.max(0, dayOptions.value.length - 1);
-  next[2] = Math.min(next[2], maxDayIndex);
-  return next;
-}
-
-function applyDateTimeIndex() {
-  const [yearIndex, monthIndex, dayIndex, hourIndex, minuteIndex] = dateTimeIndex.value;
-  selectedDate.value = `${yearOptions.value[yearIndex]}-${monthOptions[monthIndex]}-${dayOptions.value[dayIndex]}`;
-  selectedTime.value = `${hourOptions[hourIndex]}:${minuteOptions[minuteIndex]}`;
+function onDateChange(event: { detail: { value: string } }) {
+  selectedDate.value = event.detail.value;
   syncBanquetTime();
+  uni.showToast({ title: selectedTime.value ? '时间已更新' : '请选择时间', icon: 'none' });
 }
 
-function syncDateTimeIndexFromSelected() {
-  const [year = '', month = '', day = ''] = selectedDate.value.split('-');
-  const [hour = '', minute = ''] = selectedTime.value.split(':');
-  dateTimeIndex.value = normalizeDateTimeIndex([
-    Math.max(0, yearOptions.value.indexOf(year)),
-    Math.max(0, monthOptions.indexOf(month)),
-    Math.max(0, dayOptions.value.indexOf(day)),
-    Math.max(0, hourOptions.indexOf(hour)),
-    Math.max(0, minuteOptions.indexOf(minute))
-  ]);
+function onTimeChange(event: { detail: { value: string } }) {
+  selectedTime.value = event.detail.value;
+  syncBanquetTime();
+  uni.showToast({ title: selectedDate.value ? '时间已更新' : '请选择日期', icon: 'none' });
+}
+
+function fillDefaultTime() {
+  if (!selectedDate.value) {
+    selectedDate.value = formatDateInput(new Date());
+  }
+  selectedTime.value = '18:00';
+  syncBanquetTime();
+  uni.showToast({ title: '已填入默认时间', icon: 'none' });
 }
 
 function formatDateInput(date: Date) {
@@ -331,21 +304,50 @@ function validatePhone(showToast = false) {
 }
 
 async function chooseBanquetLocation() {
-  await requestLocationAuth();
+  locationInputFocused.value = false;
+  const allowed = await ensureLocationPermission();
+  if (!allowed) {
+    return;
+  }
+  uni.showLoading({ title: '打开地图' });
   try {
     const result = await callChooseLocation();
     applyChosenLocation(result);
-  } catch {
-    uni.showToast({ title: '地图选址不可用，可手动输入酒店或地址', icon: 'none' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String((error as { errMsg?: string })?.errMsg || '');
+    if (/auth|authorize|permission|denied/i.test(message)) {
+      showLocationSettingTip();
+      return;
+    }
+    uni.showToast({ title: '地图未打开，请检查定位权限或手动输入', icon: 'none' });
+  } finally {
+    uni.hideLoading();
   }
 }
 
-function requestLocationAuth() {
-  return new Promise<void>((resolve) => {
-    uni.authorize({
-      scope: 'scope.userLocation',
-      success: () => resolve(),
-      fail: () => resolve()
+function focusLocationInput() {
+  locationInputFocused.value = true;
+}
+
+function ensureLocationPermission() {
+  return new Promise<boolean>((resolve) => {
+    uni.getSetting({
+      success: (setting) => {
+        if (setting.authSetting?.['scope.userLocation'] === false) {
+          showLocationSettingTip();
+          resolve(false);
+          return;
+        }
+        uni.authorize({
+          scope: 'scope.userLocation',
+          success: () => resolve(true),
+          fail: () => {
+            showLocationSettingTip();
+            resolve(false);
+          }
+        });
+      },
+      fail: () => resolve(true)
     });
   });
 }
@@ -356,8 +358,8 @@ function callChooseLocation() {
     if (wxApi?.chooseLocation) {
       wxApi.chooseLocation({
         success: resolve,
-        fail: () => {
-          uni.chooseLocation({ success: resolve, fail: reject });
+        fail: (error) => {
+          uni.chooseLocation({ success: resolve, fail: () => reject(error) });
         }
       });
       return;
@@ -370,6 +372,23 @@ function applyChosenLocation(result: UniApp.ChooseLocationSuccess) {
   const name = result.name || '';
   const address = result.address || '';
   form.location = name && address ? `${name} ${address}` : name || address || form.location;
+  if (form.location) {
+    uni.showToast({ title: '地点已填入', icon: 'success' });
+  }
+}
+
+function showLocationSettingTip() {
+  uni.showModal({
+    title: '需要定位权限',
+    content: '地图选点需要开启定位权限。你也可以先手动输入酒店或地址。',
+    confirmText: '去开启',
+    cancelText: '手动输入',
+    success: (result) => {
+      if (result.confirm) {
+        uni.openSetting();
+      }
+    }
+  });
 }
 
 function designFor(eventTypeCode: string) {
@@ -738,6 +757,25 @@ onMounted(() => {
   min-width: 0;
 }
 
+.datetime-field {
+  width: 100%;
+}
+
+.datetime-picker-cell {
+  min-width: 156rpx;
+  height: 58rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #efe1d5;
+  border-radius: 999rpx;
+  background: #fffaf5;
+  line-height: 58rpx;
+  box-sizing: border-box;
+}
+
+.datetime-picker-cell.time {
+  min-width: 132rpx;
+}
+
 .datetime-display {
   flex: 1;
   min-width: 0;
@@ -758,6 +796,20 @@ onMounted(() => {
   display: flex;
   flex: 0 0 auto;
   gap: 10rpx;
+}
+
+.selected-time-row,
+.map-tip-row {
+  padding: 0 28rpx 20rpx 144rpx;
+  border-bottom: 1rpx solid #efe6df;
+  color: #9a5a2c;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.map-tip-row {
+  margin-top: -10rpx;
+  color: #8a7768;
 }
 
 .picker-button,
