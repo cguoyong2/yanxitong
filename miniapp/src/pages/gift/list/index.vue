@@ -2,9 +2,9 @@
   <view class="page">
     <view class="summary-card">
       <view class="summary-art">
-        <text class="summary-knot">囍</text>
+        <text class="summary-knot">{{ activeTheme.mark }}</text>
       </view>
-      <text class="summary-label">累计收礼</text>
+      <text class="summary-label">累计{{ activeTheme.giftLabel }}</text>
       <text class="summary-amount">{{ formatMoney(summary?.totalAmount || 0) }}</text>
       <view class="summary-stats">
         <view>
@@ -17,7 +17,7 @@
         </view>
         <view>
           <text class="stat-value">{{ formatMoney(onlineTotal) }}</text>
-          <text class="stat-label">在线收礼</text>
+          <text class="stat-label">在线{{ activeTheme.giftLabel }}</text>
         </view>
       </view>
     </view>
@@ -39,17 +39,17 @@
         </view>
       </view>
       <view class="tool-actions">
-        <button class="mini-button primary" @tap="openOfflineGift">线下记礼</button>
+        <button class="mini-button primary" @tap="openOfflineGift">{{ activeTheme.offlineGiftLabel }}</button>
         <button class="mini-button" @tap="resetFilters">重置筛选</button>
       </view>
     </view>
 
     <view class="list-card">
       <view class="section-head">
-        <text class="section-title">收礼明细</text>
+        <text class="section-title">{{ activeTheme.giftRecordLabel }}</text>
         <text class="section-note">{{ gifts.length }} 条</text>
       </view>
-      <view v-if="loading" class="state-box">同步收礼记录中</view>
+      <view v-if="loading" class="state-box">同步{{ activeTheme.giftRecordLabel }}中</view>
       <view v-else-if="gifts.length === 0" class="state-box">{{ emptyText }}</view>
       <view v-for="gift in gifts" :key="gift.id" class="gift-row">
         <view class="avatar">{{ guestInitial(gift.guestName) }}</view>
@@ -71,6 +71,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { request } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 interface GiftRecord {
   id: number;
@@ -93,25 +94,27 @@ const banquetId = ref('');
 const keyword = ref('');
 const sourceIndex = ref(0);
 const loading = ref(false);
-const sources = [
+const eventType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(eventType.value));
+const sources = computed(() => [
   { label: '全部', value: '' },
-  { label: '线上随礼', value: 'ONLINE_GIFT' },
+  { label: activeTheme.value.onlineGiftLabel, value: 'ONLINE_GIFT' },
   { label: '现场扫码', value: 'ONSITE_QR' },
-  { label: '现金记礼', value: 'CASH' }
-];
+  { label: activeTheme.value.offlineGiftLabel, value: 'CASH' }
+]);
 const onlineTotal = computed(() => sourceAmount('ONLINE_GIFT') + sourceAmount('ONSITE_QR'));
 const emptyText = computed(() => {
-  const source = sources[sourceIndex.value].label;
-  if (keyword.value && sources[sourceIndex.value].value) {
+  const source = sources.value[sourceIndex.value].label;
+  if (keyword.value && sources.value[sourceIndex.value].value) {
     return `没有找到“${keyword.value}”的${source}记录`;
   }
   if (keyword.value) {
-    return `没有找到“${keyword.value}”的收礼记录`;
+    return `没有找到“${keyword.value}”的${activeTheme.value.giftRecordLabel}`;
   }
-  if (sources[sourceIndex.value].value) {
+  if (sources.value[sourceIndex.value].value) {
     return `暂无${source}记录`;
   }
-  return '暂无收礼记录';
+  return `暂无${activeTheme.value.giftRecordLabel}`;
 });
 
 function selectSource(index: number) {
@@ -136,7 +139,7 @@ function guestInitial(name?: string) {
 }
 
 function sourceLabel(value: string) {
-  const item = sources.find((source) => source.value === value);
+  const item = sources.value.find((source) => source.value === value);
   return item?.label || value;
 }
 
@@ -167,7 +170,7 @@ async function load() {
   try {
     const params = [
       `banquetId=${banquetId.value}`,
-      sources[sourceIndex.value].value ? `source=${sources[sourceIndex.value].value}` : '',
+      sources.value[sourceIndex.value].value ? `source=${sources.value[sourceIndex.value].value}` : '',
       keyword.value ? `keyword=${encodeURIComponent(keyword.value)}` : ''
     ].filter(Boolean).join('&');
     const [list, stat] = await Promise.all([
@@ -187,7 +190,9 @@ onMounted(async () => {
   banquetId.value = await resolveBanquetId(current.options?.banquetId);
   if (!banquetId.value) {
     requireBanquetToast();
+    return;
   }
+  eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
   await load();
 });
 </script>

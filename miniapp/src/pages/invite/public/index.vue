@@ -104,9 +104,9 @@
 
       <view class="footer-safe"></view>
       <view class="sticky-actions">
-        <button class="primary-action" @tap="openRsvp">{{ eventTone === 'tone-memorial' ? '回执出席' : '回执出席' }}</button>
-        <button class="secondary-action" v-if="showGiftEntry" @tap="openGift('ONLINE_GIFT')">在线随礼</button>
-        <button class="secondary-action disabled" v-else @tap="showGiftDisabled">在线随礼</button>
+        <button class="primary-action" @tap="openRsvp">回执出席</button>
+        <button class="secondary-action" v-if="showGiftEntry" @tap="openGift('ONLINE_GIFT')">{{ activeTheme.onlineGiftLabel }}</button>
+        <button class="secondary-action disabled" v-else @tap="showGiftDisabled">{{ activeTheme.onlineGiftLabel }}</button>
       </view>
     </view>
   </view>
@@ -116,6 +116,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { onShareAppMessage } from '@dcloudio/uni-app';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
+import { eventThemeFor, eventToneClass } from '../../../utils/event-theme';
 
 interface PublicInvitation {
   invitation: {
@@ -193,23 +194,12 @@ const basicFields = computed(() => {
   }
 });
 const eventType = computed(() => data.value?.banquet.eventTypeCode || 'WEDDING');
-const eventTone = computed(() => {
-  if (eventType.value === 'MEMORIAL') return 'tone-memorial';
-  if (eventType.value === 'SCHOOL') return 'tone-school';
-  if (eventType.value === 'HOUSEWARMING') return 'tone-house';
-  if (eventType.value === 'BABY') return 'tone-baby';
-  if (eventType.value === 'BIRTHDAY') return 'tone-birthday';
-  return 'tone-wedding';
-});
-const greeting = computed(() => basicFields.value.greeting || data.value?.templatePresentation?.defaultGreeting || defaultGreeting(eventType.value));
-const invitationCopy = computed(() => {
-  if (eventType.value === 'MEMORIAL') {
-    return '我们怀着沉痛而感恩的心情，诚邀您参加追思会，共同追忆往昔，寄托哀思。';
-  }
-  return '诚邀您拨冗赴宴，共同见证这份重要时刻。您的到来，是我们最珍贵的祝福。';
-});
-const pageHeadline = computed(() => data.value?.templatePresentation?.headline || eventTitle(eventType.value));
-const coverMark = computed(() => data.value?.templatePresentation?.fallbackCoverLabel || fallbackMark(eventType.value));
+const activeTheme = computed(() => eventThemeFor(eventType.value));
+const eventTone = computed(() => eventToneClass(eventType.value));
+const greeting = computed(() => basicFields.value.greeting || data.value?.templatePresentation?.defaultGreeting || activeTheme.value.defaultBlessing);
+const invitationCopy = computed(() => activeTheme.value.invitationCopy);
+const pageHeadline = computed(() => data.value?.templatePresentation?.headline || activeTheme.value.invitationTitle);
+const coverMark = computed(() => data.value?.templatePresentation?.fallbackCoverLabel || activeTheme.value.mark);
 const scheduleItems = computed(() => (basicFields.value.scheduleText || data.value?.templatePresentation?.defaultScheduleText || '')
   .split(/\r?\n/)
   .map((item) => item.trim())
@@ -218,7 +208,7 @@ const showGiftEntry = computed(() => basicFields.value.showGiftEntry !== '0' && 
 const disabledEntryMessages = computed(() => {
   const messages: string[] = [];
   if (!showGiftEntry.value) {
-    messages.push('在线随礼暂未开放，可先提交回执。');
+    messages.push(`${activeTheme.value.onlineGiftLabel}暂未开放，可先提交回执。`);
   }
   if (basicFields.value.showDeviceEntry === '0') {
     messages.push('设备租赁入口暂未开放');
@@ -257,39 +247,6 @@ function defaultCover(type: string) {
   return '/static/invitation/tpl_red.png';
 }
 
-function eventTitle(type: string) {
-  const labels: Record<string, string> = {
-    WEDDING: '婚礼请柬',
-    BIRTHDAY: '寿宴请柬',
-    BABY: '满月请柬',
-    HOUSEWARMING: '乔迁请柬',
-    SCHOOL: '升学请柬',
-    MEMORIAL: '追思会请柬'
-  };
-  return labels[type] || '宴席请柬';
-}
-
-function fallbackMark(type: string) {
-  const labels: Record<string, string> = {
-    WEDDING: '囍',
-    BIRTHDAY: '寿',
-    BABY: '满',
-    HOUSEWARMING: '福',
-    SCHOOL: '学',
-    MEMORIAL: '念'
-  };
-  return labels[type] || '宴';
-}
-
-function defaultGreeting(type: string) {
-  if (type === 'MEMORIAL') return '深切缅怀，永远怀念';
-  if (type === 'SCHOOL') return '金榜题名，前程似锦';
-  if (type === 'HOUSEWARMING') return '乔迁之喜，恭候光临';
-  if (type === 'BABY') return '喜迎新生，满月同庆';
-  if (type === 'BIRTHDAY') return '福寿安康，阖家欢乐';
-  return '百年好合，永结同心';
-}
-
 function formatDate(value?: string) {
   if (!value) return '时间待定';
   const normalized = value.replace('T', ' ');
@@ -321,7 +278,7 @@ function openGift(entrySource: string) {
     return;
   }
   const url = entrySource === 'ONSITE_QR' ? data.value.actionUrls?.onsiteGift : data.value.actionUrls?.onlineGift;
-  safeNavigate(url || `/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=${entrySource}`, '随礼页面打开失败');
+  safeNavigate(url || `/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=${entrySource}`, `${activeTheme.value.giftLabel}页面打开失败`);
 }
 
 function safeNavigate(url: string, failTitle: string) {
@@ -337,7 +294,7 @@ function safeNavigate(url: string, failTitle: string) {
 }
 
 function showGiftDisabled() {
-  uni.showToast({ title: '在线随礼需完成微信支付配置后开放', icon: 'none' });
+  uni.showToast({ title: `${activeTheme.value.onlineGiftLabel}需完成微信支付配置后开放`, icon: 'none' });
 }
 
 function showMapTip() {

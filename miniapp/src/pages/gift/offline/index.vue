@@ -4,17 +4,17 @@
       <view class="coin coin-a">¥</view>
       <view class="coin coin-b">礼</view>
       <text class="hero-label">宴席通</text>
-      <text class="hero-title">线下记礼</text>
-      <text class="hero-desc">现金礼金、转账备注和现场补录统一登记</text>
+      <text class="hero-title">{{ activeTheme.offlineGiftLabel }}</text>
+      <text class="hero-desc">现金、转账备注和现场补录统一登记</text>
       <view class="hero-tags">
-        <text>现金收礼</text>
+        <text>现金{{ activeTheme.giftLabel }}</text>
         <text>自动入账</text>
         <text>同步人情</text>
       </view>
     </view>
 
     <view class="amount-card">
-      <text class="amount-label">礼金金额</text>
+      <text class="amount-label">{{ activeTheme.giftAmountLabel }}</text>
       <view class="amount-input-row">
         <text class="currency">¥</text>
         <input v-model.number="form.amount" class="amount-input" type="digit" placeholder="0" placeholder-class="amount-placeholder" />
@@ -32,38 +32,41 @@
       </view>
       <view class="form-row">
         <text class="row-icon">备</text>
-        <text class="row-label">备注祝福</text>
-        <input v-model="form.blessing" class="row-input" placeholder="如：新婚快乐、现金礼金" placeholder-class="placeholder" />
+        <text class="row-label">{{ activeTheme.blessingLabel }}</text>
+        <input v-model="form.blessing" class="row-input" :placeholder="activeTheme.blessingPlaceholder" placeholder-class="placeholder" />
       </view>
       <view class="tip-box">
-        <text>保存后会写入收礼记录，并按规则沉淀到人情账本。</text>
+        <text>保存后会写入{{ activeTheme.giftRecordLabel }}，并按规则沉淀到人情账本。</text>
       </view>
     </view>
 
     <view v-if="lastSavedText" class="saved-card">
       <text class="saved-title">最近保存成功</text>
       <text class="saved-desc">{{ lastSavedText }}</text>
-      <button class="saved-link" @tap="openGiftList">查看收礼记录</button>
+      <button class="saved-link" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
     </view>
 
     <view class="footer-safe"></view>
     <view class="sticky-submit">
       <button class="primary-button" :loading="submitting" @tap="submit">保存记礼</button>
-      <button class="ghost-button" @tap="openGiftList">查看收礼记录</button>
+      <button class="ghost-button" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { request } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 const banquetId = ref('');
 const submitting = ref(false);
 const lastSavedText = ref('');
+const eventType = ref(readActiveEventType());
 const quickAmounts = [200, 500, 800, 1000, 1200, 2000];
 const form = reactive({ guestName: '', amount: undefined as number | undefined, blessing: '' });
+const activeTheme = computed(() => eventThemeFor(eventType.value));
 
 async function submit() {
   if (!validate()) {
@@ -79,7 +82,7 @@ async function submit() {
     form.blessing = '';
     uni.showModal({
       title: '记礼已保存',
-      content: '已写入收礼记录，并同步沉淀到人情账本。',
+      content: `已写入${activeTheme.value.giftRecordLabel}，并同步沉淀到人情账本。`,
       cancelText: '继续登记',
       confirmText: '查看记录',
       success: (result) => {
@@ -105,7 +108,7 @@ function validate() {
     return false;
   }
   if (!form.amount || Number(form.amount) <= 0) {
-    uni.showToast({ title: '请填写礼金金额', icon: 'none' });
+    uni.showToast({ title: `请填写${activeTheme.value.giftAmountLabel}`, icon: 'none' });
     return false;
   }
   return true;
@@ -116,7 +119,7 @@ function openGiftList() {
     requireBanquetToast();
     return;
   }
-  safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}`, '收礼记录打开失败');
+  safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}`, `${activeTheme.value.giftRecordLabel}打开失败`);
 }
 
 function safeNavigate(url: string, failTitle: string) {
@@ -137,7 +140,9 @@ onMounted(async () => {
   banquetId.value = await resolveBanquetId(current.options?.banquetId);
   if (!banquetId.value) {
     requireBanquetToast();
+    return;
   }
+  eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
 });
 </script>
 

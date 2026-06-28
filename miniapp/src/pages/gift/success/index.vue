@@ -6,13 +6,13 @@
       <text class="brand">宴席通</text>
       <text class="success-title">{{ features.mockPaymentEnabled ? '模拟支付完成' : '支付成功' }}</text>
       <text class="guest-name">{{ guestName || '宾客' }}</text>
-      <text class="gift-label">随礼</text>
+      <text class="gift-label">{{ activeTheme.giftLabel }}</text>
       <view class="amount-row">
         <text class="currency">¥</text>
         <text class="amount">{{ displayAmount }}</text>
       </view>
       <text class="time-text">{{ currentTime }}</text>
-      <text class="hint-text">{{ features.mockPaymentEnabled ? '点击下方按钮后写入收礼记录，并触发确认屏/云喇叭模拟日志。' : '真实支付完成后，系统会自动入账并推送确认屏。' }}</text>
+      <text class="hint-text">{{ successHint }}</text>
     </view>
 
     <view class="order-card">
@@ -30,7 +30,7 @@
       <button v-if="features.mockPaymentEnabled" class="primary-button" :loading="submitting" @tap="confirmSuccess">
         {{ confirmed ? '已模拟入账' : '模拟支付成功入账' }}
       </button>
-      <button v-if="banquetId" class="ghost-button" @tap="openGiftList">查看收礼记录</button>
+      <button v-if="banquetId" class="ghost-button" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
       <button class="text-button" @tap="goBack">返回</button>
     </view>
   </view>
@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 const orderNo = ref('');
 const banquetId = ref('');
@@ -48,7 +49,12 @@ const submitting = ref(false);
 const confirmed = ref(false);
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const currentTime = ref('');
+const eventType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(eventType.value));
 const displayAmount = computed(() => Number(amount.value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }));
+const successHint = computed(() => features.value.mockPaymentEnabled
+  ? `点击下方按钮后写入${activeTheme.value.giftRecordLabel}，并触发确认屏/云喇叭模拟日志。`
+  : `真实支付完成后，系统会自动写入${activeTheme.value.giftRecordLabel}并推送确认屏。`);
 
 async function confirmSuccess() {
   if (!orderNo.value) {
@@ -91,6 +97,9 @@ onMounted(async () => {
   guestName.value = current.options?.guestName ? decodeURIComponent(current.options.guestName) : '';
   amount.value = Number(current.options?.amount || 0);
   currentTime.value = formatNow();
+  if (banquetId.value) {
+    eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
+  }
   features.value = await loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false }));
 });
 </script>

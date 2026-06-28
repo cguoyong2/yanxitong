@@ -5,7 +5,7 @@
       <view class="hero-flower flower-a"></view>
       <view class="hero-flower flower-b"></view>
       <text class="hero-title">宾客回执</text>
-      <text class="hero-subtitle">感谢您的祝福与赴约</text>
+      <text class="hero-subtitle">{{ activeTheme.rsvpSubtitle }}</text>
       <view class="hero-divider"></view>
     </view>
 
@@ -103,6 +103,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 const statuses = [
   { label: '参加', shortLabel: '出席', value: 'ATTENDING' },
@@ -116,6 +117,8 @@ const submitting = ref(false);
 const submitted = ref(false);
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const submitResult = ref<{ id: number; created?: boolean; attendanceStatus: string; guestCount: number }>();
+const eventType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(eventType.value));
 const form = reactive({
   guestName: '',
   phone: '',
@@ -142,9 +145,9 @@ const successText = computed(() => {
   if (submitResult.value.attendanceStatus === 'PENDING') {
     return '已记录为待定，之后可再次提交更新。';
   }
-  return `已记录 ${submitResult.value.guestCount || 1} 位来宾出席。`;
+  return activeTheme.value.rsvpSuccessText || `已记录 ${submitResult.value.guestCount || 1} 位来宾出席。`;
 });
-const giftActionText = computed(() => features.value.mockPaymentEnabled ? '去随礼' : '去线下记礼');
+const giftActionText = computed(() => features.value.mockPaymentEnabled ? activeTheme.value.giftActionLabel : `去${activeTheme.value.offlineGiftLabel}`);
 
 function selectStatus(value: string) {
   form.attendanceStatus = value;
@@ -244,6 +247,9 @@ onMounted(async () => {
   banquetId.value = await resolveBanquetId(current.options?.banquetId);
   if (!banquetId.value) {
     requireBanquetToast();
+  }
+  if (banquetId.value) {
+    eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
   }
   invitationId.value = current.options?.invitationId || '';
   await Promise.all([

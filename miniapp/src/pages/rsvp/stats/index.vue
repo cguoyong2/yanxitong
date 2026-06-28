@@ -2,11 +2,11 @@
   <view class="page">
     <view class="hero-card">
       <view class="hero-art">
-        <text class="hero-knot">囍</text>
+        <text class="hero-knot">{{ activeTheme.mark }}</text>
       </view>
       <text class="hero-label">宴席通</text>
       <text class="hero-title">回执统计</text>
-      <text class="hero-desc">宾客出席、用餐、住宿数据实时汇总</text>
+      <text class="hero-desc">{{ activeTheme.rsvpSubtitle }}，出席、用餐、住宿数据实时汇总</text>
       <view class="hero-main">
         <view>
           <text class="hero-number">{{ stats?.totalRecords || 0 }}</text>
@@ -60,7 +60,7 @@
 
     <view class="section-card">
       <view class="section-head">
-        <text class="section-title">办宴准备</text>
+        <text class="section-title">{{ activeTheme.prepTitle }}</text>
         <text class="section-note">按当前回执估算</text>
       </view>
       <view class="prep-list">
@@ -94,6 +94,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { request } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 interface RsvpStats {
   shareSlug?: string;
@@ -111,6 +112,8 @@ const stats = ref<RsvpStats>();
 const banquetId = ref('');
 const shareSlug = ref('');
 const loading = ref(false);
+const eventType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(eventType.value));
 const attendingRate = computed(() => {
   const total = Number(stats.value?.totalRecords || 0);
   if (!total) return 0;
@@ -186,7 +189,8 @@ onMounted(async () => {
     requireBanquetToast();
   }
   if (banquetId.value) {
-    const detail = await request<{ invitation?: { shareSlug?: string } }>(`/banquets/${banquetId.value}`).catch(() => undefined);
+    const detail = await request<{ banquet?: { eventTypeCode?: string }; invitation?: { shareSlug?: string } }>(`/banquets/${banquetId.value}`).catch(() => undefined);
+    eventType.value = writeActiveEventType(detail?.banquet?.eventTypeCode || await fetchBanquetEventType(banquetId.value, request, eventType.value));
     shareSlug.value = detail?.invitation?.shareSlug || '';
   }
   await load();

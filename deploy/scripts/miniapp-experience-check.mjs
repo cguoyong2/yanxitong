@@ -78,23 +78,27 @@ const requiredTexts = [
   ['miniapp/src/pages/banquet/create/index.vue', '慎终追远，思念长存', 'create page memorial copy'],
   ['miniapp/src/pages/banquet/create/index.vue', 'currentDesign.mark', 'create page hero mark follows event type'],
   ['miniapp/src/pages/banquet/create/index.vue', '当前使用模板封面，自定义上传稍后开放', 'cover upload boundary'],
-  ['miniapp/src/pages/banquet/detail/index.vue', '线上随礼暂未开放', 'detail non-payment boundary'],
+  ['miniapp/src/pages/banquet/detail/index.vue', 'activeTheme.value.onlineGiftLabel', 'detail non-payment boundary follows event type'],
   ['miniapp/src/pages/banquet/detail/index.vue', '请柬公开页打开失败', 'detail invitation navigation feedback'],
   ['miniapp/src/pages/banquet/detail/index.vue', 'detailDesign.mark', 'detail hero mark follows banquet event type'],
   ['miniapp/src/pages/invitation/index/index.vue', '暂无符合条件的模板', 'template empty state'],
   ['miniapp/src/pages/invitation/index/index.vue', '定制请柬服务将在后续版本开放', 'custom invitation boundary'],
   ['miniapp/src/pages/invite/edit-basic/index.vue', '复制路径', 'share path copy'],
   ['miniapp/src/pages/invite/edit-basic/index.vue', '保存请柬失败', 'invitation edit save feedback'],
-  ['miniapp/src/pages/invite/public/index.vue', '在线随礼需完成微信支付配置后开放', 'public invitation payment boundary'],
+  ['miniapp/src/pages/invite/public/index.vue', 'activeTheme.value.onlineGiftLabel', 'public invitation payment boundary follows event type'],
   ['miniapp/src/pages/invite/public/index.vue', '回执页面打开失败', 'public invitation RSVP navigation feedback'],
   ['miniapp/src/pages/rsvp/submit/index.vue', '返回请柬', 'RSVP return action'],
-  ['miniapp/src/pages/rsvp/submit/index.vue', '去线下记礼', 'non-payment RSVP success action'],
+  ['miniapp/src/pages/rsvp/submit/index.vue', 'activeTheme.value.giftActionLabel', 'RSVP success action follows event type'],
   ['miniapp/src/pages/rsvp/stats/index.vue', 'shareSlug', 'RSVP stats can return to public invitation'],
   ['miniapp/src/pages/rsvp/stats/index.vue', 'safeNavigate(`/pages/banquet/detail/index?id=${banquetId.value}`', 'RSVP stats returns to banquet detail'],
   ['miniapp/src/pages/gift/offline/index.vue', '继续登记', 'offline gift success modal'],
   ['miniapp/src/pages/gift/offline/index.vue', '查看记录', 'offline gift record navigation'],
   ['miniapp/src/pages/gift/offline/index.vue', '保存记礼失败', 'offline gift save feedback'],
   ['miniapp/src/pages/gift/offline/index.vue', '最近保存成功', 'offline gift visible success state'],
+  ['miniapp/src/pages/gift/offline/index.vue', 'activeTheme.giftAmountLabel', 'offline gift amount label follows event type'],
+  ['miniapp/src/pages/gift/list/index.vue', 'activeTheme.giftRecordLabel', 'gift list title follows event type'],
+  ['miniapp/src/pages/gift/pay/index.vue', 'activeTheme.onlineGiftLabel', 'payment page labels follow event type'],
+  ['miniapp/src/pages/gift/success/index.vue', 'activeTheme.giftRecordLabel', 'payment success copy follows event type'],
   ['miniapp/src/pages/favor/family/index.vue', '家庭协作功能将在后续版本开放', 'family favor boundary'],
   ['miniapp/src/pages/favor/index/index.vue', "setManualDirection('RECEIVED')", 'favor received card action'],
   ['miniapp/src/pages/favor/index/index.vue', "setManualDirection('GIVEN')", 'favor given card action'],
@@ -104,6 +108,7 @@ const requiredTexts = [
   ['miniapp/src/pages/favor/index/index.vue', 'openCompareDetail', 'favor compare can open detail'],
   ['miniapp/src/pages/favor/index/index.vue', '{{ activeTheme.mark }}', 'favor tab hero follows selected event type'],
   ['miniapp/src/pages/favor/index/index.vue', '{{ activeTheme.favorText }}', 'favor tab copy follows selected event type'],
+  ['miniapp/src/pages/favor/index/index.vue', 'manualNotePlaceholder', 'favor note placeholder follows selected event type'],
   ['miniapp/src/pages/invitation/index/index.vue', '{{ activeTheme.mark }}', 'invitation tab hero follows selected event type'],
   ['miniapp/src/pages/invitation/index/index.vue', '{{ activeTheme.invitationText }}', 'invitation tab copy follows selected event type'],
   ['miniapp/src/pages/invitation/index/index.vue', 'writeActiveEventType(code)', 'invitation type selector persists event type'],
@@ -134,6 +139,19 @@ for (const file of [
 for (const file of walk(path.join(miniappSrc, 'pages'))) {
   const rel = path.relative(repoRoot, file);
   forbidPattern(rel, /功能完善中|后续接入|P1/, 'avoid vague engineering-stage copy in user-facing miniapp pages');
+}
+
+for (const file of [
+  'miniapp/src/pages/banquet/detail/index.vue',
+  'miniapp/src/pages/gift/offline/index.vue',
+  'miniapp/src/pages/gift/pay/index.vue',
+  'miniapp/src/pages/gift/list/index.vue',
+  'miniapp/src/pages/gift/success/index.vue',
+  'miniapp/src/pages/rsvp/submit/index.vue',
+  'miniapp/src/pages/rsvp/stats/index.vue',
+  'miniapp/src/pages/invite/public/index.vue'
+]) {
+  requireText(file, 'event-theme', 'secondary flow imports shared event theme semantics');
 }
 
 if (failures.length) {

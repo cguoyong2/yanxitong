@@ -6,7 +6,7 @@
       </view>
       <text class="hero-label">基础请柬</text>
       <text class="hero-title">编辑请柬</text>
-      <text class="hero-desc">填写公开页展示信息，保存后分享链接会同步更新。</text>
+      <text class="hero-desc">填写{{ activeTheme.invitationTitle }}展示信息，保存后分享链接会同步更新。</text>
     </view>
 
     <view class="form-card">
@@ -51,7 +51,7 @@
       <text class="section-title">入口设置</text>
       <view class="switch-row">
         <view>
-          <text class="switch-title">显示随礼入口</text>
+          <text class="switch-title">显示{{ activeTheme.onlineGiftLabel }}入口</text>
           <text class="switch-desc">非支付体验版仍会显示暂未开放提示</text>
         </view>
         <switch :checked="form.showGiftEntry" color="#d71920" @change="form.showGiftEntry = Boolean($event.detail.value)" />
@@ -87,13 +87,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { request } from '../../../api/client';
+import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
 
 const invitationId = ref('');
 const submitting = ref(false);
 const shareUrl = ref('');
 const lastSavedAt = ref('');
+const activeTheme = computed(() => eventThemeFor(readActiveEventType()));
 const form = reactive({
   title: '',
   hostName: '',

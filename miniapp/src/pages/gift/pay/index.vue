@@ -22,13 +22,13 @@
 
     <view v-if="!paymentEntryEnabled" class="notice-card">
       <text class="notice-title">当前为非支付体验版</text>
-      <text class="notice-text">线上随礼和现场扫码支付暂未开放，请先使用线下记礼完成收礼流程。</text>
-      <button class="notice-button" @tap="openOfflineGift">去线下记礼</button>
+      <text class="notice-text">{{ activeTheme.onlineGiftLabel }}和现场扫码支付暂未开放，请先使用{{ activeTheme.offlineGiftLabel }}完成记录流程。</text>
+      <button class="notice-button" @tap="openOfflineGift">去{{ activeTheme.offlineGiftLabel }}</button>
     </view>
 
     <template v-else>
       <view class="amount-card">
-        <text class="amount-label">随礼金额</text>
+        <text class="amount-label">{{ activeTheme.giftAmountLabel }}</text>
         <view class="amount-input-row">
           <text class="currency">¥</text>
           <input v-model.number="form.amount" class="amount-input" type="digit" placeholder="0" placeholder-class="amount-placeholder" />
@@ -53,11 +53,11 @@
           <input v-model="form.guestName" class="row-input" placeholder="请输入姓名" placeholder-class="placeholder" />
         </view>
         <view class="blessing-panel">
-          <text class="panel-title">祝福语</text>
+          <text class="panel-title">{{ activeTheme.blessingLabel }}</text>
           <view class="blessing-list">
             <view v-for="item in blessingTemplates" :key="item" class="blessing-chip" @tap="form.blessing = item">{{ item }}</view>
           </view>
-          <textarea v-model="form.blessing" class="textarea" maxlength="120" placeholder="写一句祝福（选填）" placeholder-class="placeholder" />
+          <textarea v-model="form.blessing" class="textarea" maxlength="120" :placeholder="activeTheme.blessingPlaceholder" placeholder-class="placeholder" />
           <text class="counter">{{ form.blessing.length }}/120</text>
         </view>
       </view>
@@ -70,7 +70,7 @@
         <view class="flow-line"></view>
         <view class="flow-item">
           <text class="flow-dot">2</text>
-          <text>支付回调写入礼金记录</text>
+          <text>支付回调写入{{ activeTheme.giftRecordLabel }}</text>
         </view>
         <view class="flow-line"></view>
         <view class="flow-item">
@@ -91,18 +91,26 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
-const sources = [
-  { label: '线上随礼', value: 'ONLINE_GIFT' },
+const eventType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(eventType.value));
+const sources = computed(() => [
+  { label: activeTheme.value.onlineGiftLabel, value: 'ONLINE_GIFT' },
   { label: '现场扫码', value: 'ONSITE_QR' }
-];
+]);
 const selectedIndex = ref(0);
 const banquetId = ref('');
 const submitting = ref(false);
 const clientRequestId = ref('');
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const quickAmounts = [66, 88, 188, 288, 520, 666, 888, 1314];
-const blessingTemplates = ['祝福满满，喜乐长久', '百年好合，万事顺意', '福寿安康，阖家欢乐', '学业有成，前程似锦'];
+const blessingTemplates = computed(() => [
+  activeTheme.value.defaultBlessing,
+  activeTheme.value.blessingPlaceholder.replace(/^如：/, '').split('、')[0],
+  activeTheme.value.rsvpSuccessText,
+  '顺遂圆满，万事如意'
+].filter(Boolean));
 const form = reactive({
   guestName: '',
   amount: undefined as number | undefined,
@@ -111,17 +119,17 @@ const form = reactive({
 });
 const isOnsiteQr = computed(() => form.entrySource === 'ONSITE_QR');
 const paymentEntryEnabled = computed(() => features.value.mockPaymentEnabled);
-const pageTitle = computed(() => isOnsiteQr.value ? '现场扫码随礼' : '线上随礼');
+const pageTitle = computed(() => isOnsiteQr.value ? `现场扫码${activeTheme.value.giftLabel}` : activeTheme.value.onlineGiftLabel);
 const pageHint = computed(() => isOnsiteQr.value
-  ? '现场扫码与线上随礼共用同一套在线支付能力。'
-  : '填写姓名、金额和祝福语，生成统一在线随礼订单。');
-const submitText = computed(() => isOnsiteQr.value ? '创建现场扫码订单' : '创建线上随礼订单');
+  ? `现场扫码与${activeTheme.value.onlineGiftLabel}共用同一套在线支付能力。`
+  : `填写姓名、金额和${activeTheme.value.blessingLabel}，生成统一${activeTheme.value.onlineGiftLabel}订单。`);
+const submitText = computed(() => isOnsiteQr.value ? '创建现场扫码订单' : `创建${activeTheme.value.onlineGiftLabel}订单`);
 
 function selectSource(index: number) {
   selectedIndex.value = index;
-  form.entrySource = sources[index].value;
+  form.entrySource = sources.value[index].value;
   if (!form.blessing) {
-    form.blessing = isOnsiteQr.value ? '现场祝福，万事顺遂' : '祝福满满，喜乐长久';
+    form.blessing = activeTheme.value.defaultBlessing;
   }
 }
 
@@ -191,8 +199,11 @@ onMounted(async () => {
   form.guestName = current.options?.guestName ? decodeURIComponent(current.options.guestName) : '';
   form.amount = current.options?.amount ? Number(current.options.amount) : undefined;
   selectedIndex.value = form.entrySource === 'ONSITE_QR' ? 1 : 0;
+  if (banquetId.value) {
+    eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
+  }
   if (!form.blessing) {
-    form.blessing = isOnsiteQr.value ? '现场祝福，万事顺遂' : '祝福满满，喜乐长久';
+    form.blessing = activeTheme.value.defaultBlessing;
   }
   features.value = await loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false }));
 });

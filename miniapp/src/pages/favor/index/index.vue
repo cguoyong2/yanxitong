@@ -140,7 +140,7 @@
             <text class="avatar">{{ contactInitial(item.contactName) }}</text>
             <view class="recent-main">
               <text class="recent-name">{{ item.contactName }}</text>
-              <text class="recent-meta">婚宴 · 今天 · 亲友</text>
+              <text class="recent-meta">{{ activeTheme.name }} · 今天 · 亲友</text>
             </view>
             <text class="direction" :class="Number(item.balance) >= 0 ? 'in' : 'out'">{{ Number(item.balance) >= 0 ? '收到' : '送出' }}</text>
             <text class="recent-amount" :class="Number(item.balance) >= 0 ? 'in' : 'out'">{{ formatMoney(Math.abs(Number(item.balance || 0))) }}</text>
@@ -181,7 +181,7 @@
           <picker :range="directions" range-key="label" @change="onDirectionChange">
             <view class="input picker">方向：{{ directions[directionIndex].label }}</view>
           </picker>
-          <input v-model="manual.note" class="input" placeholder="备注，例如：朋友婚礼回礼" />
+          <input v-model="manual.note" class="input" :placeholder="manualNotePlaceholder" />
           <button class="submit-btn" @tap="addManual()">添加记录</button>
         </view>
       </view>
@@ -225,6 +225,7 @@ const showAllContacts = ref(false);
 const activeType = ref(readActiveEventType());
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
 const activeTheme = computed(() => eventThemeFor(activeType.value));
+const manualNotePlaceholder = computed(() => activeTheme.value.code === 'MEMORIAL' ? '备注，例如：亲友追思心意' : `备注，例如：朋友${activeTheme.value.name}往来`);
 const banners = [
   { image: '/static/favor/favor_banner.png', action: 'manual-received' },
   { image: '/static/home/package_gold.png', action: 'manual-given' },

@@ -42,7 +42,7 @@
         <view class="summary-line"></view>
         <view class="summary-item">
           <text class="summary-value red">{{ formatMoney(giftSummary?.totalAmount || 0) }}</text>
-          <text class="summary-label">已收礼</text>
+          <text class="summary-label">已{{ activeTheme.giftLabel }}</text>
         </view>
         <view class="summary-line"></view>
         <view class="summary-item">
@@ -111,7 +111,7 @@
       </view>
 
       <view class="copy-card">
-        <text class="section-title">收礼文案</text>
+        <text class="section-title">{{ activeTheme.detailGiftCopyTitle }}</text>
         <text class="copy-text">{{ detail.giftSuccessCopywriting.content }}</text>
       </view>
     </view>
@@ -129,6 +129,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
+import { eventThemeFor, eventToneClass, type EventTheme } from '../../../utils/event-theme';
 
 interface BanquetDetail {
   banquet: {
@@ -173,27 +174,22 @@ const giftSummary = ref<GiftSummary>();
 const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
-const actionItems = [
+const activeTheme = computed<EventTheme>(() => eventThemeFor(detail.value?.banquet.eventTypeCode || 'WEDDING'));
+const actionItems = computed(() => [
   { title: '发请柬', desc: '公开页与分享', icon: '✉', tone: 'red', action: 'invite' },
   { title: '回执统计', desc: '宾客与人数', icon: '◔', tone: 'orange', action: 'rsvp' },
-  { title: '线下记礼', desc: '现场收礼登记', icon: '▣', tone: 'orange', action: 'offlineGift' },
-  { title: '收礼记录', desc: '礼金明细', icon: '▤', tone: 'red', action: 'giftList' },
+  { title: activeTheme.value.offlineGiftLabel, desc: `${activeTheme.value.giftLabel}现场登记`, icon: '▣', tone: 'orange', action: 'offlineGift' },
+  { title: activeTheme.value.giftRecordLabel, desc: `${activeTheme.value.giftLabel}明细`, icon: '▤', tone: 'red', action: 'giftList' },
   { title: '人情账本', desc: '自动沉淀往来', icon: '账', tone: 'green', action: 'favor' },
-  { title: '线上随礼', desc: paymentTip(), icon: '¥', tone: 'purple', action: 'onlineGift' }
-];
-const typeDesigns: Record<string, { mark: string; tone: string }> = {
-  WEDDING: { mark: '囍', tone: 'tone-wedding' },
-  BIRTHDAY: { mark: '寿', tone: 'tone-birthday' },
-  BABY: { mark: '满', tone: 'tone-baby' },
-  HOUSEWARMING: { mark: '福', tone: 'tone-house' },
-  SCHOOL: { mark: '学', tone: 'tone-school' },
-  MEMORIAL: { mark: '念', tone: 'tone-memorial' },
-  OTHER: { mark: '宴', tone: 'tone-other' }
-};
+  { title: activeTheme.value.onlineGiftLabel, desc: paymentTip(activeTheme.value), icon: '¥', tone: 'purple', action: 'onlineGift' }
+]);
 const hasDeviceRight = computed(() => Boolean(entitlements.rightValues.DEVICE_RENTAL));
 const hasExportRight = computed(() => Boolean(entitlements.rightValues.EXCEL_EXPORT));
 const paymentEntryEnabled = computed(() => features.value.mockPaymentEnabled);
-const detailDesign = computed(() => typeDesigns[detail.value?.banquet.eventTypeCode || 'WEDDING'] || typeDesigns.OTHER);
+const detailDesign = computed(() => ({
+  mark: activeTheme.value.mark,
+  tone: eventToneClass(activeTheme.value.code)
+}));
 const statusLabel = computed(() => {
   const status = detail.value?.banquet.status;
   if (status === 'PUBLISHED') return '已发布';
@@ -223,8 +219,8 @@ async function load(id: string) {
   pageState.value = 'ready';
 }
 
-function paymentTip() {
-  return '支付入口';
+function paymentTip(theme = activeTheme.value) {
+  return `${theme.giftLabel}入口`;
 }
 
 function eventTypeLabel(code: string) {
@@ -271,7 +267,7 @@ function handleAction(action: string) {
   }
   if (action === 'onlineGift') {
     if (!paymentEntryEnabled.value) {
-      uni.showToast({ title: '线上随礼暂未开放', icon: 'none' });
+      uni.showToast({ title: `${activeTheme.value.onlineGiftLabel}暂未开放`, icon: 'none' });
       return;
     }
     openGiftPay('ONLINE_GIFT');
@@ -343,7 +339,7 @@ function openOfflineGift() {
   if (detail.value?.banquet.id) {
     uni.navigateTo({
       url: `/pages/gift/offline/index?banquetId=${detail.value.banquet.id}`,
-      fail: () => uni.showToast({ title: '线下记礼打开失败', icon: 'none' })
+      fail: () => uni.showToast({ title: `${activeTheme.value.offlineGiftLabel}打开失败`, icon: 'none' })
     });
   }
 }
@@ -352,7 +348,7 @@ function openGiftList() {
   if (detail.value?.banquet.id) {
     uni.navigateTo({
       url: `/pages/gift/list/index?banquetId=${detail.value.banquet.id}`,
-      fail: () => uni.showToast({ title: '收礼记录打开失败', icon: 'none' })
+      fail: () => uni.showToast({ title: `${activeTheme.value.giftRecordLabel}打开失败`, icon: 'none' })
     });
   }
 }
