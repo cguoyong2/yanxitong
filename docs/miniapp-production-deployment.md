@@ -41,6 +41,14 @@ Build output:
 miniapp/dist/build/mp-weixin
 ```
 
+Before preview or upload, run the miniapp route registration check from the repository root:
+
+```bash
+node deploy/scripts/miniapp-route-check.mjs
+```
+
+This fails when a static miniapp navigation target is missing from `miniapp/src/pages.json`.
+
 Import this directory into WeChat DevTools.
 
 ## Required WeChat Console Settings
@@ -95,6 +103,7 @@ Therefore miniapp mock-success buttons are hidden in production. Users may creat
 Before experience-version testing:
 
 - `cd miniapp && npm run build` passes.
+- `node deploy/scripts/miniapp-route-check.mjs` passes.
 - `miniapp/src/manifest.json` contains the real AppID `wx5cbc30150256d707`.
 - WeChat request legal domain includes `https://yxt.yqej.cn`.
 - Complete `docs/miniapp-experience-regression-checklist.md` for the generated preview or experience version.
