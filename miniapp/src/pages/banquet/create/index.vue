@@ -1,168 +1,111 @@
 <template>
-  <view class="page" :style="{ background: activeDesign.pageBg }">
-    <view class="hero" :style="{ background: activeDesign.heroBg }">
-      <text class="hero-pattern hero-pattern-left">{{ activeDesign.mark }}</text>
-      <text class="hero-pattern hero-pattern-right">{{ activeDesign.mark }}</text>
-      <view class="hero-head">
-        <view>
-          <text class="eyebrow">宴席通</text>
-          <text class="hero-title">创建宴席</text>
-        </view>
-        <text class="hero-mark">{{ activeDesign.mark }}</text>
-      </view>
-      <text class="hero-copy">{{ activeDesign.headline }}</text>
-      <text class="hero-subcopy">{{ activeDesign.copy }}</text>
-      <view class="hero-meta">
-        <text>{{ activeDesign.mood }}</text>
-        <text>{{ selectedType?.defaultThemeName || '主题待选' }}</text>
-      </view>
+  <view class="page">
+    <view class="hero">
+      <image class="hero-image" src="/static/create/create_hero.png" mode="widthFix" />
     </view>
 
-    <view class="section type-section">
-      <view class="section-head">
-        <view class="section-title-wrap">
-          <text class="step-badge">1</text>
-          <text class="section-title">选择宴席类型</text>
-        </view>
-        <text class="section-note">切换后同步调整主题、色彩和推荐模板</text>
-      </view>
-      <scroll-view scroll-x class="type-scroll" show-scrollbar="false">
-        <view
-          v-for="(item, index) in eventTypes"
-          :key="item.eventTypeCode"
-          class="type-chip"
-          :class="{ active: form.eventTypeCode === item.eventTypeCode }"
-          :style="eventTypeCardStyle(item)"
-          @tap="selectEventType(index)"
-        >
-          <text class="type-mark">{{ designFor(item.eventTypeCode).mark }}</text>
-          <text class="type-name">{{ item.name }}</text>
-          <text v-if="form.eventTypeCode === item.eventTypeCode" class="type-check">✓</text>
-        </view>
-      </scroll-view>
-      <view class="theme-tip" :style="{ borderColor: activeDesign.lightBorder, background: activeDesign.lightBg }">
-        <text class="theme-tip-icon">◉</text>
-        <text>已根据宴席类型自动切换主题</text>
-        <text class="theme-tip-current">当前主题：{{ selectedType?.name }} · {{ selectedType?.defaultThemeName }}</text>
-      </view>
-    </view>
-
-    <view class="section form-section">
-      <view class="section-head">
-        <view class="section-title-wrap">
-          <text class="step-badge">2</text>
-          <text class="section-title">填写宴席信息</text>
-        </view>
-        <button class="mini-action" size="mini" @tap="fillDemoData()">体验数据</button>
-      </view>
+    <view class="content">
       <view class="form-card">
         <view class="form-row">
-          <text class="form-icon">▤</text>
-          <text class="form-label">宴席名称</text>
-          <input v-model="form.name" class="form-input" placeholder="请输入宴席名称" />
+          <text class="row-icon">▤</text>
+          <text class="row-label">宴席名称</text>
+          <input v-model="form.name" class="row-input" placeholder="请输入宴席名称" />
+          <text class="row-arrow">›</text>
         </view>
         <view class="form-row">
-          <text class="form-icon">◷</text>
-          <text class="form-label">宴席时间</text>
-          <input v-model="form.banquetTime" class="form-input" placeholder="2026-10-01T18:00:00" />
+          <text class="row-icon">♙</text>
+          <text class="row-label">主家姓名</text>
+          <input v-model="displayForm.hostName" class="row-input" placeholder="请输入主家姓名" />
         </view>
         <view class="form-row">
-          <text class="form-icon">⌖</text>
-          <text class="form-label">宴席地点</text>
-          <input v-model="form.location" class="form-input" placeholder="请输入宴席地点" />
+          <text class="row-icon">☎</text>
+          <text class="row-label">联系电话</text>
+          <input v-model="displayForm.phone" class="row-input" placeholder="请输入联系电话" />
+        </view>
+        <view class="form-row">
+          <text class="row-icon">▣</text>
+          <text class="row-label">宴席时间</text>
+          <input v-model="form.banquetTime" class="row-input" placeholder="请选择宴席时间" />
+          <text class="row-arrow">›</text>
+        </view>
+        <view class="form-row">
+          <text class="row-icon">⌖</text>
+          <text class="row-label">宴席地点</text>
+          <input v-model="form.location" class="row-input" placeholder="请输入宴席地点" />
+          <text class="row-arrow">›</text>
+        </view>
+        <view class="form-row">
+          <text class="row-icon">♟</text>
+          <text class="row-label">预计人数</text>
+          <input v-model="displayForm.guestCount" class="row-input" type="number" placeholder="请输入预计人数" />
+          <text class="unit">人</text>
         </view>
       </view>
-      <view class="theme-preview" :style="themePreviewStyle">
-        <view class="swatch" :style="{ background: activeDesign.swatch }"></view>
-        <view class="theme-copy-block">
-          <text class="selected-type-name">{{ selectedTypeName }}</text>
-          <text class="theme-name">{{ selectedType?.defaultThemeName }}</text>
-          <text class="theme-copy">{{ selectedType?.defaultCopywriting }}</text>
-        </view>
-      </view>
-    </view>
 
-    <view class="section template-section">
-      <view class="section-head">
-        <view class="section-title-wrap">
-          <text class="step-badge">3</text>
-          <text class="section-title">选择请柬模板</text>
+      <view class="section-card">
+        <view class="section-title-line">
+          <text class="red-bar"></text>
+          <text class="section-title">宴席类型</text>
         </view>
-        <text class="section-note">{{ selectedTemplate ? selectedTemplate.name : '请选择模板' }}</text>
-      </view>
-      <view class="template-tabs">
-        <button
-          v-for="option in filterOptions"
-          :key="option.value"
-          size="mini"
-          :class="{ active: templateFilter === option.value }"
-          @tap="setTemplateFilter(option.value)"
-        >
-          {{ option.label }}
-        </button>
-      </view>
-      <scroll-view class="template-scroll" scroll-x show-scrollbar="false">
-        <view
-          v-for="item in filteredTemplates"
-          :key="item.id"
-          class="template-card"
-          :class="{ selected: form.templateId === item.id }"
-          @tap="selectTemplate(item)"
-        >
-          <view class="template-cover" :style="templateCoverStyle(item)">
-            <image v-if="item.coverUrl" :src="item.coverUrl" mode="aspectFill" />
-            <text v-else>{{ item.presentation?.fallbackCoverLabel || item.name.slice(0, 2) }}</text>
+        <view class="type-grid">
+          <view
+            v-for="(item, index) in eventTypes"
+            :key="item.eventTypeCode"
+            class="type-pill"
+            :class="{ active: form.eventTypeCode === item.eventTypeCode }"
+            @tap="selectEventType(index)"
+          >
+            <text class="type-icon">{{ designFor(item.eventTypeCode).mark }}</text>
+            <text>{{ item.name }}</text>
           </view>
-          <view class="template-body">
-            <text class="template-name">{{ item.name }}</text>
-            <text class="template-desc">{{ item.presentation?.headline || '诚挚邀请' }}</text>
-            <view class="template-foot">
+        </view>
+      </view>
+
+      <view class="section-card cover-card">
+        <view class="section-title-line">
+          <text class="red-bar"></text>
+          <text class="section-title">宴席封面</text>
+        </view>
+        <view class="upload-box" @tap="showUploadTip()">
+          <text class="upload-icon">▣</text>
+          <text class="upload-title">上传封面图</text>
+          <text class="upload-desc">建议尺寸 750*500，支持 JPG/PNG 格式</text>
+        </view>
+      </view>
+
+      <view class="section-card template-card" v-if="filteredTemplates.length">
+        <view class="section-head">
+          <view class="section-title-line">
+            <text class="red-bar"></text>
+            <text class="section-title">请柬模板</text>
+          </view>
+          <text class="section-more">{{ selectedTemplate ? selectedTemplate.name : '请选择' }}</text>
+        </view>
+        <scroll-view scroll-x class="template-scroll" show-scrollbar="false">
+          <view class="template-list">
+            <view
+              v-for="item in filteredTemplates"
+              :key="item.id"
+              class="template-item"
+              :class="{ selected: form.templateId === item.id }"
+              @tap="selectTemplate(item)"
+            >
+              <view class="template-cover" :style="templateCoverStyle(item)">
+                <image v-if="item.coverUrl" :src="item.coverUrl" mode="aspectFill" />
+                <text v-else>{{ item.presentation?.fallbackCoverLabel || item.name.slice(0, 2) }}</text>
+              </view>
+              <text class="template-name">{{ item.name }}</text>
               <text class="template-price">{{ templatePrice(item) }}</text>
-        <button size="mini" class="preview-btn" @tap.stop="openTemplatePreview(item)">预览</button>
             </view>
           </view>
-        </view>
-      </scroll-view>
-      <view v-if="selectedTemplate" class="selected-template">
-        <text class="selected-template-title">当前模板</text>
-        <text class="selected-template-copy">{{ selectedTemplate.presentation?.defaultGreeting }}</text>
+        </scroll-view>
       </view>
-    </view>
-
-    <view class="section copy-section">
-      <view class="section-head">
-        <view class="section-title-wrap">
-          <text class="step-badge">4</text>
-          <text class="section-title">收礼文案</text>
-        </view>
-        <text class="section-note">可选</text>
-      </view>
-      <textarea v-model="customGiftSuccess" class="textarea" placeholder="自定义收礼成功文案，例如：感谢您的祝福，喜宴现场见。" />
     </view>
 
     <view class="bottom-bar">
-      <view class="primary-create" :class="{ disabled: submitting }" @tap="submit()" :style="{ background: activeDesign.buttonBg }">
+      <button class="primary-button" :loading="submitting" @tap="submit()">
         {{ submitting ? '创建中...' : '创建宴席' }}
-      </view>
-    </view>
-
-    <view v-if="previewTemplate" class="preview-mask" @tap="closeTemplatePreview()">
-      <view class="preview-panel" @tap.stop>
-        <view class="preview-hero" :style="templateCoverStyle(previewTemplate)">
-          <image v-if="previewTemplate.coverUrl" :src="previewTemplate.coverUrl" mode="aspectFill" />
-          <text v-else>{{ previewTemplate.presentation?.fallbackCoverLabel || '宴' }}</text>
-        </view>
-        <view class="preview-body">
-          <text class="preview-kicker">{{ previewTemplate.name }}</text>
-          <text class="preview-title">{{ previewTemplate.presentation?.headline || '诚挚邀请' }}</text>
-          <text class="preview-copy">{{ previewTemplate.presentation?.defaultGreeting }}</text>
-          <view class="preview-schedule">
-            <text v-for="item in scheduleItems(previewTemplate)" :key="item">{{ item }}</text>
-          </view>
-          <button type="primary" @tap="choosePreviewTemplate()">选择此模板</button>
-          <button @tap="closeTemplatePreview()">关闭</button>
-        </view>
-      </view>
+      </button>
     </view>
   </view>
 </template>
@@ -200,119 +143,29 @@ interface InvitationTemplate {
 
 interface TypeDesign {
   mark: string;
-  eyebrow: string;
-  headline: string;
-  copy: string;
-  mood: string;
-  pageBg: string;
-  heroBg: string;
-  buttonBg: string;
-  swatch: string;
-  lightBg: string;
-  lightBorder: string;
+  bg: string;
 }
 
 const typeDesigns: Record<string, TypeDesign> = {
-  WEDDING: {
-    mark: '囍',
-    eyebrow: '红金婚宴',
-    headline: '轻松办好每一场婚宴',
-    copy: '红金礼序 · 喜庆体面',
-    mood: '喜庆 / 礼序 / 祝福',
-    pageBg: 'linear-gradient(180deg, #d91f1b 0%, #d91f1b 315rpx, #fff8ef 316rpx, #fffaf5 100%)',
-    heroBg: 'radial-gradient(circle at 78% 18%, rgba(255, 211, 120, 0.36), transparent 26%), linear-gradient(135deg, #d91f1b 0%, #b40f12 55%, #7e0b0b 100%)',
-    buttonBg: 'linear-gradient(135deg, #a51f1f, #d45135)',
-    swatch: 'linear-gradient(135deg, #9f1d1d, #e4b456)',
-    lightBg: '#fff1ea',
-    lightBorder: '#f3c6b7'
-  },
-  BIRTHDAY: {
-    mark: '寿',
-    eyebrow: '暖金寿宴',
-    headline: '福寿绵长，亲友同聚',
-    copy: '暖金贺寿 · 稳重温情',
-    mood: '福寿 / 团圆 / 感恩',
-    pageBg: 'linear-gradient(180deg, #9a2c1d 0%, #9a2c1d 315rpx, #fff7ea 316rpx, #fffaf2 100%)',
-    heroBg: 'radial-gradient(circle at 78% 18%, rgba(255, 217, 142, 0.42), transparent 26%), linear-gradient(135deg, #8f1d1d 0%, #9b4b1e 58%, #d7a84a 100%)',
-    buttonBg: 'linear-gradient(135deg, #7f1d1d, #b36b2c)',
-    swatch: 'linear-gradient(135deg, #7f1d1d, #d7a84a)',
-    lightBg: '#fff4e2',
-    lightBorder: '#efcc92'
-  },
-  BABY: {
-    mark: '满',
-    eyebrow: '满月暖礼',
-    headline: '满月之喜，温暖相聚',
-    copy: '橙绿暖礼 · 家庭温度',
-    mood: '可爱 / 温暖 / 新生命',
-    pageBg: 'linear-gradient(180deg, #0f766e 0%, #0f766e 315rpx, #fff7ed 316rpx, #f8fbf4 100%)',
-    heroBg: 'radial-gradient(circle at 78% 18%, rgba(255, 214, 158, 0.45), transparent 26%), linear-gradient(135deg, #0f766e 0%, #f08a3c 66%, #ffd59e 100%)',
-    buttonBg: 'linear-gradient(135deg, #0f766e, #e8792e)',
-    swatch: 'linear-gradient(135deg, #0f766e, #f08a3c)',
-    lightBg: '#f0fdfa',
-    lightBorder: '#99d8ce'
-  },
-  HOUSEWARMING: {
-    mark: '乔',
-    eyebrow: '乔迁新居',
-    headline: '新居落成，好运常伴',
-    copy: '现代灰橙 · 新居质感',
-    mood: '新居 / 邻里 / 好兆头',
-    pageBg: 'linear-gradient(180deg, #334155 0%, #334155 315rpx, #fff7ed 316rpx, #f4f6f8 100%)',
-    heroBg: 'radial-gradient(circle at 78% 18%, rgba(244, 182, 95, 0.42), transparent 26%), linear-gradient(135deg, #334155 0%, #c65f25 62%, #f4b65f 100%)',
-    buttonBg: 'linear-gradient(135deg, #334155, #d56527)',
-    swatch: 'linear-gradient(135deg, #334155, #ea8a3a)',
-    lightBg: '#fff7ed',
-    lightBorder: '#efc49d'
-  },
-  SCHOOL: {
-    mark: '学',
-    eyebrow: '升学答谢',
-    headline: '金榜题名，答谢亲友',
-    copy: '蓝金书卷 · 荣誉成长',
-    mood: '荣誉 / 成长 / 答谢',
-    pageBg: 'linear-gradient(180deg, #1d4ed8 0%, #1d4ed8 315rpx, #f4f8ff 316rpx, #fffaf0 100%)',
-    heroBg: 'radial-gradient(circle at 78% 18%, rgba(240, 180, 41, 0.46), transparent 26%), linear-gradient(135deg, #1d4ed8 0%, #2776d8 58%, #f0b429 100%)',
-    buttonBg: 'linear-gradient(135deg, #1d4ed8, #2277c9)',
-    swatch: 'linear-gradient(135deg, #1d4ed8, #f0b429)',
-    lightBg: '#eef5ff',
-    lightBorder: '#b8cdf7'
-  },
-  MEMORIAL: {
-    mark: '忆',
-    eyebrow: '素雅追思',
-    headline: '慎终追远，思念长存',
-    copy: '素雅追思 · 安静庄重',
-    mood: '庄重 / 追忆 / 素雅',
-    pageBg: 'linear-gradient(180deg, #111827 0%, #111827 315rpx, #f5f5f5 316rpx, #eeeeee 100%)',
-    heroBg: 'radial-gradient(circle at 78% 18%, rgba(156, 163, 175, 0.38), transparent 26%), linear-gradient(135deg, #111827 0%, #374151 62%, #6b7280 100%)',
-    buttonBg: 'linear-gradient(135deg, #111827, #4b5563)',
-    swatch: 'linear-gradient(135deg, #111827, #9ca3af)',
-    lightBg: '#f3f4f6',
-    lightBorder: '#c5c9cf'
-  },
-  OTHER: {
-    mark: '宴',
-    eyebrow: '通用宴席',
-    headline: '办宴席，用宴席通',
-    copy: '通用暖金 · 清楚高效',
-    mood: '通用 / 亲友 / 答谢',
-    pageBg: 'linear-gradient(180deg, #92400e 0%, #92400e 315rpx, #fff7ed 316rpx, #fffaf5 100%)',
-    heroBg: 'radial-gradient(circle at 78% 18%, rgba(245, 210, 135, 0.46), transparent 26%), linear-gradient(135deg, #92400e 0%, #c27803 58%, #f5d287 100%)',
-    buttonBg: 'linear-gradient(135deg, #92400e, #b7791f)',
-    swatch: 'linear-gradient(135deg, #92400e, #f5d287)',
-    lightBg: '#fff7ed',
-    lightBorder: '#efc78d'
-  }
+  WEDDING: { mark: '♡', bg: 'linear-gradient(135deg, #e60012, #c40005)' },
+  BIRTHDAY: { mark: '寿', bg: 'linear-gradient(135deg, #fff7eb, #ffffff)' },
+  BABY: { mark: '☺', bg: 'linear-gradient(135deg, #fff4f5, #ffffff)' },
+  HOUSEWARMING: { mark: '⌂', bg: 'linear-gradient(135deg, #f1fbf4, #ffffff)' },
+  SCHOOL: { mark: '◇', bg: 'linear-gradient(135deg, #f0f6ff, #ffffff)' },
+  MEMORIAL: { mark: '♜', bg: 'linear-gradient(135deg, #f4f4f5, #ffffff)' },
+  OTHER: { mark: '宴', bg: 'linear-gradient(135deg, #fff7eb, #ffffff)' }
 };
 
 const eventTypes = ref<EventType[]>([]);
 const templates = ref<InvitationTemplate[]>([]);
 const selectedIndex = ref(0);
-const templateFilter = ref('RECOMMENDED');
-const previewTemplate = ref<InvitationTemplate | null>(null);
 const submitting = ref(false);
 const customGiftSuccess = ref('');
+const displayForm = reactive({
+  hostName: '',
+  phone: '',
+  guestCount: ''
+});
 const form = reactive({
   name: defaultBanquetName(),
   eventTypeCode: '',
@@ -321,32 +174,10 @@ const form = reactive({
   templateId: undefined as number | undefined
 });
 
-const selectedTypeName = computed(() => eventTypes.value[selectedIndex.value]?.name || '创建宴席');
-const selectedType = computed(() => eventTypes.value[selectedIndex.value]);
 const selectedTemplate = computed(() => templates.value.find((item) => item.id === form.templateId));
-const activeDesign = computed(() => designFor(form.eventTypeCode));
-const themePreviewStyle = computed(() => ({
-  borderColor: selectedType.value?.primaryColor || '#eadfd3',
-  background: '#fffdfa'
-}));
-const filterOptions = computed(() => [
-  { label: '推荐', value: 'RECOMMENDED' },
-  { label: '免费', value: 'FREE' },
-  { label: '付费', value: 'PAID' },
-  { label: '全部', value: 'ALL' }
-]);
 const filteredTemplates = computed(() => {
-  const eventCode = form.eventTypeCode;
-  let rows = templates.value;
-  if (templateFilter.value === 'RECOMMENDED') {
-    rows = rows.filter((item) => matchesEventType(item, eventCode));
-    if (rows.length === 0) {
-      rows = templates.value;
-    }
-  } else if (templateFilter.value !== 'ALL') {
-    rows = rows.filter((item) => item.typeCode === templateFilter.value || item.priceType === templateFilter.value);
-  }
-  return rows;
+  const rows = templates.value.filter((item) => matchesEventType(item, form.eventTypeCode));
+  return (rows.length ? rows : templates.value).slice(0, 8);
 });
 
 function defaultBanquetName() {
@@ -359,55 +190,14 @@ function designFor(eventTypeCode: string) {
   return typeDesigns[eventTypeCode] || typeDesigns.OTHER;
 }
 
-function fillDemoData() {
-  form.name = defaultBanquetName();
-  form.banquetTime = '2026-10-01T18:00:00';
-  form.location = '体验宴会厅';
-  if (!form.eventTypeCode && eventTypes.value.length > 0) {
-    form.eventTypeCode = eventTypes.value[0].eventTypeCode;
-  }
-  pickDefaultTemplate();
-  uni.showToast({ title: '已填入体验数据', icon: 'none' });
-}
-
-function setTemplateFilter(value: string) {
-  templateFilter.value = value;
-}
-
 function selectEventType(index: number) {
   selectedIndex.value = index;
   form.eventTypeCode = eventTypes.value[selectedIndex.value]?.eventTypeCode || '';
-  templateFilter.value = 'RECOMMENDED';
   pickDefaultTemplate();
-}
-
-function eventTypeCardStyle(item: EventType) {
-  const selected = form.eventTypeCode === item.eventTypeCode;
-  const design = designFor(item.eventTypeCode);
-  return {
-    borderColor: selected ? 'transparent' : '#eee1d5',
-    background: selected ? design.buttonBg : '#fffdfa',
-    color: selected ? '#ffffff' : '#1f2937'
-  };
 }
 
 function selectTemplate(item: InvitationTemplate) {
   form.templateId = item.id;
-}
-
-function openTemplatePreview(item: InvitationTemplate) {
-  previewTemplate.value = item;
-}
-
-function closeTemplatePreview() {
-  previewTemplate.value = null;
-}
-
-function choosePreviewTemplate() {
-  if (previewTemplate.value) {
-    selectTemplate(previewTemplate.value);
-  }
-  closeTemplatePreview();
 }
 
 function matchesEventType(item: InvitationTemplate, eventTypeCode: string) {
@@ -426,13 +216,6 @@ function pickDefaultTemplate() {
   form.templateId = recommended?.id || templates.value[0]?.id;
 }
 
-function scheduleItems(item: InvitationTemplate) {
-  return (item.presentation?.defaultScheduleText || '')
-    .split(/\r?\n/)
-    .map((value) => value.trim())
-    .filter(Boolean);
-}
-
 function templatePrice(item: InvitationTemplate) {
   if (item.priceType === 'FREE') {
     return '免费';
@@ -440,7 +223,7 @@ function templatePrice(item: InvitationTemplate) {
   if (item.priceType === 'PLAN_INCLUDED') {
     return '权益包含';
   }
-  return `¥${Number(item.price || 0).toFixed(2)}`;
+  return `¥${Number(item.price || 0).toFixed(0)}`;
 }
 
 function templateCoverStyle(item: InvitationTemplate) {
@@ -453,7 +236,11 @@ function templateCoverStyle(item: InvitationTemplate) {
     'memorial-simple': 'linear-gradient(135deg, #111827, #4b5563 60%, #9ca3af)',
     'general-warm': 'linear-gradient(135deg, #92400e, #c27803 58%, #f5d287)'
   };
-  return { background: palettes[item.presentation?.styleCode || ''] || activeDesign.value.heroBg };
+  return { background: palettes[item.presentation?.styleCode || ''] || '#e60012' };
+}
+
+function showUploadTip() {
+  uni.showToast({ title: '封面上传后续接入', icon: 'none' });
 }
 
 async function loadEventTypes() {
@@ -509,460 +296,224 @@ onMounted(loadEventTypes);
 
 <style scoped>
 .page {
-  box-sizing: border-box;
   min-height: 100vh;
-  padding: 0 24rpx 40rpx;
-  color: #172033;
+  padding-bottom: 126rpx;
+  background: #fff8ef;
+  color: #151823;
 }
 
 .hero {
   position: relative;
-  min-height: 360rpx;
-  margin: 0 -24rpx;
   overflow: hidden;
-  padding: 52rpx 48rpx 74rpx;
-  color: #fff;
+  background: #d91f1b;
 }
 
-.hero::after {
-  position: absolute;
-  right: -90rpx;
-  bottom: -112rpx;
-  width: 280rpx;
-  height: 280rpx;
-  border: 2rpx solid rgba(255, 232, 170, 0.32);
-  border-radius: 50%;
-  content: '';
-}
-
-.hero-pattern {
-  position: absolute;
-  color: rgba(255, 236, 182, 0.12);
-  font-size: 188rpx;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.hero-pattern-left {
-  left: 34rpx;
-  bottom: 34rpx;
-}
-
-.hero-pattern-right {
-  right: 50rpx;
-  top: 86rpx;
-  font-size: 126rpx;
-}
-
-.hero-head,
-.hero-meta,
-.section-head,
-.template-foot,
-.field-row,
-.section-title-wrap,
-.form-row,
-.theme-tip {
-  display: flex;
-}
-
-.hero-head,
-.section-head,
-.template-foot,
-.section-title-wrap,
-.form-row,
-.theme-tip {
-  align-items: center;
-}
-
-.hero-head,
-.section-head,
-.template-foot {
-  justify-content: space-between;
-}
-
-.eyebrow,
-.hero-title,
-.hero-copy,
-.hero-meta,
-.section-title,
-.section-note,
-.field-label,
-.type-mark,
-.type-name,
-.type-theme,
-.selected-type-name,
-.theme-name,
-.theme-copy,
-.template-name,
-.template-desc,
-.template-price,
-.selected-template-title,
-.selected-template-copy {
+.hero-image {
   display: block;
+  width: 100%;
 }
 
-.eyebrow {
-  color: rgba(255, 238, 197, 0.86);
-  font-size: 28rpx;
-  font-weight: 700;
+.content {
+  position: relative;
+  z-index: 2;
+  margin-top: -96rpx;
+  padding: 0 40rpx 28rpx;
 }
 
-.hero-title {
-  margin-top: 26rpx;
-  color: #ffe9b5;
-  font-size: 62rpx;
-  font-weight: 900;
-  line-height: 1.16;
-  text-shadow: 0 6rpx 20rpx rgba(61, 7, 7, 0.28);
-}
-
-.hero-mark {
-  display: grid;
-  width: 92rpx;
-  height: 92rpx;
-  place-items: center;
-  border: 1rpx solid rgba(255, 255, 255, 0.42);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.14);
-  font-size: 42rpx;
-  font-weight: 900;
-}
-
-.hero-copy {
-  margin-top: 18rpx;
-  color: #fff7df;
-  font-size: 30rpx;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1.62;
-}
-
-.hero-subcopy {
-  display: block;
-  margin-top: 8rpx;
-  color: rgba(255, 247, 223, 0.82);
-  font-size: 24rpx;
-}
-
-.hero-meta {
-  gap: 12rpx;
-  flex-wrap: wrap;
-  margin-top: 32rpx;
-}
-
-.hero-meta text {
-  padding: 8rpx 14rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.16);
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 22rpx;
-}
-
-.section {
+.form-card,
+.section-card {
   margin-top: 20rpx;
   padding: 24rpx;
-  border: 1rpx solid rgba(120, 81, 48, 0.12);
-  border-radius: 8rpx;
-  background: rgba(255, 253, 250, 0.98);
-  box-shadow: 0 14rpx 34rpx rgba(81, 50, 29, 0.08);
-}
-
-.type-section {
-  margin-top: 18rpx;
-}
-
-.section-head {
-  gap: 18rpx;
-  margin-bottom: 18rpx;
-}
-
-.section-title-wrap {
-  gap: 12rpx;
-  min-width: 0;
-}
-
-.step-badge {
-  display: grid;
-  width: 34rpx;
-  height: 34rpx;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 8rpx;
-  background: linear-gradient(135deg, #c51f1f, #8f1414);
-  color: #fff;
-  font-size: 22rpx;
-  font-weight: 900;
-}
-
-.section-title {
-  color: #172033;
-  font-size: 30rpx;
-  font-weight: 900;
-}
-
-.section-note {
-  min-width: 0;
-  overflow: hidden;
-  color: #7b6a5b;
-  font-size: 22rpx;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.type-scroll {
-  width: 100%;
-  white-space: nowrap;
-}
-
-.type-chip {
-  position: relative;
-  box-sizing: border-box;
-  display: inline-block;
-  width: 126rpx;
-  min-height: 132rpx;
-  margin-right: 16rpx;
-  padding: 16rpx 12rpx;
-  border: 2rpx solid #ead7be;
-  border-radius: 8rpx;
-  text-align: center;
-  vertical-align: top;
-}
-
-.type-chip.active {
-  box-shadow: 0 12rpx 26rpx rgba(73, 45, 31, 0.16);
-}
-
-.type-chip:active,
-.template-card:active,
-.mini-action:active,
-.primary-create:active,
-.secondary-create:active {
-  opacity: 0.78;
-}
-
-.type-mark {
-  font-size: 32rpx;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.type-name {
-  margin-top: 14rpx;
-  font-size: 25rpx;
-  font-weight: 900;
-}
-
-.type-check {
-  position: absolute;
-  right: -8rpx;
-  bottom: -8rpx;
-  display: grid;
-  width: 34rpx;
-  height: 34rpx;
-  place-items: center;
-  border-radius: 50%;
-  background: #fff4d8;
-  color: #9f1d1d;
-  font-size: 22rpx;
-  font-weight: 900;
-}
-
-.theme-tip {
-  gap: 12rpx;
-  margin: 24rpx 24rpx 0 0;
-  padding: 18rpx;
-  border: 1rpx solid #f3c6b7;
-  border-radius: 8rpx;
-  color: #9f1d1d;
-  font-size: 23rpx;
-}
-
-.theme-tip-icon,
-.theme-tip-current {
-  flex: 0 0 auto;
-}
-
-.theme-tip-current {
-  margin-left: auto;
+  border-radius: 24rpx;
+  background: #fff;
+  box-shadow: 0 10rpx 30rpx rgba(43, 35, 31, 0.06);
 }
 
 .form-card {
-  overflow: hidden;
-  border: 1rpx solid #eadfd3;
-  border-radius: 8rpx;
-  background: #fff;
+  margin-top: 0;
 }
 
 .form-row {
-  min-height: 100rpx;
-  padding: 0 20rpx;
-  border-bottom: 1rpx solid #f1e6da;
+  display: grid;
+  grid-template-columns: 46rpx 168rpx 1fr 32rpx;
+  align-items: center;
+  min-height: 82rpx;
+  border-bottom: 1rpx solid #efe6df;
 }
 
 .form-row:last-child {
   border-bottom: 0;
 }
 
-.form-icon {
-  width: 46rpx;
-  flex: 0 0 auto;
-  color: #c51f1f;
-  font-size: 30rpx;
+.row-icon {
+  color: #e60012;
+  font-size: 32rpx;
   font-weight: 900;
 }
 
-.form-label {
-  width: 150rpx;
-  flex: 0 0 auto;
-  color: #26211d;
+.row-label {
+  color: #171923;
   font-size: 28rpx;
-  font-weight: 800;
+  font-weight: 900;
 }
 
-.form-input {
+.row-input {
   min-width: 0;
-  flex: 1;
-  height: 100rpx;
-  color: #172033;
-  font-size: 28rpx;
-}
-
-.field-row {
-  gap: 16rpx;
-}
-
-.field-label {
-  margin-bottom: 10rpx;
-  color: #65584e;
-  font-size: 24rpx;
-  font-weight: 700;
-}
-
-.input,
-.textarea {
-  box-sizing: border-box;
-  width: 100%;
-  border: 1rpx solid #eadfd3;
-  border-radius: 8rpx;
-  background: #fff;
-  color: #172033;
+  color: #171923;
   font-size: 26rpx;
 }
 
-.input {
-  height: 78rpx;
-  padding: 0 22rpx;
+.row-arrow,
+.unit {
+  color: #7d828d;
+  font-size: 34rpx;
+  text-align: right;
 }
 
-.textarea {
-  min-height: 170rpx;
-  padding: 20rpx 22rpx;
-  line-height: 1.5;
+.unit {
+  font-size: 26rpx;
 }
 
-.mini-action {
-  flex: 0 0 auto;
-  margin: 0;
-  border: 1rpx solid #eadfd3;
-  color: #7c2d12;
-  background: #fff7ed;
-}
-
-.theme-preview {
+.section-head,
+.section-title-line {
   display: flex;
-  gap: 18rpx;
   align-items: center;
-  margin-top: 22rpx;
-  padding: 20rpx;
-  border: 1rpx solid #eadfd3;
-  border-radius: 8rpx;
 }
 
-.swatch {
-  flex: 0 0 auto;
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 8rpx;
+.section-head {
+  justify-content: space-between;
+  gap: 18rpx;
 }
 
-.theme-copy-block {
-  min-width: 0;
+.section-title-line {
+  gap: 12rpx;
 }
 
-.selected-type-name {
-  color: #172033;
+.red-bar {
+  display: block;
+  width: 7rpx;
+  height: 34rpx;
+  border-radius: 999rpx;
+  background: #e60012;
+}
+
+.section-title,
+.type-pill text,
+.upload-title,
+.upload-desc,
+.template-name,
+.template-price,
+.section-more {
+  display: block;
+}
+
+.section-title {
+  color: #171923;
   font-size: 30rpx;
   font-weight: 900;
 }
 
-.theme-name {
-  margin-top: 6rpx;
-  color: #4b5563;
-  font-size: 24rpx;
-  font-weight: 700;
-}
-
-.theme-copy {
-  margin-top: 6rpx;
-  color: #756a61;
+.section-more {
+  color: #7d828d;
   font-size: 23rpx;
-  line-height: 1.45;
 }
 
-.template-section {
-  padding-right: 0;
-}
-
-.template-tabs {
+.type-grid {
   display: flex;
-  gap: 12rpx;
-  margin: 0 24rpx 18rpx 0;
+  flex-wrap: wrap;
+  gap: 18rpx;
+  margin-top: 22rpx;
 }
 
-.template-tabs button {
-  flex: 1;
-  margin: 0;
-  border: 1rpx solid #eadfd3;
-  border-radius: 8rpx;
-  background: #fff;
-  color: #67564a;
-}
-
-.template-tabs button.active {
-  border-color: #172033;
-  color: #172033;
+.type-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  min-width: 132rpx;
+  height: 62rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid #efd9bd;
+  border-radius: 999rpx;
+  background: #fffaf4;
+  color: #9a6a2e;
+  font-size: 26rpx;
   font-weight: 800;
+}
+
+.type-pill.active {
+  border-color: transparent;
+  background: linear-gradient(135deg, #e60012, #c40005);
+  color: #fff;
+}
+
+.type-icon {
+  font-size: 30rpx;
+  line-height: 1;
+}
+
+.upload-box {
+  margin-top: 22rpx;
+  padding: 32rpx 20rpx;
+  border: 2rpx dashed #f0cfb6;
+  border-radius: 16rpx;
+  background: #fffdf9;
+  text-align: center;
+}
+
+.upload-icon {
+  display: block;
+  color: #e60012;
+  font-size: 38rpx;
+}
+
+.upload-title {
+  margin-top: 8rpx;
+  color: #e60012;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.upload-desc {
+  margin-top: 8rpx;
+  color: #8a8f99;
+  font-size: 21rpx;
 }
 
 .template-scroll {
   width: 100%;
+  margin-top: 22rpx;
   white-space: nowrap;
 }
 
-.template-card {
-  display: inline-block;
-  width: 284rpx;
-  margin-right: 18rpx;
-  overflow: hidden;
-  border: 2rpx solid transparent;
-  border-radius: 8rpx;
-  background: #fff;
-  box-shadow: 0 10rpx 24rpx rgba(87, 62, 41, 0.08);
-  vertical-align: top;
+.template-list {
+  display: inline-flex;
+  gap: 18rpx;
+  padding-bottom: 2rpx;
 }
 
-.template-card.selected {
-  border-color: #172033;
+.template-item {
+  width: 158rpx;
+  padding: 10rpx;
+  border: 2rpx solid transparent;
+  border-radius: 16rpx;
+  background: #fffaf4;
+}
+
+.template-item.selected {
+  border-color: #e60012;
 }
 
 .template-cover {
-  display: grid;
-  width: 100%;
-  height: 172rpx;
-  place-items: center;
-  color: #fff;
-  font-size: 58rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 138rpx;
+  height: 100rpx;
+  overflow: hidden;
+  border-radius: 12rpx;
+  color: #ffe8bf;
+  font-size: 32rpx;
   font-weight: 900;
 }
 
@@ -971,157 +522,51 @@ onMounted(loadEventTypes);
   height: 100%;
 }
 
-.template-body {
-  padding: 18rpx;
-}
-
 .template-name {
   overflow: hidden;
-  color: #172033;
-  font-size: 26rpx;
-  font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.template-desc {
-  margin-top: 8rpx;
-  overflow: hidden;
-  color: #756a61;
+  margin-top: 10rpx;
+  color: #171923;
   font-size: 22rpx;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.template-foot {
-  gap: 10rpx;
-  margin-top: 16rpx;
 }
 
 .template-price {
-  color: #9f2f22;
-  font-size: 23rpx;
-  font-weight: 900;
-}
-
-.preview-btn {
-  margin: 0;
-  padding: 0 14rpx;
-  border: 1rpx solid #eadfd3;
-  color: #172033;
-  background: #fffdfa;
-  font-size: 21rpx;
-}
-
-.selected-template {
-  display: grid;
-  gap: 8rpx;
-  margin: 20rpx 24rpx 0 0;
-  padding: 20rpx;
-  border-radius: 8rpx;
-  background: #f8f1ea;
-}
-
-.selected-template-title {
-  color: #172033;
-  font-size: 24rpx;
-  font-weight: 900;
-}
-
-.selected-template-copy {
-  color: #67564a;
-  font-size: 23rpx;
-  line-height: 1.5;
+  margin-top: 5rpx;
+  color: #e60012;
+  font-size: 20rpx;
 }
 
 .bottom-bar {
-  display: grid;
-  grid-template-columns: 1fr;
-  margin-top: 24rpx;
-  padding: 0 0 22rpx;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  padding: 18rpx 40rpx calc(env(safe-area-inset-bottom) + 18rpx);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 -8rpx 26rpx rgba(43, 35, 31, 0.08);
 }
 
-.primary-create {
-  box-sizing: border-box;
-  height: 82rpx;
+button {
   margin: 0;
-  border-radius: 8rpx;
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 900;
-  line-height: 82rpx;
-  text-align: center;
-}
-
-.primary-create {
+  padding: 0;
   border: 0;
 }
 
-.primary-create.disabled {
-  opacity: 0.68;
+button::after {
+  border: 0;
 }
 
-.preview-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  display: grid;
-  place-items: center;
-  padding: 36rpx;
-  background: rgba(17, 24, 39, 0.45);
-}
-
-.preview-panel {
+.primary-button {
   width: 100%;
-  max-height: 90vh;
-  overflow: hidden;
-  border-radius: 8rpx;
-  background: #fff;
-}
-
-.preview-hero {
-  display: grid;
-  height: 260rpx;
-  place-items: center;
+  height: 88rpx;
+  border-radius: 12rpx;
+  background: linear-gradient(135deg, #e60012, #c40005);
   color: #fff;
-  font-size: 72rpx;
+  font-size: 30rpx;
   font-weight: 900;
-}
-
-.preview-hero image {
-  width: 100%;
-  height: 100%;
-}
-
-.preview-body {
-  display: grid;
-  gap: 16rpx;
-  padding: 24rpx;
-}
-
-.preview-kicker {
-  color: #64748b;
-  font-size: 24rpx;
-}
-
-.preview-title {
-  color: #111827;
-  font-size: 40rpx;
-  font-weight: 900;
-}
-
-.preview-copy {
-  color: #374151;
-  line-height: 1.6;
-}
-
-.preview-schedule {
-  display: grid;
-  gap: 8rpx;
-  padding: 18rpx;
-  border-radius: 8rpx;
-  background: #f8fafc;
-  color: #374151;
-  font-size: 24rpx;
+  line-height: 88rpx;
 }
 </style>
