@@ -51,6 +51,10 @@ const currentTime = ref('');
 const displayAmount = computed(() => Number(amount.value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 }));
 
 async function confirmSuccess() {
+  if (!orderNo.value) {
+    uni.showToast({ title: '缺少订单号', icon: 'none' });
+    return;
+  }
   if (confirmed.value) {
     uni.showToast({ title: '已入账', icon: 'success' });
     return;

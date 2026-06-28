@@ -69,6 +69,17 @@ async function submit() {
     form.guestName = '';
     form.amount = undefined;
     form.blessing = '';
+    uni.showModal({
+      title: '记礼已保存',
+      content: '已写入收礼记录，并同步沉淀到人情账本。',
+      cancelText: '继续登记',
+      confirmText: '查看记录',
+      success: (result) => {
+        if (result.confirm) {
+          openGiftList();
+        }
+      }
+    });
   } finally {
     submitting.value = false;
   }

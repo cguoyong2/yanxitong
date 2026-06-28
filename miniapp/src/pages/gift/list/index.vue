@@ -12,7 +12,7 @@
           <text class="stat-label">总笔数</text>
         </view>
         <view>
-          <text class="stat-value">{{ formatMoney(summary?.sourceAmounts.CASH || 0) }}</text>
+          <text class="stat-value">{{ formatMoney(sourceAmount('CASH')) }}</text>
           <text class="stat-label">现金记礼</text>
         </view>
         <view>
@@ -52,7 +52,7 @@
       <view v-if="loading" class="state-box">同步收礼记录中</view>
       <view v-else-if="gifts.length === 0" class="state-box">{{ emptyText }}</view>
       <view v-for="gift in gifts" :key="gift.id" class="gift-row">
-        <view class="avatar">{{ gift.guestName.slice(0, 1) || '礼' }}</view>
+        <view class="avatar">{{ guestInitial(gift.guestName) }}</view>
         <view class="gift-main">
           <view class="gift-title-line">
             <text class="gift-name">{{ gift.guestName }}</text>
@@ -99,7 +99,7 @@ const sources = [
   { label: '现场扫码', value: 'ONSITE_QR' },
   { label: '现金记礼', value: 'CASH' }
 ];
-const onlineTotal = computed(() => Number(summary.value?.sourceAmounts.ONLINE_GIFT || 0) + Number(summary.value?.sourceAmounts.ONSITE_QR || 0));
+const onlineTotal = computed(() => sourceAmount('ONLINE_GIFT') + sourceAmount('ONSITE_QR'));
 const emptyText = computed(() => {
   const source = sources[sourceIndex.value].label;
   if (keyword.value && sources[sourceIndex.value].value) {
@@ -125,6 +125,14 @@ function formatTime(value?: string) {
 
 function formatMoney(value: unknown) {
   return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function sourceAmount(source: string) {
+  return Number(summary.value?.sourceAmounts?.[source] || 0);
+}
+
+function guestInitial(name?: string) {
+  return (name || '礼').slice(0, 1);
 }
 
 function sourceLabel(value: string) {
