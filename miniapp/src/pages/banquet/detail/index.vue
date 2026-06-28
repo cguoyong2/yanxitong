@@ -1,12 +1,13 @@
 <template>
   <view class="page" v-if="detail">
-    <view class="hero-card">
+    <view class="red-stage">
       <view class="hero-art">
+        <text class="firework">✦</text>
         <text class="hero-knot">囍</text>
       </view>
       <view class="hero-top">
         <view>
-          <text class="hero-label">宴席管理台</text>
+          <text class="hero-label">宴席通</text>
           <text class="hero-title">{{ detail.banquet.name }}</text>
         </view>
         <text class="status">{{ statusLabel }}</text>
@@ -14,85 +15,105 @@
       <view class="hero-meta">
         <text>{{ eventTypeLabel(detail.banquet.eventTypeCode) }}</text>
         <text>{{ formatTime(detail.banquet.banquetTime) }}</text>
-        <text>{{ detail.banquet.location || '地点待定' }}</text>
       </view>
+      <text class="hero-location">{{ detail.banquet.location || '地点待定' }}</text>
     </view>
 
-    <view class="summary-card">
-      <view class="summary-item">
-        <text class="summary-value">{{ rsvpStats?.totalGuests || 0 }}</text>
-        <text class="summary-label">已回执</text>
-      </view>
-      <view class="summary-line"></view>
-      <view class="summary-item">
-        <text class="summary-value red">{{ formatMoney(giftSummary?.totalAmount || 0) }}</text>
-        <text class="summary-label">已收礼</text>
-      </view>
-      <view class="summary-line"></view>
-      <view class="summary-item">
-        <text class="summary-value">{{ entitlements.currentPlan?.name || '基础版' }}</text>
-        <text class="summary-label">当前版本</text>
-      </view>
-    </view>
-
-    <view class="section-card">
-      <view class="section-head">
-        <text class="section-title">核心操作</text>
-        <text class="section-more">按流程推进</text>
-      </view>
-      <view class="action-grid">
-        <view v-for="item in actionItems" :key="item.title" class="action-item" @tap="handleAction(item.action)">
-          <text class="action-icon" :class="item.tone">{{ item.icon }}</text>
-          <text class="action-title">{{ item.title }}</text>
-          <text class="action-desc">{{ item.desc }}</text>
+    <view class="content">
+      <view class="overview-card">
+        <image class="overview-cover" src="/static/home/banquet_cover.png" mode="aspectFill" />
+        <view class="overview-body">
+          <view class="overview-title-row">
+            <text class="overview-title">{{ detail.banquet.name }}</text>
+            <text class="overview-tag">{{ statusLabel }}</text>
+          </view>
+          <view class="overview-meta">
+            <text>◷ {{ formatTime(detail.banquet.banquetTime) }}</text>
+            <text>⌖ {{ detail.banquet.location || '地点待定' }}</text>
+          </view>
         </view>
       </view>
-    </view>
 
-    <view class="invite-card">
-      <view class="invite-main">
-        <image class="invite-cover" src="/static/home/banquet_cover.png" mode="aspectFill" />
-        <view class="invite-info">
+      <view class="summary-card">
+        <view class="summary-item">
+          <text class="summary-value">{{ rsvpStats?.totalGuests || 0 }}</text>
+          <text class="summary-label">已回执</text>
+        </view>
+        <view class="summary-line"></view>
+        <view class="summary-item">
+          <text class="summary-value red">{{ formatMoney(giftSummary?.totalAmount || 0) }}</text>
+          <text class="summary-label">已收礼</text>
+        </view>
+        <view class="summary-line"></view>
+        <view class="summary-item">
+          <text class="summary-value">{{ entitlements.currentPlan?.name || '基础版' }}</text>
+          <text class="summary-label">当前版本</text>
+        </view>
+      </view>
+
+      <view class="section-card">
+        <view class="section-head">
+          <text class="section-title">宴席操作</text>
+          <text class="section-more">按办席流程推进</text>
+        </view>
+        <view class="action-grid">
+          <view v-for="item in actionItems" :key="item.title" class="action-item" @tap="handleAction(item.action)">
+            <text class="action-icon" :class="item.tone">{{ item.icon }}</text>
+            <text class="action-title">{{ item.title }}</text>
+            <text class="action-desc">{{ item.desc }}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="invite-card">
+        <view class="section-head">
           <text class="section-title">基础请柬</text>
-          <text class="invite-desc">分享码：{{ detail.invitation?.shareSlug || '-' }}</text>
-          <text class="invite-desc">{{ invitationShareUrl }}</text>
+          <text class="section-more">分享访问</text>
+        </view>
+        <view class="invite-main">
+          <view class="invite-seal">请</view>
+          <view class="invite-info">
+            <text class="invite-title">{{ detail.invitation?.title || '宴席请柬' }}</text>
+            <text class="invite-desc">分享码：{{ detail.invitation?.shareSlug || '-' }}</text>
+            <text class="invite-path">{{ invitationShareUrl }}</text>
+          </view>
+        </view>
+        <view class="invite-actions">
+          <button @tap="openInvite()">查看公开页</button>
+          <button @tap="copyInviteLink()">复制路径</button>
+          <button @tap="editInvite()">编辑字段</button>
         </view>
       </view>
-      <view class="invite-actions">
-        <button @tap="openInvite()">查看公开页</button>
-        <button @tap="copyInviteLink()">复制路径</button>
-        <button @tap="editInvite()">编辑字段</button>
-      </view>
-    </view>
 
-    <view class="section-card">
-      <view class="section-head">
-        <text class="section-title">版本与设备</text>
-        <text class="section-more">权益校验</text>
-      </view>
-      <view class="rights-list">
-        <view class="right-row">
-          <text class="right-name">当前版本</text>
-          <text class="right-value">{{ entitlements.currentPlan?.name || '基础版' }}</text>
+      <view class="section-card">
+        <view class="section-head">
+          <text class="section-title">版本与设备</text>
+          <text class="section-more">权益校验</text>
         </view>
-        <view class="right-row">
-          <text class="right-name">设备租赁</text>
-          <text class="right-value" :class="{ ok: hasDeviceRight }">{{ hasDeviceRight ? '已开通' : '未开通' }}</text>
+        <view class="rights-list">
+          <view class="right-row">
+            <text class="right-name">当前版本</text>
+            <text class="right-value">{{ entitlements.currentPlan?.name || '基础版' }}</text>
+          </view>
+          <view class="right-row">
+            <text class="right-name">设备租赁</text>
+            <text class="right-value" :class="{ ok: hasDeviceRight }">{{ hasDeviceRight ? '已开通' : '未开通' }}</text>
+          </view>
+          <view class="right-row">
+            <text class="right-name">Excel 导出</text>
+            <text class="right-value" :class="{ ok: hasExportRight }">{{ hasExportRight ? '已包含' : '未包含' }}</text>
+          </view>
         </view>
-        <view class="right-row">
-          <text class="right-name">Excel 导出</text>
-          <text class="right-value" :class="{ ok: hasExportRight }">{{ hasExportRight ? '已包含' : '未包含' }}</text>
+        <view class="dual-buttons">
+          <button @tap="openPlan()">选择版本</button>
+          <button @tap="openDevice()">设备选择</button>
         </view>
       </view>
-      <view class="dual-buttons">
-        <button @tap="openPlan()">选择版本</button>
-        <button @tap="openDevice()">设备选择</button>
-      </view>
-    </view>
 
-    <view class="copy-card">
-      <text class="section-title">收礼文案</text>
-      <text class="copy-text">{{ detail.giftSuccessCopywriting.content }}</text>
+      <view class="copy-card">
+        <text class="section-title">收礼文案</text>
+        <text class="copy-text">{{ detail.giftSuccessCopywriting.content }}</text>
+      </view>
     </view>
   </view>
   <view class="loading" v-else-if="pageState === 'loading'">加载中</view>
@@ -340,8 +361,7 @@ onMounted(bootstrap);
 .page {
   box-sizing: border-box;
   min-height: 100vh;
-  padding: 24rpx 24rpx 44rpx;
-  background: #fff8ef;
+  background: #f7f3ee;
   color: #151823;
 }
 
@@ -399,16 +419,16 @@ onMounted(bootstrap);
   font-size: 27rpx;
 }
 
-.hero-card {
+.red-stage {
   position: relative;
   overflow: hidden;
-  padding: 30rpx;
-  border-radius: 24rpx;
+  min-height: 320rpx;
+  padding: 66rpx 40rpx 112rpx;
   background:
-    radial-gradient(circle at 82% 18%, rgba(255, 232, 190, 0.35), transparent 28%),
-    linear-gradient(135deg, #e60012, #b80000);
+    radial-gradient(circle at 76% 12%, rgba(255, 164, 91, 0.42), transparent 30%),
+    radial-gradient(circle at 100% 100%, rgba(255, 219, 168, 0.26), transparent 26%),
+    linear-gradient(142deg, #e40012 0%, #cf0710 48%, #a80008 100%);
   color: #fff;
-  box-shadow: 0 16rpx 34rpx rgba(184, 0, 0, 0.18);
 }
 
 .hero-art {
@@ -417,12 +437,21 @@ onMounted(bootstrap);
   pointer-events: none;
 }
 
+.firework {
+  position: absolute;
+  top: 46rpx;
+  right: 154rpx;
+  color: rgba(255, 235, 198, 0.52);
+  font-size: 76rpx;
+  font-weight: 900;
+}
+
 .hero-knot {
   position: absolute;
-  right: 36rpx;
-  bottom: -8rpx;
-  color: rgba(255, 232, 190, 0.15);
-  font-size: 154rpx;
+  right: 58rpx;
+  bottom: 26rpx;
+  color: rgba(255, 229, 195, 0.16);
+  font-size: 190rpx;
   font-weight: 900;
 }
 
@@ -455,16 +484,16 @@ onMounted(bootstrap);
 
 .hero-label {
   color: #ffe8bf;
-  font-size: 24rpx;
+  font-size: 28rpx;
   font-weight: 800;
 }
 
 .hero-title {
-  max-width: 520rpx;
-  margin-top: 14rpx;
+  max-width: 510rpx;
+  margin-top: 20rpx;
   overflow: hidden;
   color: #fff7df;
-  font-size: 40rpx;
+  font-size: 50rpx;
   font-weight: 900;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -473,10 +502,11 @@ onMounted(bootstrap);
 
 .status {
   flex: 0 0 auto;
-  padding: 8rpx 18rpx;
-  border: 1rpx solid rgba(255, 232, 190, 0.62);
+  padding: 10rpx 20rpx;
+  border: 1rpx solid rgba(255, 239, 208, 0.68);
   border-radius: 999rpx;
-  color: #fff7df;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff4d6;
   font-size: 23rpx;
   font-weight: 800;
 }
@@ -485,15 +515,108 @@ onMounted(bootstrap);
   display: flex;
   gap: 12rpx;
   flex-wrap: wrap;
-  margin-top: 26rpx;
+  margin-top: 28rpx;
 }
 
 .hero-meta text {
-  padding: 7rpx 14rpx;
+  padding: 9rpx 18rpx;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, 0.16);
   color: rgba(255, 255, 255, 0.92);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.hero-location {
+  display: block;
+  max-width: 560rpx;
+  margin-top: 20rpx;
+  overflow: hidden;
+  color: rgba(255, 247, 223, 0.9);
+  font-size: 26rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  margin-top: -74rpx;
+  padding: 0 24rpx 44rpx;
+}
+
+.overview-card {
+  display: flex;
+  gap: 22rpx;
+  align-items: center;
+  min-height: 168rpx;
+  padding: 22rpx;
+  border: 1rpx solid #f3ded2;
+  border-radius: 28rpx;
+  background: linear-gradient(180deg, #fffaf4, #fff);
+  box-shadow: 0 18rpx 42rpx rgba(89, 37, 28, 0.1);
+}
+
+.overview-cover {
+  flex: 0 0 auto;
+  width: 190rpx;
+  height: 132rpx;
+  border-radius: 20rpx;
+}
+
+.overview-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.overview-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.overview-title,
+.overview-tag,
+.overview-meta text,
+.invite-title,
+.invite-path {
+  display: block;
+}
+
+.overview-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #171923;
+  font-size: 32rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-tag {
+  flex: 0 0 auto;
+  padding: 7rpx 14rpx;
+  border-radius: 999rpx;
+  background: #fff0e9;
+  color: #d61d24;
   font-size: 22rpx;
+  font-weight: 900;
+}
+
+.overview-meta {
+  margin-top: 18rpx;
+}
+
+.overview-meta text {
+  overflow: hidden;
+  margin-top: 9rpx;
+  color: #7a7f8c;
+  font-size: 24rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-card,
@@ -502,9 +625,10 @@ onMounted(bootstrap);
 .copy-card {
   margin-top: 22rpx;
   padding: 24rpx;
+  border: 1rpx solid #f3e5dc;
   border-radius: 24rpx;
   background: #fff;
-  box-shadow: 0 10rpx 30rpx rgba(43, 35, 31, 0.06);
+  box-shadow: 0 12rpx 32rpx rgba(43, 35, 31, 0.06);
 }
 
 .summary-card {
@@ -520,7 +644,7 @@ onMounted(bootstrap);
 .summary-value {
   overflow: hidden;
   color: #171923;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 900;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -533,7 +657,7 @@ onMounted(bootstrap);
 .summary-label {
   margin-top: 8rpx;
   color: #6f7480;
-  font-size: 22rpx;
+  font-size: 23rpx;
 }
 
 .summary-line {
@@ -544,7 +668,7 @@ onMounted(bootstrap);
 
 .section-title {
   color: #171923;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 900;
 }
 
@@ -555,18 +679,21 @@ onMounted(bootstrap);
 
 .action-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16rpx;
   margin-top: 22rpx;
 }
 
 .action-item {
-  min-height: 144rpx;
-  padding: 18rpx 10rpx;
-  border: 1rpx solid #f0e2dc;
-  border-radius: 16rpx;
-  background: #fffaf6;
-  text-align: center;
+  display: grid;
+  grid-template-columns: 60rpx 1fr;
+  column-gap: 16rpx;
+  align-items: center;
+  min-height: 104rpx;
+  padding: 18rpx;
+  border: 1rpx solid #f1dfd5;
+  border-radius: 18rpx;
+  background: linear-gradient(180deg, #fffaf6, #fff);
 }
 
 .action-icon {
@@ -575,7 +702,6 @@ onMounted(bootstrap);
   justify-content: center;
   width: 54rpx;
   height: 54rpx;
-  margin: 0 auto;
   border-radius: 14rpx;
   color: #fff;
   font-size: 28rpx;
@@ -599,26 +725,41 @@ onMounted(bootstrap);
 }
 
 .action-title {
-  margin-top: 12rpx;
+  grid-column: 2;
+  grid-row: 1;
   color: #171923;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 900;
 }
 
 .action-desc {
-  margin-top: 6rpx;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  margin-top: 38rpx;
   color: #7a7f8c;
-  font-size: 20rpx;
+  font-size: 21rpx;
 }
 
 .invite-main {
   justify-content: flex-start;
+  margin-top: 22rpx;
 }
 
-.invite-cover {
-  width: 150rpx;
-  height: 118rpx;
-  border-radius: 14rpx;
+.invite-seal {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 104rpx;
+  height: 104rpx;
+  border: 1rpx solid #f5cfb5;
+  border-radius: 24rpx;
+  background: linear-gradient(135deg, #fff3dc, #d82222);
+  color: #fff1c8;
+  font-size: 42rpx;
+  font-weight: 900;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.45);
 }
 
 .invite-info {
@@ -626,11 +767,29 @@ onMounted(bootstrap);
   min-width: 0;
 }
 
+.invite-title {
+  overflow: hidden;
+  color: #171923;
+  font-size: 28rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .invite-desc {
   overflow: hidden;
   margin-top: 8rpx;
   color: #6f7480;
   font-size: 22rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-path {
+  overflow: hidden;
+  margin-top: 6rpx;
+  color: #a9755d;
+  font-size: 21rpx;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -655,7 +814,7 @@ button::after {
 
 .invite-actions button,
 .dual-buttons button {
-  height: 64rpx;
+  height: 68rpx;
   border: 1rpx solid #ffd6ca;
   border-radius: 999rpx;
   background: #fff6f2;
@@ -696,9 +855,9 @@ button::after {
 
 .copy-text {
   margin-top: 14rpx;
-  padding: 18rpx;
+  padding: 20rpx;
   border-radius: 16rpx;
-  background: #fff8ef;
+  background: linear-gradient(180deg, #fff8ef, #fff);
   color: #8a4d20;
   font-size: 24rpx;
   line-height: 1.6;
