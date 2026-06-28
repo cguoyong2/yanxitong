@@ -32,18 +32,37 @@
         <view class="form-row">
           <text class="row-icon">☎</text>
           <text class="row-label">联系电话</text>
-          <input v-model="displayForm.phone" class="row-input" placeholder="请输入联系电话" />
+          <input
+            v-model="displayForm.phone"
+            class="row-input"
+            type="number"
+            maxlength="11"
+            placeholder="请输入11位手机号"
+            @blur="validatePhone(true)"
+          />
         </view>
-        <view class="form-row">
+        <view class="form-row picker-row">
           <text class="row-icon">▣</text>
           <text class="row-label">宴席时间</text>
-          <input v-model="form.banquetTime" class="row-input" placeholder="请选择宴席时间" />
+          <view class="datetime-pickers">
+            <picker mode="date" :value="selectedDate" @change="onDateChange">
+              <view class="picker-value" :class="{ placeholder: !selectedDate }">{{ selectedDate || '选择日期' }}</view>
+            </picker>
+            <picker mode="time" :value="selectedTime" @change="onTimeChange">
+              <view class="picker-value" :class="{ placeholder: !selectedTime }">{{ selectedTime || '选择时间' }}</view>
+            </picker>
+          </view>
           <text class="row-arrow">›</text>
         </view>
-        <view class="form-row">
+        <view class="form-row" @tap="chooseBanquetLocation">
           <text class="row-icon">⌖</text>
           <text class="row-label">宴席地点</text>
-          <input v-model="form.location" class="row-input" placeholder="请输入宴席地点" />
+          <input
+            v-model="form.location"
+            class="row-input"
+            placeholder="搜索酒店或宴会厅"
+            @tap.stop
+          />
           <text class="row-arrow">›</text>
         </view>
       </view>
@@ -174,6 +193,8 @@ const templates = ref<InvitationTemplate[]>([]);
 const selectedIndex = ref(0);
 const submitting = ref(false);
 const customGiftSuccess = ref('');
+const selectedDate = ref('');
+const selectedTime = ref('');
 const displayForm = reactive({
   hostName: '',
   phone: ''
@@ -203,10 +224,65 @@ function defaultBanquetName() {
 
 function fillSampleData() {
   form.name = defaultBanquetName();
-  form.banquetTime = '2026-10-01T18:00:00';
+  selectedDate.value = '2026-10-01';
+  selectedTime.value = '18:00';
+  syncBanquetTime();
   form.location = '体验宴会厅';
   displayForm.hostName = '宴席通用户';
   displayForm.phone = '13800000000';
+}
+
+function onDateChange(event: { detail: { value: string } }) {
+  selectedDate.value = event.detail.value;
+  if (!selectedTime.value) {
+    selectedTime.value = '18:00';
+  }
+  syncBanquetTime();
+}
+
+function onTimeChange(event: { detail: { value: string } }) {
+  selectedTime.value = event.detail.value;
+  if (!selectedDate.value) {
+    selectedDate.value = formatDateInput(new Date());
+  }
+  syncBanquetTime();
+}
+
+function syncBanquetTime() {
+  form.banquetTime = selectedDate.value && selectedTime.value ? `${selectedDate.value}T${selectedTime.value}:00` : '';
+}
+
+function formatDateInput(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function validatePhone(showToast = false) {
+  const phone = displayForm.phone.trim();
+  if (!phone) {
+    return true;
+  }
+  if (/^1[3-9]\d{9}$/.test(phone)) {
+    return true;
+  }
+  if (showToast) {
+    uni.showToast({ title: '请输入正确的11位手机号', icon: 'none' });
+  }
+  return false;
+}
+
+function chooseBanquetLocation() {
+  uni.chooseLocation({
+    keyword: form.location || '',
+    success: (result) => {
+      const name = result.name || '';
+      const address = result.address || '';
+      form.location = name && address ? `${name} ${address}` : name || address || form.location;
+    },
+    fail: () => {
+      uni.showToast({ title: '地图选址不可用，可手动输入酒店或地址', icon: 'none' });
+    }
+  });
 }
 
 function designFor(eventTypeCode: string) {
@@ -292,6 +368,9 @@ async function submit() {
   }
   if (!form.name || !form.eventTypeCode) {
     uni.showToast({ title: '请填写宴席名称和类型', icon: 'none' });
+    return;
+  }
+  if (!validatePhone(true)) {
     return;
   }
   submitting.value = true;
@@ -554,6 +633,37 @@ onMounted(() => {
   min-width: 0;
   color: #171923;
   font-size: 26rpx;
+}
+
+.picker-row {
+  min-height: 96rpx;
+}
+
+.datetime-pickers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 144rpx;
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.picker-value {
+  overflow: hidden;
+  height: 58rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #efe1d5;
+  border-radius: 12rpx;
+  background: #fffaf5;
+  color: #171923;
+  font-size: 25rpx;
+  font-weight: 700;
+  line-height: 58rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.picker-value.placeholder {
+  color: #9aa0aa;
+  font-weight: 600;
 }
 
 .row-arrow,
