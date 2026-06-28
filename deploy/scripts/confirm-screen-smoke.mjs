@@ -7,7 +7,7 @@ import path from 'node:path';
 const require = createRequire(new URL('../../confirm-screen/package.json', import.meta.url));
 const { chromium } = require('playwright-core');
 
-const confirmScreenUrl = process.env.CONFIRM_SCREEN_URL || 'http://127.0.0.1:5174';
+const confirmScreenUrl = process.env.CONFIRM_SCREEN_URL || 'http://127.0.0.1:5174/confirm-screen';
 const banquetId = process.env.BANQUET_ID;
 const bindCode = process.env.CONFIRM_SCREEN_BIND_CODE;
 const runId = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);

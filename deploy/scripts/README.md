@@ -13,7 +13,7 @@ Environment variables:
 - `ARTIFACTS_ROOT`: optional output directory for logs and summary
 - `BASE_URL`: backend API base URL, default `http://127.0.0.1:8080`
 - `ADMIN_URL`: admin frontend URL, default `http://127.0.0.1:5173`
-- `CONFIRM_SCREEN_URL`: confirm-screen frontend URL, default `http://127.0.0.1:5174`
+- `CONFIRM_SCREEN_URL`: confirm-screen frontend URL, default `http://127.0.0.1:5174/confirm-screen`
 - `DB_URL`: backend database URL, default points to Docker MySQL on `127.0.0.1:3308`
 - `DB_PORT`: optional infrastructure port check override; defaults to the port parsed from `DB_URL`
 - `DB_USERNAME` / `DB_PASSWORD`: default `yanxitong` / `yanxitong`

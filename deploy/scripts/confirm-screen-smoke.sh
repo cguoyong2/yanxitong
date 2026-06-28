@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8080}"
-CONFIRM_SCREEN_URL="${CONFIRM_SCREEN_URL:-http://127.0.0.1:5174}"
+CONFIRM_SCREEN_URL="${CONFIRM_SCREEN_URL:-http://127.0.0.1:5174/confirm-screen}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if ! curl -fsS "${BASE_URL}/api/health" >/dev/null; then
