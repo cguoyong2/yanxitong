@@ -51,7 +51,13 @@
       </view>
       <view v-if="loading" class="state-box">同步{{ activeTheme.giftRecordLabel }}中</view>
       <view v-else-if="gifts.length === 0" class="state-box">{{ emptyText }}</view>
-      <view v-for="gift in gifts" :key="gift.id" class="gift-row">
+      <view
+        v-for="gift in gifts"
+        :key="gift.id"
+        class="gift-row"
+        :class="{ highlighted: String(gift.id) === highlightId }"
+        @tap="openGiftDetail(gift)"
+      >
         <view class="avatar">{{ guestInitial(gift.guestName) }}</view>
         <view class="gift-main">
           <view class="gift-title-line">
@@ -62,6 +68,31 @@
           <text v-if="gift.blessing" class="blessing">{{ gift.blessing }}</text>
         </view>
         <text class="gift-amount">{{ formatMoney(gift.amount) }}</text>
+      </view>
+    </view>
+
+    <view v-if="selectedGift" class="detail-mask" @tap="closeGiftDetail">
+      <view class="detail-panel" @tap.stop>
+        <view class="detail-head">
+          <text class="detail-title">{{ selectedGift.guestName }}</text>
+          <text class="source-badge" :class="sourceTone(selectedGift.giftSource)">{{ sourceLabel(selectedGift.giftSource) }}</text>
+        </view>
+        <view class="detail-amount">{{ formatMoney(selectedGift.amount) }}</view>
+        <view class="detail-row">
+          <text>收礼时间</text>
+          <text>{{ formatTime(selectedGift.receivedAt) }}</text>
+        </view>
+        <view class="detail-row">
+          <text>来源</text>
+          <text>{{ sourceLabel(selectedGift.giftSource) }}</text>
+        </view>
+        <view class="detail-note">
+          <text>{{ selectedGift.blessing || '暂无备注' }}</text>
+        </view>
+        <view class="detail-actions">
+          <button class="mini-button" @tap="copyGiftDetail">复制记录</button>
+          <button class="mini-button primary" @tap="closeGiftDetail">关闭</button>
+        </view>
       </view>
     </view>
   </view>
@@ -85,6 +116,7 @@ interface GiftRecord {
 interface GiftSummary {
   totalRecords: number;
   totalAmount: number;
+  sourceCounts: Record<string, number>;
   sourceAmounts: Record<string, number>;
 }
 
@@ -94,6 +126,8 @@ const banquetId = ref('');
 const keyword = ref('');
 const sourceIndex = ref(0);
 const loading = ref(false);
+const highlightId = ref('');
+const selectedGift = ref<GiftRecord>();
 const eventType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(eventType.value));
 const sources = computed(() => [
@@ -119,6 +153,7 @@ const emptyText = computed(() => {
 
 function selectSource(index: number) {
   sourceIndex.value = index;
+  highlightId.value = '';
   load();
 }
 
@@ -152,6 +187,7 @@ function sourceTone(value: string) {
 function resetFilters() {
   keyword.value = '';
   sourceIndex.value = 0;
+  highlightId.value = '';
   load();
 }
 
@@ -160,6 +196,26 @@ function openOfflineGift() {
     return;
   }
   uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${banquetId.value}` });
+}
+
+function openGiftDetail(gift: GiftRecord) {
+  selectedGift.value = gift;
+}
+
+function closeGiftDetail() {
+  selectedGift.value = undefined;
+}
+
+function copyGiftDetail() {
+  if (!selectedGift.value) {
+    return;
+  }
+  const gift = selectedGift.value;
+  uni.setClipboardData({
+    data: `${gift.guestName} ${sourceLabel(gift.giftSource)} ${formatMoney(gift.amount)} ${formatTime(gift.receivedAt)} ${gift.blessing || ''}`.trim(),
+    success: () => uni.showToast({ title: '已复制记录', icon: 'success' }),
+    fail: () => uni.showToast({ title: '复制失败', icon: 'none' })
+  });
 }
 
 async function load() {
@@ -192,6 +248,13 @@ onMounted(async () => {
     requireBanquetToast();
     return;
   }
+  const source = current.options?.source || '';
+  const presetIndex = sources.value.findIndex((item) => item.value === source);
+  if (presetIndex >= 0) {
+    sourceIndex.value = presetIndex;
+  }
+  keyword.value = current.options?.keyword || '';
+  highlightId.value = current.options?.highlightId || '';
   eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
   await load();
 });
@@ -416,6 +479,14 @@ onMounted(async () => {
   border-bottom: 1rpx solid #f0dfcf;
 }
 
+.gift-row.highlighted {
+  margin: 8rpx -14rpx;
+  padding: 24rpx 14rpx;
+  border: 2rpx solid #f0b17b;
+  border-radius: 18rpx;
+  background: #fff8ef;
+}
+
 .gift-row:last-child {
   border-bottom: 0;
 }
@@ -497,5 +568,78 @@ onMounted(async () => {
   font-size: 30rpx;
   font-weight: 900;
   white-space: nowrap;
+}
+
+.detail-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(17, 24, 39, 0.48);
+}
+
+.detail-panel {
+  width: 100%;
+  padding: 32rpx 28rpx calc(28rpx + env(safe-area-inset-bottom));
+  border-radius: 28rpx 28rpx 0 0;
+  background: #fffaf5;
+  box-sizing: border-box;
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.detail-title {
+  overflow: hidden;
+  color: #171c2a;
+  font-size: 38rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-amount {
+  margin-top: 18rpx;
+  color: #c7191e;
+  font-size: 58rpx;
+  font-weight: 900;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72rpx;
+  border-bottom: 1rpx solid #f0dfcf;
+  color: #6f625b;
+  font-size: 27rpx;
+  font-weight: 700;
+}
+
+.detail-row text:last-child {
+  color: #171c2a;
+  font-weight: 800;
+}
+
+.detail-note {
+  margin-top: 20rpx;
+  padding: 22rpx;
+  border-radius: 18rpx;
+  background: #fff;
+  color: #865b3e;
+  font-size: 26rpx;
+  line-height: 1.55;
+}
+
+.detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 24rpx;
 }
 </style>

@@ -43,7 +43,17 @@
     <view v-if="lastSavedText" class="saved-card">
       <text class="saved-title">最近保存成功</text>
       <text class="saved-desc">{{ lastSavedText }}</text>
-      <button class="saved-link" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
+      <view class="saved-actions">
+        <button class="saved-link secondary" @tap="continueRegistration">继续登记</button>
+        <button class="saved-link" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
+      </view>
+      <view v-if="recentSaved.length > 1" class="recent-saved">
+        <text class="recent-title">本次已保存 {{ recentSaved.length }} 笔</text>
+        <view v-for="item in recentSaved" :key="item.id" class="recent-row">
+          <text>{{ item.guestName }}</text>
+          <text>¥{{ Number(item.amount || 0).toLocaleString('zh-CN') }}</text>
+        </view>
+      </view>
     </view>
 
     <view class="footer-safe"></view>
@@ -60,9 +70,18 @@ import { request } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
+interface GiftRecord {
+  id: number;
+  guestName: string;
+  amount: number;
+  blessing?: string;
+}
+
 const banquetId = ref('');
 const submitting = ref(false);
 const lastSavedText = ref('');
+const lastSavedId = ref<number>();
+const recentSaved = ref<GiftRecord[]>([]);
 const eventType = ref(readActiveEventType());
 const quickAmounts = [200, 500, 800, 1000, 1200, 2000];
 const form = reactive({ guestName: '', amount: undefined as number | undefined, blessing: '' });
@@ -74,12 +93,12 @@ async function submit() {
   }
   submitting.value = true;
   try {
-    await request('/gifts/offline', { method: 'POST', data: { ...form, banquetId: Number(banquetId.value) } });
-    lastSavedText.value = `${form.guestName} · ¥${Number(form.amount || 0).toLocaleString('zh-CN')}`;
+    const saved = await request<GiftRecord>('/gifts/offline', { method: 'POST', data: { ...form, banquetId: Number(banquetId.value) } });
+    lastSavedId.value = saved.id;
+    lastSavedText.value = `${saved.guestName} · ¥${Number(saved.amount || 0).toLocaleString('zh-CN')}`;
+    recentSaved.value = [saved, ...recentSaved.value].slice(0, 5);
     uni.showToast({ title: '已保存', icon: 'success' });
-    form.guestName = '';
-    form.amount = undefined;
-    form.blessing = '';
+    clearForm();
     uni.showModal({
       title: '记礼已保存',
       content: `已写入${activeTheme.value.giftRecordLabel}，并同步沉淀到人情账本。`,
@@ -119,7 +138,19 @@ function openGiftList() {
     requireBanquetToast();
     return;
   }
-  safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}`, `${activeTheme.value.giftRecordLabel}打开失败`);
+  const highlight = lastSavedId.value ? `&highlightId=${lastSavedId.value}` : '';
+  safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}&source=CASH${highlight}`, `${activeTheme.value.giftRecordLabel}打开失败`);
+}
+
+function continueRegistration() {
+  clearForm();
+  uni.showToast({ title: '可继续登记', icon: 'none' });
+}
+
+function clearForm() {
+  form.guestName = '';
+  form.amount = undefined;
+  form.blessing = '';
 }
 
 function safeNavigate(url: string, failTitle: string) {
@@ -381,16 +412,56 @@ onMounted(async () => {
   font-size: 25rpx;
 }
 
+.saved-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+  margin-top: 18rpx;
+}
+
 .saved-link {
-  width: 220rpx;
+  width: 100%;
   height: 62rpx;
-  margin: 18rpx 0 0;
+  margin: 0;
   border-radius: 999rpx;
   background: #18a058;
   color: #fff;
   font-size: 24rpx;
   font-weight: 900;
   line-height: 62rpx;
+}
+
+.saved-link.secondary {
+  border: 1rpx solid #bfe6c9;
+  background: #fff;
+  color: #187a42;
+}
+
+.saved-link::after {
+  border: 0;
+}
+
+.recent-saved {
+  margin-top: 18rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid #d9f0df;
+}
+
+.recent-title {
+  display: block;
+  margin-bottom: 10rpx;
+  color: #187a42;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46rpx;
+  color: #35423a;
+  font-size: 24rpx;
 }
 
 .footer-safe {
