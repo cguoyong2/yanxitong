@@ -2,26 +2,26 @@
   <view class="page">
     <view class="hero">
       <text class="eyebrow">家庭共享</text>
-      <text class="title">陈家人情簿</text>
-      <text class="subtitle">12 位成员共同维护，管理员：陈建国（父亲）</text>
+      <text class="title">家庭人情簿</text>
+      <text class="subtitle">家庭协作功能后续接入，当前先保留入口与页面结构。</text>
     </view>
 
     <view class="summary-card">
       <view class="summary-item">
         <text class="summary-label">家庭总收礼</text>
-        <text class="summary-value">¥128,600</text>
+        <text class="summary-value">¥0</text>
       </view>
       <view class="summary-item">
         <text class="summary-label">家庭总送礼</text>
-        <text class="summary-value">¥96,350</text>
+        <text class="summary-value">¥0</text>
       </view>
       <view class="summary-item">
         <text class="summary-label">联系人</text>
-        <text class="summary-value">86</text>
+        <text class="summary-value">0</text>
       </view>
       <view class="summary-item">
         <text class="summary-label">总差额</text>
-        <text class="summary-value positive">+¥32,250</text>
+        <text class="summary-value positive">持平</text>
       </view>
     </view>
 
@@ -37,12 +37,20 @@
           <text class="member-role">{{ member.role }}</text>
         </view>
       </view>
+      <view v-if="members.length === 0" class="empty">
+        <text class="empty-title">暂无家庭成员</text>
+        <text class="empty-desc">后续可邀请家人共同维护人情往来。</text>
+      </view>
     </view>
 
     <view class="panel">
       <view class="section-head">
         <text class="section-title">家庭往来记录</text>
-        <text class="section-meta">最近 4 条</text>
+        <text class="section-meta">{{ records.length }} 条</text>
+      </view>
+      <view v-if="records.length === 0" class="empty">
+        <text class="empty-title">暂无家庭往来记录</text>
+        <text class="empty-desc">家庭协作开放后，可按成员汇总收礼、送礼和差额。</text>
       </view>
       <view v-for="record in records" :key="record.id" class="record-row">
         <text class="record-badge" :class="record.type">{{ record.type === 'receive' ? '收' : '送' }}</text>
@@ -59,19 +67,8 @@
 </template>
 
 <script setup lang="ts">
-const members = [
-  { name: '陈建国', role: '管理员' },
-  { name: '陈芳', role: '成员' },
-  { name: '陈明', role: '成员' },
-  { name: '李慧', role: '成员' }
-];
-
-const records = [
-  { id: 1, type: 'receive', name: '张三', event: '结婚宴', date: '2026-06-18', owner: '父亲记录', amount: 800 },
-  { id: 2, type: 'give', name: '李四', event: '乔迁宴', date: '2026-05-22', owner: '母亲记录', amount: 500 },
-  { id: 3, type: 'receive', name: '王五', event: '满月宴', date: '2026-04-10', owner: '我记录', amount: 600 },
-  { id: 4, type: 'give', name: '赵六', event: '寿宴', date: '2026-03-28', owner: '家庭共享', amount: 1000 }
-];
+const members: Array<{ name: string; role: string }> = [];
+const records: Array<{ id: number; type: string; name: string; event: string; date: string; owner: string; amount: number }> = [];
 
 function showComingSoon() {
   uni.showToast({ title: '家庭协作功能后续接入', icon: 'none' });
@@ -243,6 +240,29 @@ button::after {
   margin-top: 4rpx;
   color: #7a7f8c;
   font-size: 21rpx;
+}
+
+.empty {
+  padding: 34rpx 12rpx 10rpx;
+  text-align: center;
+}
+
+.empty-title,
+.empty-desc {
+  display: block;
+}
+
+.empty-title {
+  color: #151823;
+  font-size: 28rpx;
+  font-weight: 800;
+}
+
+.empty-desc {
+  margin-top: 10rpx;
+  color: #7a7f8c;
+  font-size: 23rpx;
+  line-height: 1.5;
 }
 
 .record-row {
