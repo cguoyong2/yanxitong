@@ -137,7 +137,7 @@
             <text class="empty-desc">线下记礼或手动补录后，会在这里形成亲友往来账。</text>
           </view>
           <view v-for="item in displayContacts" :key="item.contactId" class="recent-row" @tap="openDetail(item.contactId)">
-            <text class="avatar">{{ item.contactName.slice(0, 1) }}</text>
+            <text class="avatar">{{ contactInitial(item.contactName) }}</text>
             <view class="recent-main">
               <text class="recent-name">{{ item.contactName }}</text>
               <text class="recent-meta">婚宴 · 今天 · 亲友</text>
@@ -153,8 +153,8 @@
             <text class="more">更多 ›</text>
           </view>
           <view v-if="compareResult" class="compare-person">
-            <text class="avatar large">{{ compareResult.contact.contactName.slice(0, 1) }}</text>
-            <text class="compare-name">{{ compareResult.contact.contactName }}</text>
+            <text class="avatar large">{{ contactInitial(compareResult.contact?.contactName) }}</text>
+            <text class="compare-name">{{ compareResult.contact?.contactName || '未命名联系人' }}</text>
           </view>
           <template v-if="compareResult">
             <text class="compare-line">他送我合计 <text class="red-text">{{ formatMoney(compareResult.receivedAmount) }}</text></text>
@@ -310,6 +310,10 @@ function signedMoney(value: unknown) {
     return `-${formatMoney(Math.abs(amount))}`;
   }
   return '持平';
+}
+
+function contactInitial(name?: string) {
+  return (name || '人').slice(0, 1);
 }
 
 onMounted(load);

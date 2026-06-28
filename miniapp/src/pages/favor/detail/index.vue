@@ -1,9 +1,9 @@
 <template>
   <view class="page" v-if="detail">
     <view class="hero-card">
-      <view class="avatar">{{ detail.contact.contactName.slice(0, 1) }}</view>
+      <view class="avatar">{{ contactInitial(detail.contact?.contactName) }}</view>
       <text class="hero-label">人情往来详情</text>
-      <text class="hero-name">{{ detail.contact.contactName }}</text>
+      <text class="hero-name">{{ detail.contact?.contactName || '未命名联系人' }}</text>
       <text class="hero-note">{{ balanceText(detail.balance) }}</text>
       <view class="balance-box">
         <text class="balance-label">当前差额</text>
@@ -22,19 +22,19 @@
       </view>
       <view class="summary-item">
         <text class="summary-label">往来笔数</text>
-        <text class="summary-value">{{ detail.entries.length }}</text>
+        <text class="summary-value">{{ entries.length }}</text>
       </view>
     </view>
 
     <view class="section-card">
       <view class="section-head">
         <text class="section-title">往来明细</text>
-        <text class="section-note">{{ detail.entries.length }} 条</text>
+        <text class="section-note">{{ entries.length }} 条</text>
       </view>
-      <view v-if="detail.entries.length === 0" class="empty">
+      <view v-if="entries.length === 0" class="empty">
         <text>暂无人情往来明细</text>
       </view>
-      <view v-for="entry in detail.entries" :key="entry.id" class="entry-row">
+      <view v-for="entry in entries" :key="entry.id" class="entry-row">
         <text class="entry-badge" :class="entry.direction === 'GIVEN' ? 'given' : 'received'">{{ entry.direction === 'GIVEN' ? '送' : '收' }}</text>
         <view class="entry-main">
           <text class="entry-title">{{ directionLabel(entry.direction) }}</text>
@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { request } from '../../../api/client';
 
 interface FavorDetail {
@@ -71,6 +71,7 @@ interface FavorDetail {
 
 const detail = ref<FavorDetail>();
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
+const entries = computed(() => detail.value?.entries || []);
 
 function formatTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
@@ -121,6 +122,10 @@ function balanceClass(value: unknown) {
     return 'negative';
   }
   return 'neutral';
+}
+
+function contactInitial(name?: string) {
+  return (name || '人').slice(0, 1);
 }
 
 async function bootstrap() {
