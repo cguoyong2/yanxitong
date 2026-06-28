@@ -33,6 +33,30 @@
 
     <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail">返回宴席管理台</button>
 
+    <view v-if="planOrders.length" class="orders-card">
+      <view class="section-head">
+        <text class="section-title">版本订单</text>
+        <text class="section-note">{{ planOrders.length }} 单</text>
+      </view>
+      <view v-for="order in planOrders" :key="order.orderNo" class="order-row">
+        <view class="order-main">
+          <text class="order-title">{{ order.orderNo }}</text>
+          <text class="order-meta">{{ formatTime(order.createdAt) }} · {{ orderStatusLabel(order.payStatus) }}</text>
+        </view>
+        <view class="order-side">
+          <text class="order-price">{{ formatMoney(order.amount) }}</text>
+          <button
+            v-if="features.mockPaymentEnabled && order.payStatus !== 'PAID'"
+            class="small-button pay"
+            :loading="paying && pendingOrder?.orderNo === order.orderNo"
+            @tap="mockPay(order.orderNo)"
+          >
+            模拟支付
+          </button>
+        </view>
+      </view>
+    </view>
+
     <view class="plans-list">
       <view
         v-for="plan in plans"
@@ -97,6 +121,7 @@ interface PlanOrder {
   amount: number;
   priceUnit: string;
   payStatus: string;
+  createdAt?: string;
 }
 
 interface Entitlements {
@@ -111,6 +136,7 @@ const banquetId = ref('');
 const submittingId = ref<number>();
 const paying = ref(false);
 const pendingOrder = ref<PlanOrder>();
+const planOrders = ref<PlanOrder[]>([]);
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const entitlements = reactive<Entitlements>({
   rightValues: {},
@@ -147,6 +173,7 @@ async function loadOrders() {
     return;
   }
   const orders = await request<PlanOrder[]>(`/plans/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
+  planOrders.value = mergeOrders(orders, cachedOrders());
   pendingOrder.value = orders.find((item) => item.payStatus !== 'PAID');
 }
 
@@ -175,6 +202,7 @@ async function createOrder(planId: number) {
       cacheOrder(order);
       uni.showToast({ title: '订单已创建', icon: 'success' });
     }
+    planOrders.value = mergeOrders([order], planOrders.value);
   } finally {
     submittingId.value = undefined;
   }
@@ -186,7 +214,7 @@ async function mockPay(orderNo: string) {
     await request(`/plans/orders/${orderNo}/mock-success`, { method: 'POST' });
     pendingOrder.value = undefined;
     clearCachedOrder(orderNo);
-    await loadEntitlements();
+    await Promise.all([loadEntitlements(), loadOrders()]);
     uni.showToast({ title: '版本已开通', icon: 'success' });
   } finally {
     paying.value = false;
@@ -216,8 +244,29 @@ function clearCachedOrder(orderNo: string) {
   uni.setStorageSync(localOrderKey.value, orders);
 }
 
+function mergeOrders(primary: PlanOrder[], fallback: PlanOrder[]) {
+  const byOrderNo = new Map<string, PlanOrder>();
+  for (const item of [...primary, ...fallback]) {
+    byOrderNo.set(item.orderNo, item);
+  }
+  return Array.from(byOrderNo.values()).sort((a, b) => String(b.createdAt || b.orderNo).localeCompare(String(a.createdAt || a.orderNo)));
+}
+
 function formatMoney(value: unknown) {
   return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function formatTime(value?: string) {
+  return value ? value.replace('T', ' ').slice(0, 16) : '刚刚创建';
+}
+
+function orderStatusLabel(value: string) {
+  const labels: Record<string, string> = {
+    UNPAID: '待支付',
+    PAID: '已支付',
+    REFUNDED: '已退款'
+  };
+  return labels[value] || value;
 }
 
 function isRecommended(plan: Plan) {
@@ -349,6 +398,7 @@ onMounted(async () => {
 
 .current-card,
 .pending-card,
+.orders-card,
 .plan-card,
 .scope-card {
   margin-top: 24rpx;
@@ -449,6 +499,86 @@ onMounted(async () => {
   font-size: 27rpx;
   font-weight: 900;
   line-height: 76rpx;
+}
+
+.orders-card {
+  padding: 26rpx;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 12rpx;
+}
+
+.section-note {
+  color: #8a7768;
+  font-size: 24rpx;
+}
+
+.order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f0dfcf;
+}
+
+.order-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.order-main {
+  min-width: 0;
+}
+
+.order-title,
+.order-meta,
+.order-price {
+  display: block;
+}
+
+.order-title {
+  overflow: hidden;
+  color: #171c2a;
+  font-size: 27rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-meta {
+  margin-top: 8rpx;
+  color: #8a7768;
+  font-size: 23rpx;
+}
+
+.order-side {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  gap: 10rpx;
+}
+
+.order-price {
+  color: #c7191e;
+  font-size: 29rpx;
+  font-weight: 900;
+}
+
+.small-button.pay {
+  height: 54rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid #f3c4af;
+  border-radius: 999rpx;
+  background: #fff0ea;
+  color: #c7191e;
+  font-size: 22rpx;
+  line-height: 54rpx;
 }
 
 .plans-list {

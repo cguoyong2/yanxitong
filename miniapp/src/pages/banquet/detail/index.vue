@@ -51,6 +51,16 @@
         </view>
       </view>
 
+      <view class="next-card">
+        <view class="next-icon">{{ nextStep.icon }}</view>
+        <view class="next-main">
+          <text class="next-label">下一步建议</text>
+          <text class="next-title">{{ nextStep.title }}</text>
+          <text class="next-desc">{{ nextStep.desc }}</text>
+        </view>
+        <button class="next-button" @tap="handleAction(nextStep.action)">{{ nextStep.button }}</button>
+      </view>
+
       <view class="section-card progress-card">
         <view class="section-head">
           <text class="section-title">管理进度</text>
@@ -230,6 +240,51 @@ const progressItems = computed(() => [
     action: hasDeviceRight.value ? 'device' : 'plan'
   }
 ]);
+const nextStep = computed(() => {
+  if (!entitlements.currentPlan || !entitlements.paidPlanActive) {
+    return {
+      icon: '冠',
+      title: '先选择适合的宴席版本',
+      desc: '版本会决定设备、导出和部分业务入口，建议先完成版本开通。',
+      button: '选择版本',
+      action: 'plan'
+    };
+  }
+  if (!hasDeviceRight.value) {
+    return {
+      icon: '屏',
+      title: '当前版本未包含设备',
+      desc: '如需确认屏或云喇叭，请先升级到包含设备租赁的版本。',
+      button: '查看版本',
+      action: 'plan'
+    };
+  }
+  if (!Number(rsvpStats.value?.totalRecords || 0)) {
+    return {
+      icon: '请',
+      title: '开始发送请柬收集回执',
+      desc: '分享公开请柬后，宾客可提交回执，管理台会自动汇总人数。',
+      button: '发请柬',
+      action: 'invite'
+    };
+  }
+  if (!Number(giftSummary.value?.totalRecords || 0)) {
+    return {
+      icon: '礼',
+      title: `登记${activeTheme.value.giftLabel}记录`,
+      desc: `${activeTheme.value.offlineGiftLabel}会同步沉淀到人情账本，便于后续往来对比。`,
+      button: activeTheme.value.offlineGiftLabel,
+      action: 'offlineGift'
+    };
+  }
+  return {
+    icon: '账',
+    title: '查看人情账本',
+    desc: '回执和收礼记录已经形成基础闭环，可以继续核对往来关系。',
+    button: '人情账本',
+    action: 'favor'
+  };
+});
 const hasDeviceRight = computed(() => Boolean(entitlements.rightValues.DEVICE_RENTAL));
 const hasExportRight = computed(() => Boolean(entitlements.rightValues.EXCEL_EXPORT));
 const paymentEntryEnabled = computed(() => features.value.mockPaymentEnabled);
@@ -760,6 +815,7 @@ onShow(() => {
 }
 
 .summary-card,
+.next-card,
 .section-card,
 .invite-card,
 .copy-card {
@@ -775,6 +831,80 @@ onShow(() => {
   display: grid;
   grid-template-columns: 1fr 1rpx 1fr 1rpx 1fr;
   align-items: center;
+}
+
+.next-card {
+  display: grid;
+  grid-template-columns: 86rpx 1fr auto;
+  align-items: center;
+  gap: 18rpx;
+  padding: 24rpx;
+  border-color: #ffd9ad;
+  background:
+    radial-gradient(circle at 92% 22%, rgba(255, 224, 170, 0.42), transparent 140rpx),
+    #fff7ed;
+}
+
+.next-icon {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, #e83a32, #c91419);
+  color: #fff8df;
+  font-family: serif;
+  font-size: 30rpx;
+  font-weight: 900;
+  line-height: 76rpx;
+  text-align: center;
+}
+
+.next-main {
+  min-width: 0;
+}
+
+.next-label,
+.next-title,
+.next-desc {
+  display: block;
+}
+
+.next-label {
+  color: #a85d2b;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
+.next-title {
+  overflow: hidden;
+  margin-top: 4rpx;
+  color: #171923;
+  font-size: 29rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.next-desc {
+  margin-top: 6rpx;
+  color: #7f7167;
+  font-size: 23rpx;
+  line-height: 1.4;
+}
+
+.next-button {
+  height: 66rpx;
+  margin: 0;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, #e83a32, #c91419);
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 900;
+  line-height: 66rpx;
+}
+
+.next-button::after {
+  border: 0;
 }
 
 .summary-item {
