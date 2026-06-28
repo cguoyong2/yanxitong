@@ -38,12 +38,6 @@
           <input v-model="form.location" class="row-input" placeholder="请输入宴席地点" />
           <text class="row-arrow">›</text>
         </view>
-        <view class="form-row">
-          <text class="row-icon">♟</text>
-          <text class="row-label">预计人数</text>
-          <input v-model="displayForm.guestCount" class="row-input" type="number" placeholder="请输入预计人数" />
-          <text class="unit">人</text>
-        </view>
       </view>
 
       <view class="section-card">
@@ -167,8 +161,7 @@ const submitting = ref(false);
 const customGiftSuccess = ref('');
 const displayForm = reactive({
   hostName: '',
-  phone: '',
-  guestCount: ''
+  phone: ''
 });
 const form = reactive({
   name: '',
@@ -196,7 +189,6 @@ function fillSampleData() {
   form.location = '体验宴会厅';
   displayForm.hostName = '宴席通用户';
   displayForm.phone = '13800000000';
-  displayForm.guestCount = '80';
 }
 
 function designFor(eventTypeCode: string) {
@@ -282,7 +274,7 @@ async function submit() {
   submitting.value = true;
   uni.showLoading({ title: '创建中' });
   try {
-    const result = await request<{ banquet: { id: number } }>('/banquets', {
+    const result = await request<{ banquet: { id: number }; invitation?: { id: number } }>('/banquets', {
       method: 'POST',
       data: {
         ...form,
@@ -291,6 +283,9 @@ async function submit() {
           ? JSON.stringify({ gift_success: customGiftSuccess.value, gift_success_speaker_text: customGiftSuccess.value })
           : undefined
       }
+    });
+    await syncInvitationBasic(result.invitation?.id).catch(() => {
+      uni.showToast({ title: '宴席已创建，请柬信息稍后可编辑', icon: 'none' });
     });
     uni.showToast({ title: '创建成功', icon: 'success' });
     setTimeout(() => {
@@ -302,6 +297,25 @@ async function submit() {
     uni.hideLoading();
     submitting.value = false;
   }
+}
+
+async function syncInvitationBasic(invitationId?: number) {
+  if (!invitationId) {
+    return;
+  }
+  await request(`/invitations/${invitationId}/basic`, {
+    method: 'PUT',
+    data: {
+      title: `${form.name}邀请函`,
+      hostName: displayForm.hostName,
+      contactPhone: displayForm.phone,
+      addressDetail: form.location,
+      scheduleText: '',
+      greeting: '诚邀您拨冗赴宴，共同见证这份重要时刻',
+      showGiftEntry: true,
+      showDeviceEntry: true
+    }
+  });
 }
 
 onMounted(loadEventTypes);
