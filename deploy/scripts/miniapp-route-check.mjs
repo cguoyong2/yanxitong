@@ -51,6 +51,27 @@ const registeredPages = new Set((pagesJson.pages || []).map((item) => item.path)
 const tabPages = new Set((pagesJson.tabBar?.list || []).map((item) => item.pagePath));
 const failures = [];
 
+for (const page of registeredPages) {
+  const pageFile = path.join(srcRoot, `${page}.vue`);
+  if (!fs.existsSync(pageFile)) {
+    failures.push({
+      file: path.relative(repoRoot, pagesJsonPath),
+      route: page,
+      reason: 'registered page file does not exist'
+    });
+  }
+}
+
+for (const tabPage of tabPages) {
+  if (!registeredPages.has(tabPage)) {
+    failures.push({
+      file: path.relative(repoRoot, pagesJsonPath),
+      route: tabPage,
+      reason: 'tabBar page is not registered in pages'
+    });
+  }
+}
+
 for (const file of walk(srcRoot)) {
   const source = fs.readFileSync(file, 'utf8');
   for (const { method, route } of extractNavigations(source)) {
@@ -83,4 +104,4 @@ if (failures.length) {
   process.exit(1);
 }
 
-console.log(`Miniapp route check passed. Registered pages: ${registeredPages.size}.`);
+console.log(`Miniapp route check passed. Registered pages: ${registeredPages.size}, tab pages: ${tabPages.size}.`);
