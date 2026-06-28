@@ -170,6 +170,8 @@ const form = reactive({
   location: '',
   templateId: undefined as number | undefined
 });
+const initialEventTypeCode = ref('');
+const initialTemplateId = ref<number>();
 
 const selectedTemplate = computed(() => templates.value.find((item) => item.id === form.templateId));
 const filteredTemplates = computed(() => {
@@ -252,11 +254,16 @@ async function loadEventTypes() {
   try {
     eventTypes.value = await request<EventType[]>('/meta/event-types');
     if (eventTypes.value.length > 0) {
-      selectedIndex.value = 0;
-      form.eventTypeCode = eventTypes.value[0].eventTypeCode;
+      const initialIndex = eventTypes.value.findIndex((item) => item.eventTypeCode === initialEventTypeCode.value);
+      selectedIndex.value = initialIndex >= 0 ? initialIndex : 0;
+      form.eventTypeCode = eventTypes.value[selectedIndex.value].eventTypeCode;
     }
     templates.value = await request<InvitationTemplate[]>('/meta/invitation-templates');
-    pickDefaultTemplate();
+    if (initialTemplateId.value && templates.value.some((item) => item.id === initialTemplateId.value)) {
+      form.templateId = initialTemplateId.value;
+    } else {
+      pickDefaultTemplate();
+    }
   } catch (error) {
     uni.showToast({ title: error instanceof Error ? error.message : '加载创建配置失败', icon: 'none' });
   }
@@ -318,7 +325,13 @@ async function syncInvitationBasic(invitationId?: number) {
   });
 }
 
-onMounted(loadEventTypes);
+onMounted(() => {
+  const pages = getCurrentPages();
+  const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
+  initialEventTypeCode.value = current.options?.eventTypeCode || '';
+  initialTemplateId.value = current.options?.templateId ? Number(current.options.templateId) : undefined;
+  loadEventTypes();
+});
 </script>
 
 <style scoped>

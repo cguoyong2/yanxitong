@@ -77,15 +77,17 @@
           <text class="more">查看更多 ›</text>
         </view>
         <view class="template-list">
-          <view v-for="item in templates" :key="item.name" class="template-item">
-            <image class="template-image" :src="item.image" mode="aspectFill" />
+          <view v-if="loadingTemplates" class="template-empty">模板加载中</view>
+          <view v-else-if="filteredTemplates.length === 0" class="template-empty">暂无符合条件的模板</view>
+          <view v-for="item in filteredTemplates" :key="item.id" class="template-item">
+            <image class="template-image" :src="templateImage(item)" mode="aspectFill" />
             <view class="template-info">
               <text class="template-name">{{ item.name }}</text>
-              <text class="template-badge" :class="{ paid: item.type === '付费' }">{{ item.type }}</text>
+              <text class="template-badge" :class="{ paid: item.priceType !== 'FREE' }">{{ templatePrice(item) }}</text>
             </view>
             <view class="template-actions">
-              <button class="preview-btn" @tap="previewTemplate(item.name)">预览</button>
-              <button class="use-btn" @tap="useTemplate(item.name)">使用</button>
+              <button class="preview-btn" @tap="previewTemplate(item)">预览</button>
+              <button class="use-btn" @tap="useTemplate(item)">使用</button>
             </view>
           </view>
         </view>
@@ -151,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { request } from '../../../api/client';
 
 interface Banquet {
@@ -175,6 +177,16 @@ interface RsvpStats {
   totalGuests: number;
 }
 
+interface InvitationTemplate {
+  id: number;
+  templateCode: string;
+  typeCode: string;
+  name: string;
+  coverUrl?: string;
+  priceType: string;
+  price: number;
+}
+
 interface MyInvitation {
   id: number;
   title: string;
@@ -189,6 +201,8 @@ interface MyInvitation {
 const activeType = ref('WEDDING');
 const activeFilter = ref('全部');
 const myInvitation = ref<MyInvitation>();
+const templates = ref<InvitationTemplate[]>([]);
+const loadingTemplates = ref(false);
 const filters = ['全部', '免费', '付费', '定制', '热门'];
 const eventTypes = [
   { code: 'WEDDING', name: '婚宴', subtitle: '喜结良缘', icon: '囍', tone: 'red' },
@@ -199,19 +213,17 @@ const eventTypes = [
   { code: 'MEMORIAL', name: '追思会', subtitle: '追思缅怀', icon: '✿', tone: 'black' },
   { code: 'OTHER', name: '其他', subtitle: '更多类型', icon: '▦', tone: 'purple' }
 ];
-const templates = [
-  { name: '喜结良缘', type: '免费', image: '/static/invitation/tpl_red.png' },
-  { name: '轻奢婚礼', type: '付费', image: '/static/invitation/tpl_gold.png' },
-  { name: '中式国风', type: '付费', image: '/static/invitation/tpl_chinese.png' },
-  { name: '简约极简', type: '免费', image: '/static/invitation/tpl_simple.png' }
-];
+const filteredTemplates = computed(() => templates.value
+  .filter((item) => matchesEventType(item, activeType.value))
+  .filter((item) => matchesFilter(item, activeFilter.value))
+  .slice(0, 8));
 
-function previewTemplate(name: string) {
-  uni.showToast({ title: `${name} 预览`, icon: 'none' });
+function previewTemplate(item: InvitationTemplate) {
+  uni.showToast({ title: `${item.name} 可在创建页预览`, icon: 'none' });
 }
 
-function useTemplate(name: string) {
-  uni.showToast({ title: `已选择${name}`, icon: 'none' });
+function useTemplate(item: InvitationTemplate) {
+  uni.navigateTo({ url: `/pages/banquet/create/index?eventTypeCode=${activeType.value}&templateId=${item.id}` });
 }
 
 function openCreateEntry() {
@@ -247,6 +259,51 @@ function formatTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
 }
 
+function matchesEventType(item: InvitationTemplate, eventTypeCode: string) {
+  const code = item.templateCode || '';
+  if (eventTypeCode === 'WEDDING') return code.includes('WEDDING');
+  if (eventTypeCode === 'BIRTHDAY') return code.includes('BIRTHDAY');
+  if (eventTypeCode === 'BABY') return code.includes('BABY');
+  if (eventTypeCode === 'HOUSEWARMING') return code.includes('HOUSE');
+  if (eventTypeCode === 'SCHOOL') return code.includes('SCHOOL');
+  if (eventTypeCode === 'MEMORIAL') return code.includes('MEMORIAL');
+  return code.includes('GENERAL') || code.includes('CEREMONY') || code.includes('CUSTOM');
+}
+
+function matchesFilter(item: InvitationTemplate, filter: string) {
+  if (filter === '免费') return item.priceType === 'FREE';
+  if (filter === '付费') return item.priceType !== 'FREE';
+  if (filter === '定制') return item.priceType === 'CUSTOM' || item.templateCode.includes('CUSTOM');
+  if (filter === '热门') return item.templateCode.includes('WEDDING') || item.templateCode.includes('ELEGANT');
+  return true;
+}
+
+function templatePrice(item: InvitationTemplate) {
+  if (item.priceType === 'FREE') return '免费';
+  if (item.priceType === 'PLAN_INCLUDED') return '权益包含';
+  if (item.priceType === 'CUSTOM') return '定制';
+  return `¥${Number(item.price || 0).toFixed(0)}`;
+}
+
+function templateImage(item: InvitationTemplate) {
+  if (item.coverUrl) return item.coverUrl;
+  if (item.templateCode.includes('GOLD')) return '/static/invitation/tpl_gold.png';
+  if (item.templateCode.includes('CHINESE')) return '/static/invitation/tpl_chinese.png';
+  if (item.templateCode.includes('MEMORIAL')) return '/static/invitation/tpl_simple.png';
+  return '/static/invitation/tpl_red.png';
+}
+
+async function loadTemplates() {
+  loadingTemplates.value = true;
+  try {
+    templates.value = await request<InvitationTemplate[]>('/meta/invitation-templates');
+  } catch {
+    templates.value = [];
+  } finally {
+    loadingTemplates.value = false;
+  }
+}
+
 async function loadMyInvitation() {
   const banquets = await request<Banquet[]>('/banquets').catch(() => []);
   const latest = banquets[0];
@@ -274,7 +331,10 @@ async function loadMyInvitation() {
   };
 }
 
-onMounted(loadMyInvitation);
+onMounted(() => {
+  loadMyInvitation();
+  loadTemplates();
+});
 </script>
 
 <style scoped>
@@ -645,6 +705,17 @@ onMounted(loadMyInvitation);
 
 .template-item {
   min-width: 0;
+}
+
+.template-empty {
+  grid-column: 1 / -1;
+  padding: 48rpx 20rpx;
+  border: 1rpx dashed #ead8ca;
+  border-radius: 18rpx;
+  background: #fffaf6;
+  color: #9a6a4c;
+  font-size: 25rpx;
+  text-align: center;
 }
 
 .template-image {
