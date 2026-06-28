@@ -7,7 +7,9 @@
         <span></span>
       </div>
       <p class="eyebrow">礼金到账</p>
+      <p class="brand">宴席通</p>
       <h1 class="guest">{{ event.guestName || '来宾' }}</h1>
+      <p class="gift-label">随礼</p>
       <div class="amount">¥{{ formatAmount(event.amount) }}</div>
       <p v-if="event.message" class="message">{{ event.message }}</p>
       <p class="subtitle">{{ formatTime(event.paidAt) }}</p>
@@ -66,9 +68,9 @@ function formatTime(value: string): string {
 .success-screen {
   text-align: center;
   background:
-    radial-gradient(circle at center, rgba(250, 204, 21, 0.34), transparent 30%),
+    radial-gradient(circle at center, rgba(255, 213, 130, 0.36), transparent 30%),
     radial-gradient(circle at 22% 18%, rgba(239, 68, 68, 0.26), transparent 28%),
-    linear-gradient(135deg, #260f0f 0%, #111827 100%);
+    linear-gradient(135deg, #8f0e13 0%, #3a0b0d 54%, #120708 100%);
 }
 
 .success {
@@ -78,21 +80,38 @@ function formatTime(value: string): string {
 }
 
 .guest {
-  margin: 0;
+  margin: 12px 0 0;
+  color: #fff;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(48px, 10vw, 120px);
   line-height: 0.95;
   overflow-wrap: anywhere;
+  text-shadow: 0 16px 42px rgba(0, 0, 0, 0.32);
 }
 
 .amount {
-  margin-top: 28px;
+  margin-top: 12px;
   max-width: 100%;
-  color: #facc15;
+  color: #ffe7a7;
   font-size: clamp(64px, 14vw, 170px);
-  font-weight: 800;
+  font-weight: 900;
   line-height: 0.95;
-  text-shadow: 0 0 36px rgba(250, 204, 21, 0.32);
+  text-shadow: 0 0 42px rgba(250, 204, 21, 0.36);
   overflow-wrap: anywhere;
+}
+
+.brand {
+  margin: 0;
+  color: #ffe7a7;
+  font-size: clamp(28px, 4vw, 52px);
+  font-weight: 900;
+}
+
+.gift-label {
+  margin: 24px 0 0;
+  color: #fff2d4;
+  font-size: clamp(24px, 4vw, 48px);
+  font-weight: 800;
 }
 
 .message {
@@ -111,7 +130,7 @@ function formatTime(value: string): string {
 
 .countdown {
   margin: 24px 0 0;
-  color: #fde68a;
+  color: #ffe7a7;
   font-size: 18px;
 }
 
@@ -127,7 +146,7 @@ function formatTime(value: string): string {
   width: 14px;
   height: 72px;
   border-radius: 999px;
-  background: linear-gradient(#facc15, #ef4444);
+  background: linear-gradient(#ffe7a7, #ef4444);
   transform-origin: bottom center;
   animation: rise 1.1s ease-in-out infinite alternate;
 }

@@ -4,8 +4,8 @@
 
 <style>
 :root {
-  color: #f8fafc;
-  background: #101418;
+  color: #fff7ed;
+  background: #160708;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -19,9 +19,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 20% 18%, rgba(250, 204, 21, 0.14), transparent 28%),
-    radial-gradient(circle at 82% 8%, rgba(220, 38, 38, 0.2), transparent 26%),
-    linear-gradient(135deg, #120f12 0%, #1f1111 46%, #09090b 100%);
+    radial-gradient(circle at 80% 14%, rgba(255, 210, 130, 0.18), transparent 26%),
+    radial-gradient(circle at 16% 22%, rgba(228, 42, 34, 0.28), transparent 28%),
+    linear-gradient(135deg, #1b0808 0%, #5f090d 46%, #120708 100%);
   overflow-x: hidden;
 }
 
@@ -49,27 +49,31 @@ button {
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.42), transparent 72%);
+    radial-gradient(circle at 12% 12%, rgba(255, 220, 150, 0.14), transparent 10%),
+    linear-gradient(rgba(255, 230, 180, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 230, 180, 0.03) 1px, transparent 1px);
+  background-size: 520px 520px, 88px 88px, 88px 88px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.58), transparent 78%);
 }
 
 .panel {
   width: min(760px, 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(16, 20, 24, 0.86);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 230, 180, 0.18);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(42, 18, 16, 0.92), rgba(20, 8, 9, 0.9)),
+    rgba(16, 20, 24, 0.86);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
   padding: 40px;
   backdrop-filter: blur(18px);
 }
 
 .eyebrow {
   margin: 0 0 12px;
-  color: #facc15;
+  color: #f6c26b;
   font-size: 14px;
   letter-spacing: 0;
+  font-weight: 800;
 }
 
 .title {
@@ -81,7 +85,7 @@ button {
 
 .subtitle {
   margin: 18px 0 0;
-  color: #cbd5e1;
+  color: #f1d8b5;
   font-size: 20px;
 }
 
@@ -94,14 +98,15 @@ button {
 .field {
   display: grid;
   gap: 8px;
-  color: #e2e8f0;
+  color: #ffe8c8;
+  font-weight: 700;
 }
 
 .field input {
   width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 230, 180, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 248, 230, 0.08);
   color: #fff;
   padding: 14px 16px;
   outline: none;
@@ -109,18 +114,19 @@ button {
 
 .primary {
   min-height: 52px;
-  border-radius: 8px;
-  background: #f59e0b;
-  color: #1f1300;
-  font-weight: 700;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffd98a, #d89a36);
+  color: #431407;
+  font-weight: 900;
 }
 
 .secondary {
   min-height: 44px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border-radius: 14px;
+  background: rgba(255, 248, 230, 0.1);
+  color: #fff7ed;
   padding: 0 18px;
+  border: 1px solid rgba(255, 230, 180, 0.14);
 }
 
 .secondary:disabled {
@@ -133,7 +139,7 @@ button {
   align-items: center;
   gap: 10px;
   margin-top: 28px;
-  color: #cbd5e1;
+  color: #f1d8b5;
 }
 
 .dot {

@@ -56,9 +56,9 @@ async function rebind() {
   height: 88px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  border-radius: 8px;
-  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: 24px;
+  background: rgba(245, 158, 11, 0.12);
 }
 
 .offline-mark .dot {
@@ -70,13 +70,13 @@ async function rebind() {
   display: grid;
   gap: 8px;
   padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 230, 180, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 244, 220, 0.08);
 }
 
 .status-card span {
-  color: #cbd5e1;
+  color: #f1d8b5;
 }
 
 .status-card strong {

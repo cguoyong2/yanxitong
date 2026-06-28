@@ -12,7 +12,9 @@
         </div>
       </header>
       <div class="hero-state">
-        <div class="pulse-ring"></div>
+        <div class="pulse-ring">
+          <span>礼</span>
+        </div>
         <h1 class="standby-title">等待来宾随礼</h1>
         <p class="subtitle">礼金到账后将自动切换至成功展示页，并同步记录确认屏播报日志。</p>
       </div>
@@ -203,9 +205,12 @@ function formatTime(value: string): string {
 
 .standby-title {
   margin: 0;
+  color: #fff7df;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(54px, 10vw, 126px);
   line-height: 0.96;
   text-align: center;
+  text-shadow: 0 18px 46px rgba(0, 0, 0, 0.32);
 }
 
 .topbar {
@@ -217,7 +222,7 @@ function formatTime(value: string): string {
 
 .binding {
   margin: 0;
-  color: #cbd5e1;
+  color: #f1d8b5;
 }
 
 .status-pill {
@@ -225,9 +230,9 @@ function formatTime(value: string): string {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid rgba(245, 158, 11, 0.38);
-  border-radius: 8px;
-  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(246, 194, 107, 0.38);
+  border-radius: 999px;
+  background: rgba(246, 194, 107, 0.12);
   color: #fde68a;
   padding: 0 16px;
 }
@@ -248,15 +253,24 @@ function formatTime(value: string): string {
 .pulse-ring {
   width: clamp(160px, 22vw, 260px);
   aspect-ratio: 1;
-  border: 1px solid rgba(250, 204, 21, 0.32);
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 222, 156, 0.5);
   border-radius: 999px;
   background:
-    radial-gradient(circle, rgba(250, 204, 21, 0.38), transparent 34%),
-    radial-gradient(circle, rgba(185, 28, 28, 0.28), transparent 62%);
+    radial-gradient(circle, rgba(255, 227, 168, 0.5), transparent 34%),
+    radial-gradient(circle, rgba(185, 28, 28, 0.34), transparent 62%);
   box-shadow:
-    0 0 80px rgba(250, 204, 21, 0.18),
+    0 0 100px rgba(250, 204, 21, 0.24),
     inset 0 0 60px rgba(255, 255, 255, 0.08);
   animation: breathe 2.8s ease-in-out infinite;
+}
+
+.pulse-ring span {
+  color: #fff2cc;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(72px, 10vw, 126px);
+  font-weight: 900;
 }
 
 .hero-state .subtitle {
@@ -279,14 +293,14 @@ function formatTime(value: string): string {
   width: min(520px, 100%);
   margin: 0 auto;
   padding: 18px;
-  border: 1px solid rgba(250, 204, 21, 0.28);
-  border-radius: 8px;
-  background: rgba(250, 204, 21, 0.08);
+  border: 1px solid rgba(255, 222, 156, 0.28);
+  border-radius: 18px;
+  background: rgba(255, 244, 220, 0.09);
 }
 
 .latest-label,
 .latest small {
-  color: #cbd5e1;
+  color: #f1d8b5;
 }
 
 .latest strong {

@@ -1,6 +1,7 @@
 <template>
   <main class="screen">
     <section class="panel">
+      <div class="bind-mark">屏</div>
       <p class="eyebrow">确认屏绑定</p>
       <h1 class="title">连接宴席现场</h1>
       <p class="subtitle">输入宴席 ID 和后台生成的绑定码，确认屏将监听该宴席的礼金成功事件。</p>
@@ -56,3 +57,20 @@ async function submit() {
   }
 }
 </script>
+
+<style scoped>
+.bind-mark {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  height: 86px;
+  margin-bottom: 22px;
+  border: 1px solid rgba(255, 230, 180, 0.28);
+  border-radius: 24px;
+  background: rgba(255, 244, 220, 0.1);
+  color: #ffe7a7;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 42px;
+  font-weight: 900;
+}
+</style>
