@@ -259,3 +259,32 @@ Miniapp build result: passed.
 - `miniapp/dist/build/mp-weixin/api/client.js` contains `https://yxt.yqej.cn/api`.
 
 Scope note: online payment order creation currently returns an order under the configured mock provider, but no payment-success simulation was run and no real payment was completed. User-facing pilot testing should stay on banquet creation, invitation sharing, RSVP, offline gift recording, confirm-screen binding and admin review until the real WeChat payment provider is enabled.
+
+## Production Recheck 2026-06-28
+
+Repeatable checks were re-run after the miniapp route gate and non-payment experience polish:
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `bash deploy/scripts/release-readiness.sh` | Passed | Backend tests, admin build, confirm-screen build, miniapp route check and miniapp build passed. Local readiness endpoint was not running and was recorded as unreachable without blocking. |
+| `production-preflight.sh` | Blocked as expected | Failed at `PAYMENT_WECHAT_MERCHANT_ID still contains placeholder value`, because WeChat service-provider/sub-merchant production credentials are intentionally deferred. |
+| `production-ops-check.sh` | Passed | Failures `0`, warnings `1`; warning is readiness `BLOCKED` before real payment launch. Containers, disk, Nginx config, MySQL, Redis, latest backup checksum and recent logs passed. |
+| `production-security-check.sh` | Passed | Failures `0`, warnings `0`; required security headers, rate-limit config, backup permissions and edge Nginx syntax passed. |
+| `production-api-acceptance.sh` | Passed | Created banquet `6`, invitation `6`, share slug `b19c0fb47ad64858`, bind code `PROD-CS-20260628153832`, payment order `GP202606280738366544`. |
+| `production-browser-smoke.sh` | Passed | Admin pages, confirm-screen bind page and public invitation API loaded with zero runtime failures. |
+
+The production admin password was rotated during this recheck. The current local copy is stored outside the repository at:
+
+```text
+/Users/chenguoyong/.yanxitong-admin-password
+```
+
+The file is permissioned `600` and should be moved into the owner's preferred password manager. Do not commit it to Git.
+
+Current production readiness remains:
+
+- `/api/health`: `UP`
+- `/api/health/readiness`: `BLOCKED`
+- Expected blockers: default provider is still `MOCK`, and WeChat production provider config is incomplete.
+
+Interpretation: the MVP non-payment production operating loop is healthy. Formal public payment launch remains blocked only by the deferred WeChat service-provider/sub-merchant onboarding and small-amount payment validation.
