@@ -23,7 +23,10 @@
     <view v-if="!paymentEntryEnabled" class="notice-card">
       <text class="notice-title">当前为非支付体验版</text>
       <text class="notice-text">{{ activeTheme.onlineGiftLabel }}和现场扫码支付暂未开放，请先使用{{ activeTheme.offlineGiftLabel }}完成记录流程。</text>
-      <button class="notice-button" @tap="openOfflineGift">去{{ activeTheme.offlineGiftLabel }}</button>
+      <view class="notice-actions">
+        <button class="notice-button" @tap="openOfflineGift">去{{ activeTheme.offlineGiftLabel }}</button>
+        <button v-if="shareUrl" class="notice-button ghost" @tap="backToInvitation">返回请柬</button>
+      </view>
     </view>
 
     <template v-else>
@@ -101,6 +104,7 @@ const sources = computed(() => [
 ]);
 const selectedIndex = ref(0);
 const banquetId = ref('');
+const shareUrl = ref('');
 const submitting = ref(false);
 const clientRequestId = ref('');
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
@@ -191,10 +195,23 @@ function openOfflineGift() {
   safeNavigate(`/pages/gift/offline/index?banquetId=${banquetId.value}`, `${activeTheme.value.offlineGiftLabel}打开失败`);
 }
 
+function backToInvitation() {
+  if (!shareUrl.value) {
+    uni.navigateBack();
+    return;
+  }
+  safeNavigate(shareUrl.value, '请柬页面打开失败');
+}
+
 function safeNavigate(url: string, failTitle: string) {
   uni.navigateTo({
     url,
-    fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
   });
 }
 
@@ -208,6 +225,7 @@ onMounted(async () => {
   form.entrySource = current.options?.entrySource || 'ONLINE_GIFT';
   form.guestName = current.options?.guestName ? decodeURIComponent(current.options.guestName) : '';
   form.amount = current.options?.amount ? Number(current.options.amount) : undefined;
+  shareUrl.value = current.options?.shareUrl ? decodeURIComponent(current.options.shareUrl) : '';
   selectedIndex.value = form.entrySource === 'ONSITE_QR' ? 1 : 0;
   if (banquetId.value) {
     eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
@@ -353,15 +371,28 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
+.notice-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
 .notice-button {
   height: 84rpx;
-  margin: 28rpx 0 0;
+  margin: 0;
   border-radius: 18rpx;
   background: linear-gradient(135deg, #e83a32, #c91419);
   color: #fff;
   font-size: 30rpx;
   font-weight: 900;
   line-height: 84rpx;
+}
+
+.notice-button.ghost {
+  border: 1rpx solid #ead1b2;
+  background: #fffaf5;
+  color: #9c4b31;
 }
 
 .notice-button::after,

@@ -266,7 +266,12 @@ function backToInvitation() {
 function safeNavigate(url: string, failTitle: string) {
   uni.navigateTo({
     url,
-    fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
   });
 }
 
@@ -286,10 +291,13 @@ function editAgain() {
 }
 
 async function loadInvitationShareUrl() {
+  if (shareUrl.value) {
+    return;
+  }
   if (!invitationId.value) {
     return;
   }
-  const detail = await request<{ shareUrl?: string }>(`/invitations/${invitationId.value}`);
+  const detail = await request<{ shareUrl?: string }>(`/invitations/${invitationId.value}`).catch(() => ({ shareUrl: '' }));
   shareUrl.value = detail.shareUrl || '';
 }
 
@@ -304,6 +312,7 @@ onMounted(async () => {
     eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
   }
   invitationId.value = current.options?.invitationId || '';
+  shareUrl.value = current.options?.shareUrl ? decodeURIComponent(current.options.shareUrl) : '';
   await Promise.all([
     loadInvitationShareUrl(),
     loadRuntimeFeatures().then((result) => {

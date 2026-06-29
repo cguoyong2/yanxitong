@@ -85,6 +85,29 @@
         </view>
       </view>
 
+      <view class="entry-guide">
+        <view class="guide-head">
+          <text class="section-title">宾客操作</text>
+          <text class="guide-note">先回执，再表达心意</text>
+        </view>
+        <view class="guide-row" @tap="openRsvp">
+          <text class="guide-index">1</text>
+          <view class="guide-main">
+            <text class="guide-title">回执出席</text>
+            <text class="guide-desc">填写姓名、人数、用餐和住宿需求，主办方可实时统计。</text>
+          </view>
+          <text class="guide-action">去回执</text>
+        </view>
+        <view class="guide-row" :class="{ disabled: !showGiftEntry }" @tap="showGiftEntry ? openGift('ONLINE_GIFT') : showGiftDisabled()">
+          <text class="guide-index">2</text>
+          <view class="guide-main">
+            <text class="guide-title">{{ activeTheme.onlineGiftLabel }}</text>
+            <text class="guide-desc">{{ showGiftEntry ? '线上随礼和现场扫码共用统一支付能力。' : '当前先开放回执流程，随礼入口待支付配置完成后开启。' }}</text>
+          </view>
+          <text class="guide-action">{{ showGiftEntry ? '去随礼' : '未开放' }}</text>
+        </view>
+      </view>
+
       <view class="timeline" v-if="scheduleItems.length">
         <text class="section-title">宴席流程</text>
         <view v-for="(item, index) in scheduleItems" :key="item" class="timeline-item">
@@ -266,8 +289,9 @@ function openRsvp() {
     uni.showToast({ title: '请柬信息未加载', icon: 'none' });
     return;
   }
+  const fallbackUrl = `/pages/rsvp/submit/index?banquetId=${data.value.banquet.id}&invitationId=${data.value.invitation.id}&shareUrl=${encodeURIComponent(currentSharePath())}`;
   safeNavigate(
-    data.value.actionUrls?.rsvp || `/pages/rsvp/submit/index?banquetId=${data.value.banquet.id}&invitationId=${data.value.invitation.id}`,
+    withShareUrl(data.value.actionUrls?.rsvp || fallbackUrl),
     '回执页面打开失败'
   );
 }
@@ -278,7 +302,7 @@ function openGift(entrySource: string) {
     return;
   }
   const url = entrySource === 'ONSITE_QR' ? data.value.actionUrls?.onsiteGift : data.value.actionUrls?.onlineGift;
-  safeNavigate(url || `/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=${entrySource}`, `${activeTheme.value.giftLabel}页面打开失败`);
+  safeNavigate(withShareUrl(url || `/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=${entrySource}`), `${activeTheme.value.giftLabel}页面打开失败`);
 }
 
 function safeNavigate(url: string, failTitle: string) {
@@ -293,12 +317,32 @@ function safeNavigate(url: string, failTitle: string) {
   });
 }
 
+function currentSharePath() {
+  return slug.value ? `/pages/invite/public/index?slug=${encodeURIComponent(slug.value)}` : '/pages/home/index/index';
+}
+
+function withShareUrl(url: string) {
+  if (url.includes('shareUrl=')) {
+    return url;
+  }
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}shareUrl=${encodeURIComponent(currentSharePath())}`;
+}
+
 function showGiftDisabled() {
   uni.showToast({ title: `${activeTheme.value.onlineGiftLabel}需完成微信支付配置后开放`, icon: 'none' });
 }
 
 function showMapTip() {
-  uni.showToast({ title: '地图导航将在地址坐标配置后开放', icon: 'none' });
+  const address = basicFields.value.addressDetail || data.value?.banquet.location;
+  if (!address) {
+    uni.showToast({ title: '暂无可复制地址', icon: 'none' });
+    return;
+  }
+  uni.setClipboardData({
+    data: address,
+    success: () => uni.showToast({ title: '地址已复制，可打开地图导航', icon: 'success' })
+  });
 }
 
 function showComingSoon() {
@@ -510,6 +554,7 @@ onShareAppMessage(() => ({
 .intro-card,
 .info-card,
 .quick-card,
+.entry-guide,
 .timeline,
 .copy-card,
 .notice {
@@ -619,6 +664,83 @@ onShareAppMessage(() => ({
   color: #c7191e;
   font-size: 22rpx;
   font-weight: 900;
+}
+
+.entry-guide {
+  padding: 28rpx;
+}
+
+.guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 18rpx;
+}
+
+.guide-head .section-title {
+  margin-bottom: 0;
+}
+
+.guide-note {
+  color: #9b806a;
+  font-size: 23rpx;
+  font-weight: 800;
+}
+
+.guide-row {
+  display: grid;
+  grid-template-columns: 48rpx 1fr auto;
+  gap: 16rpx;
+  align-items: center;
+  min-height: 94rpx;
+  padding: 18rpx 0;
+  border-top: 1rpx solid #f0dfcf;
+}
+
+.guide-row.disabled {
+  opacity: 0.76;
+}
+
+.guide-index {
+  width: 42rpx;
+  height: 42rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e83a32, #c91419);
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 900;
+  line-height: 42rpx;
+  text-align: center;
+}
+
+.guide-main {
+  min-width: 0;
+}
+
+.guide-title,
+.guide-desc {
+  display: block;
+}
+
+.guide-title {
+  color: #171c2a;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.guide-desc {
+  margin-top: 6rpx;
+  color: #7f7167;
+  font-size: 23rpx;
+  line-height: 1.4;
+}
+
+.guide-action {
+  color: #c7191e;
+  font-size: 24rpx;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .timeline,
