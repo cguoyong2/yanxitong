@@ -15,7 +15,10 @@
       </view>
 
       <view class="cover-card">
-        <image class="cover-image" :src="heroImage" mode="aspectFill" />
+        <image v-if="heroImage" class="cover-image" :src="heroImage" mode="aspectFill" />
+        <view v-else class="cover-fallback">
+          <text class="cover-fallback-mark">{{ coverMark }}</text>
+        </view>
         <view class="cover-mask"></view>
         <view class="cover-content">
           <text class="fallback-mark">{{ coverMark }}</text>
@@ -260,15 +263,12 @@ const templateClass = computed(() => {
   return 'template-rich';
 });
 const pageStyle = computed(() => ({
-  '--primary': data.value?.theme?.primaryColor || '#d71920',
-  '--secondary': data.value?.theme?.secondaryColor || '#f6c26b'
+  '--primary': data.value?.theme?.primaryColor || undefined,
+  '--secondary': data.value?.theme?.secondaryColor || undefined
 }));
 
 function defaultCover(type: string) {
-  if (type === 'MEMORIAL') return '/static/invitation/tpl_simple.png';
-  if (type === 'SCHOOL') return '/static/home/package_blue.png';
-  if (type === 'BIRTHDAY') return '/static/home/package_gold.png';
-  return '/static/invitation/tpl_red.png';
+  return '';
 }
 
 function formatDate(value?: string) {
@@ -402,9 +402,62 @@ onShareAppMessage(() => ({
 
 <style scoped>
 .page {
+  --primary: #e60012;
+  --primary-dark: #c40005;
+  --secondary: #f6c26b;
+  --soft-bg: #fff8ef;
+  --accent-shadow: rgba(230, 0, 18, 0.2);
   min-height: 100vh;
-  background: #fff8ef;
+  background: var(--soft-bg);
   color: #171c2a;
+}
+
+.tone-birthday {
+  --primary: #d96a11;
+  --primary-dark: #a64209;
+  --secondary: #ffd892;
+  --soft-bg: #fff9f0;
+  --accent-shadow: rgba(217, 106, 17, 0.2);
+}
+
+.tone-baby {
+  --primary: #e7566f;
+  --primary-dark: #b52d4c;
+  --secondary: #ffc4d1;
+  --soft-bg: #fff8fa;
+  --accent-shadow: rgba(231, 86, 111, 0.2);
+}
+
+.tone-house {
+  --primary: #188356;
+  --primary-dark: #0c5f3e;
+  --secondary: #b7ebc8;
+  --soft-bg: #f7fcf8;
+  --accent-shadow: rgba(24, 131, 86, 0.2);
+}
+
+.tone-school {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --secondary: #bdd7ff;
+  --soft-bg: #f7fbff;
+  --accent-shadow: rgba(37, 99, 235, 0.2);
+}
+
+.tone-memorial {
+  --primary: #2f3338;
+  --primary-dark: #0d0f12;
+  --secondary: #d8d0c2;
+  --soft-bg: #0f1113;
+  --accent-shadow: rgba(0, 0, 0, 0.28);
+}
+
+.tone-other {
+  --primary: #7c3aed;
+  --primary-dark: #5b21b6;
+  --secondary: #dac8ff;
+  --soft-bg: #fbf8ff;
+  --accent-shadow: rgba(124, 58, 237, 0.2);
 }
 
 .state-page {
@@ -459,8 +512,8 @@ onShareAppMessage(() => ({
   padding: 24rpx 24rpx 0;
   box-sizing: border-box;
   background:
-    radial-gradient(circle at 50% -120rpx, rgba(230, 0, 18, 0.12), transparent 420rpx),
-    #fff8ef;
+    radial-gradient(circle at 50% -120rpx, var(--accent-shadow), transparent 420rpx),
+    var(--soft-bg);
 }
 
 .topbar {
@@ -483,7 +536,7 @@ onShareAppMessage(() => ({
   border: 1rpx solid #ead1b2;
   border-radius: 999rpx;
   background: rgba(255, 255, 255, 0.72);
-  color: #9d2b22;
+  color: var(--primary);
   font-size: 24rpx;
   font-weight: 800;
   line-height: 58rpx;
@@ -494,8 +547,8 @@ onShareAppMessage(() => ({
   overflow: hidden;
   height: 760rpx;
   border-radius: 28rpx;
-  background: #a70d12;
-  box-shadow: 0 18rpx 48rpx rgba(156, 38, 24, 0.22);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 18rpx 48rpx var(--accent-shadow);
 }
 
 .cover-image {
@@ -504,11 +557,28 @@ onShareAppMessage(() => ({
   display: block;
 }
 
+.cover-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 78% 20%, rgba(255, 255, 255, 0.2), transparent 220rpx),
+    linear-gradient(135deg, var(--primary), var(--primary-dark));
+}
+
+.cover-fallback-mark {
+  color: rgba(255, 255, 255, 0.18);
+  font-family: serif;
+  font-size: 260rpx;
+  font-weight: 900;
+}
+
 .cover-mask {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(142, 8, 13, 0.14), rgba(142, 8, 13, 0.52)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.38)),
     radial-gradient(circle at 50% 72%, rgba(255, 246, 224, 0.92), rgba(255, 246, 224, 0.58) 33%, transparent 55%);
 }
 
@@ -532,7 +602,7 @@ onShareAppMessage(() => ({
   margin-bottom: 18rpx;
   border: 4rpx solid rgba(255, 229, 176, 0.88);
   border-radius: 50%;
-  color: #b51518;
+  color: var(--primary);
   background: rgba(255, 247, 225, 0.86);
   font-family: serif;
   font-size: 96rpx;
@@ -541,7 +611,7 @@ onShareAppMessage(() => ({
 
 .headline {
   display: block;
-  color: #7d1615;
+  color: var(--primary-dark);
   font-family: serif;
   font-size: 42rpx;
   font-weight: 900;
@@ -558,7 +628,7 @@ onShareAppMessage(() => ({
 .names {
   display: block;
   margin-top: 28rpx;
-  color: #7d1615;
+  color: var(--primary-dark);
   font-family: serif;
   font-size: 48rpx;
   font-weight: 900;
@@ -614,7 +684,7 @@ onShareAppMessage(() => ({
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background: #fff0ea;
+  background: var(--soft-bg);
   color: var(--primary);
   font-size: 24rpx;
   font-weight: 900;
@@ -674,7 +744,7 @@ onShareAppMessage(() => ({
   width: 46rpx;
   height: 46rpx;
   border-radius: 50%;
-  background: #fff0ea;
+  background: var(--soft-bg);
   color: var(--primary);
   font-size: 22rpx;
   font-weight: 900;

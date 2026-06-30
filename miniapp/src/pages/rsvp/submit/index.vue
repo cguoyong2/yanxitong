@@ -327,11 +327,14 @@ onMounted(async () => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fffaf5;
+  --accent-shadow: rgba(230, 0, 18, 0.2);
   min-height: 100vh;
   padding: 24rpx 24rpx 0;
   background:
-    radial-gradient(circle at 50% -120rpx, rgba(230, 0, 18, 0.1), transparent 420rpx),
-    #fffaf5;
+    radial-gradient(circle at 50% -120rpx, var(--accent-shadow), transparent 420rpx),
+    var(--page-bg);
   box-sizing: border-box;
   color: #151824;
 }
@@ -339,31 +342,49 @@ onMounted(async () => {
 .page.orange {
   --accent: #d96a11;
   --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fff9f0;
+  --accent-shadow: rgba(217, 106, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff8fa;
+  --accent-shadow: rgba(231, 86, 111, 0.2);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f7fcf8;
+  --accent-shadow: rgba(24, 131, 86, 0.2);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f7fbff;
+  --accent-shadow: rgba(37, 99, 235, 0.2);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f7f7f7;
+  --accent-shadow: rgba(47, 51, 56, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #fbf8ff;
+  --accent-shadow: rgba(124, 58, 237, 0.2);
 }
 
 .hero {
@@ -376,7 +397,7 @@ onMounted(async () => {
   background:
     radial-gradient(circle at 82% 24%, rgba(255, 210, 150, 0.34), transparent 150rpx),
     linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 56%, var(--accent-dark) 100%);
-  box-shadow: 0 18rpx 42rpx rgba(172, 16, 17, 0.24);
+  box-shadow: 0 18rpx 42rpx var(--accent-shadow);
   text-align: center;
   box-sizing: border-box;
 }
@@ -518,7 +539,7 @@ onMounted(async () => {
   border-color: transparent;
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
-  box-shadow: 0 8rpx 18rpx rgba(214, 28, 28, 0.2);
+  box-shadow: 0 8rpx 18rpx var(--accent-shadow);
 }
 
 .stepper {
@@ -552,8 +573,8 @@ onMounted(async () => {
   padding: 20rpx 22rpx;
   border: 1rpx solid #f1d8c0;
   border-radius: 16rpx;
-  background: #fff8ef;
-  color: #9a5a2c;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 26rpx;
   line-height: 1.5;
 }
@@ -608,7 +629,7 @@ onMounted(async () => {
   left: 0;
   z-index: 20;
   padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
-  background: rgba(255, 250, 245, 0.96);
+  background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 -8rpx 28rpx rgba(72, 45, 24, 0.08);
 }
 
@@ -626,7 +647,7 @@ onMounted(async () => {
   background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   line-height: 96rpx;
-  box-shadow: 0 12rpx 26rpx rgba(213, 24, 26, 0.2);
+  box-shadow: 0 12rpx 26rpx var(--accent-shadow);
 }
 
 .primary-button::after,
@@ -681,7 +702,7 @@ onMounted(async () => {
 .result-status {
   padding: 8rpx 18rpx;
   border-radius: 999rpx;
-  background: #fff1ee;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 23rpx;
   font-weight: 800;
@@ -714,7 +735,7 @@ onMounted(async () => {
   margin-top: 16rpx;
   padding: 20rpx;
   border-radius: 16rpx;
-  background: #fff8ef;
+  background: var(--accent-soft);
   color: #7a5a44;
   font-size: 25rpx;
   line-height: 1.6;
@@ -754,7 +775,7 @@ onMounted(async () => {
   height: 88rpx;
   border: 1rpx solid #ead8ca;
   background: #fff;
-  color: #9e2c23;
+  color: var(--accent);
   line-height: 88rpx;
 }
 

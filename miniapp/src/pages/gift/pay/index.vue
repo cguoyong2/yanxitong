@@ -243,9 +243,12 @@ onMounted(async () => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
+  --accent-shadow: rgba(230, 0, 18, 0.2);
   min-height: 100vh;
   padding: 24rpx 24rpx 0;
-  background: #fff8ef;
+  background: var(--page-bg);
   box-sizing: border-box;
   color: #171c2a;
 }
@@ -253,31 +256,49 @@ onMounted(async () => {
 .page.orange {
   --accent: #d96a11;
   --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fff9f0;
+  --accent-shadow: rgba(217, 106, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff8fa;
+  --accent-shadow: rgba(231, 86, 111, 0.2);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f7fcf8;
+  --accent-shadow: rgba(24, 131, 86, 0.2);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f7fbff;
+  --accent-shadow: rgba(37, 99, 235, 0.2);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f7f7f7;
+  --accent-shadow: rgba(47, 51, 56, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #fbf8ff;
+  --accent-shadow: rgba(124, 58, 237, 0.2);
 }
 
 .hero-card {
@@ -288,7 +309,7 @@ onMounted(async () => {
   background:
     radial-gradient(circle at 84% 20%, rgba(255, 217, 150, 0.38), transparent 180rpx),
     linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
-  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
 }
 
 .hero-card.onsite {
@@ -425,8 +446,8 @@ onMounted(async () => {
 
 .notice-button.ghost {
   border: 1rpx solid #ead1b2;
-  background: #fffaf5;
-  color: #9c4b31;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
 }
 
 .notice-button::after,
@@ -482,8 +503,8 @@ onMounted(async () => {
   height: 62rpx;
   border: 1rpx solid #efd9c7;
   border-radius: 999rpx;
-  background: #fffaf5;
-  color: #9c4b31;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 25rpx;
   font-weight: 800;
   line-height: 62rpx;
@@ -492,7 +513,7 @@ onMounted(async () => {
 
 .quick-amount.active {
   border-color: transparent;
-  background: #ffece7;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
@@ -516,7 +537,7 @@ onMounted(async () => {
   width: 34rpx;
   height: 34rpx;
   border-radius: 50%;
-  background: #fff0ea;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 20rpx;
   font-weight: 800;
@@ -560,8 +581,8 @@ onMounted(async () => {
   padding: 12rpx 14rpx;
   border: 1rpx solid #efd9c7;
   border-radius: 16rpx;
-  background: #fffaf5;
-  color: #9c4b31;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 24rpx;
   line-height: 1.35;
   text-align: center;
@@ -606,7 +627,7 @@ onMounted(async () => {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  background: #fff0ea;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 22rpx;
   font-weight: 900;
