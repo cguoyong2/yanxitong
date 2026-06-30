@@ -2,10 +2,10 @@
   <view class="page" :class="activeTheme.tone">
     <view class="hero-card">
       <view class="coin coin-a">¥</view>
-      <view class="coin coin-b">礼</view>
+      <view class="coin coin-b">{{ activeTheme.mark }}</view>
       <text class="hero-label">宴席通</text>
       <text class="hero-title">{{ activeTheme.offlineGiftLabel }}</text>
-      <text class="hero-desc">现金、转账备注和现场补录统一登记</text>
+      <text class="hero-desc">{{ activeTheme.giftLabel }}、转账备注和现场补录统一登记</text>
       <view class="hero-tags">
         <text>现金{{ activeTheme.giftLabel }}</text>
         <text>自动入账</text>
@@ -59,7 +59,7 @@
 
     <view class="footer-safe"></view>
     <view class="sticky-submit">
-      <button class="primary-button" :loading="submitting" @tap="submit">保存记礼</button>
+      <button class="primary-button" :loading="submitting" @tap="submit">保存{{ activeTheme.giftRecordLabel }}</button>
       <button class="ghost-button" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
     </view>
   </view>
@@ -103,7 +103,7 @@ async function submit() {
     uni.showToast({ title: '已保存', icon: 'success' });
     clearForm();
     uni.showModal({
-      title: '记礼已保存',
+      title: `${activeTheme.value.giftRecordLabel}已保存`,
       content: `已写入${activeTheme.value.giftRecordLabel}，并同步沉淀到人情账本。`,
       cancelText: '继续登记',
       confirmText: '查看记录',
@@ -114,7 +114,7 @@ async function submit() {
       }
     });
   } catch (error) {
-    uni.showToast({ title: error instanceof Error ? error.message : '保存记礼失败', icon: 'none' });
+    uni.showToast({ title: error instanceof Error ? error.message : `${activeTheme.value.giftRecordLabel}保存失败`, icon: 'none' });
   } finally {
     submitting.value = false;
   }
@@ -207,9 +207,12 @@ onMounted(async () => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
+  --accent-shadow: rgba(230, 0, 18, 0.2);
   min-height: 100vh;
   padding: 24rpx 24rpx 0;
-  background: #fff8ef;
+  background: var(--page-bg);
   box-sizing: border-box;
   color: #161a28;
 }
@@ -217,31 +220,49 @@ onMounted(async () => {
 .page.orange {
   --accent: #d96a11;
   --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fff9f0;
+  --accent-shadow: rgba(217, 106, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff8fa;
+  --accent-shadow: rgba(231, 86, 111, 0.2);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f7fcf8;
+  --accent-shadow: rgba(24, 131, 86, 0.2);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f7fbff;
+  --accent-shadow: rgba(37, 99, 235, 0.2);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f7f7f7;
+  --accent-shadow: rgba(47, 51, 56, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #fbf8ff;
+  --accent-shadow: rgba(124, 58, 237, 0.2);
 }
 
 .hero-card {
@@ -252,7 +273,7 @@ onMounted(async () => {
   background:
     radial-gradient(circle at 82% 18%, rgba(255, 220, 156, 0.35), transparent 180rpx),
     linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 64%, var(--accent-dark) 100%);
-  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
 }
 
 .hero-label,
@@ -387,8 +408,8 @@ onMounted(async () => {
   height: 62rpx;
   border: 1rpx solid #efd9c7;
   border-radius: 999rpx;
-  background: #fffaf5;
-  color: #9c4b31;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 26rpx;
   font-weight: 800;
   line-height: 62rpx;
@@ -415,7 +436,7 @@ onMounted(async () => {
   width: 34rpx;
   height: 34rpx;
   border-radius: 50%;
-  background: #fff0ea;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 20rpx;
   font-weight: 800;
@@ -441,8 +462,8 @@ onMounted(async () => {
   margin: 26rpx 28rpx;
   padding: 20rpx 22rpx;
   border-radius: 16rpx;
-  background: #fff7ec;
-  color: #9a5b30;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 25rpx;
   line-height: 1.5;
 }
@@ -536,7 +557,7 @@ onMounted(async () => {
   grid-template-columns: 1fr 1fr;
   gap: 16rpx;
   padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
-  background: rgba(255, 248, 239, 0.96);
+  background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 -8rpx 28rpx rgba(72, 45, 24, 0.08);
 }
 

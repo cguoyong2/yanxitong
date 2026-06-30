@@ -13,7 +13,7 @@
         </view>
         <view>
           <text class="stat-value">{{ formatMoney(sourceAmount('CASH')) }}</text>
-          <text class="stat-label">现金记礼</text>
+          <text class="stat-label">{{ activeTheme.offlineGiftLabel }}</text>
         </view>
         <view>
           <text class="stat-value">{{ formatMoney(onlineTotal) }}</text>
@@ -24,7 +24,7 @@
 
     <view v-if="banquetId" class="manage-card">
       <view>
-        <text class="manage-title">收礼管理</text>
+        <text class="manage-title">{{ activeTheme.giftRecordLabel }}管理</text>
         <text class="manage-desc">{{ lastSyncText || '从宴席管理台进入后，可随时返回继续办席。' }}</text>
       </view>
       <button class="mini-button" @tap="openBanquetDetail">返回管理台</button>
@@ -333,9 +333,12 @@ onShow(() => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
+  --accent-shadow: rgba(230, 0, 18, 0.2);
   min-height: 100vh;
   padding: 24rpx;
-  background: #fff8ef;
+  background: var(--page-bg);
   box-sizing: border-box;
   color: #171c2a;
 }
@@ -343,31 +346,49 @@ onShow(() => {
 .page.orange {
   --accent: #d96a11;
   --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fff9f0;
+  --accent-shadow: rgba(217, 106, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff8fa;
+  --accent-shadow: rgba(231, 86, 111, 0.2);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f7fcf8;
+  --accent-shadow: rgba(24, 131, 86, 0.2);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f7fbff;
+  --accent-shadow: rgba(37, 99, 235, 0.2);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f7f7f7;
+  --accent-shadow: rgba(47, 51, 56, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #fbf8ff;
+  --accent-shadow: rgba(124, 58, 237, 0.2);
 }
 
 .summary-card {
@@ -378,7 +399,7 @@ onShow(() => {
   background:
     radial-gradient(circle at 86% 22%, rgba(255, 214, 150, 0.36), transparent 170rpx),
     linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 60%, var(--accent-dark) 100%);
-  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
 }
 
 .summary-art {
@@ -498,7 +519,7 @@ onShow(() => {
   height: 78rpx;
   padding: 0 22rpx;
   border-radius: 999rpx;
-  background: #fff6ee;
+  background: var(--accent-soft);
 }
 
 .search-icon {
@@ -562,7 +583,7 @@ onShow(() => {
 
 .mini-button.primary {
   border-color: transparent;
-  background: #fff1ea;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
@@ -594,8 +615,8 @@ onShow(() => {
   padding: 0 22rpx;
   border: 1rpx solid #ead8ca;
   border-radius: 999rpx;
-  background: #fffaf5;
-  color: #9e4d32;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 24rpx;
   font-weight: 800;
   line-height: 58rpx;
@@ -641,7 +662,7 @@ onShow(() => {
   padding: 24rpx 14rpx;
   border: 2rpx solid #f0b17b;
   border-radius: 18rpx;
-  background: #fff8ef;
+  background: var(--accent-soft);
 }
 
 .gift-row:last-child {
@@ -698,7 +719,7 @@ onShow(() => {
 }
 
 .source-badge.online {
-  background: #fff0f0;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
@@ -714,7 +735,7 @@ onShow(() => {
   margin-top: 12rpx;
   padding: 12rpx 16rpx;
   border-radius: 14rpx;
-  background: #fff8ef;
+  background: var(--accent-soft);
   color: #865b3e;
   font-size: 24rpx;
   line-height: 1.5;
@@ -740,7 +761,7 @@ onShow(() => {
   width: 100%;
   padding: 32rpx 28rpx calc(28rpx + env(safe-area-inset-bottom));
   border-radius: 28rpx 28rpx 0 0;
-  background: #fffaf5;
+  background: var(--page-bg);
   box-sizing: border-box;
 }
 
