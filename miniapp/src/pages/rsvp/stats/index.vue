@@ -40,7 +40,8 @@
     <view class="section-card">
       <view class="section-head">
         <text class="section-title">状态分布</text>
-        <button class="refresh-btn" :loading="loading" @tap="load">刷新</button>
+        <text v-if="lastSyncText" class="section-note">{{ lastSyncText }}</text>
+        <button class="refresh-btn" :loading="loading" @tap="refreshStats">刷新</button>
       </view>
       <view class="progress-list">
         <view v-for="item in statusItems" :key="item.label" class="progress-row">
@@ -91,6 +92,10 @@
       </view>
       <view v-else class="record-empty">
         <text>当前筛选暂无回执。</text>
+        <view class="empty-actions">
+          <button class="ghost-button" @tap="shareInvite">继续发送请柬</button>
+          <button class="ghost-button" @tap="openBanquetDetail">返回管理台</button>
+        </view>
       </view>
     </view>
 
@@ -123,6 +128,7 @@
 
     <view v-if="!stats && !loading" class="empty-card">
       <text>暂无回执统计，请先发送请柬并邀请宾客填写。</text>
+      <button class="primary-button" @tap="shareInvite">去发送请柬</button>
     </view>
   </view>
 </template>
@@ -163,6 +169,7 @@ const records = ref<RsvpRecord[]>([]);
 const banquetId = ref('');
 const shareSlug = ref('');
 const loading = ref(false);
+const lastSyncText = ref('');
 const activeFilter = ref('ALL');
 const eventType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(eventType.value));
@@ -214,9 +221,15 @@ async function load() {
     ]);
     stats.value = nextStats;
     records.value = nextRecords || [];
+    lastSyncText.value = `已同步 ${formatDate(new Date().toISOString())}`;
   } finally {
     loading.value = false;
   }
+}
+
+async function refreshStats() {
+  await load();
+  uni.showToast({ title: '回执统计已刷新', icon: 'success' });
 }
 
 function shareInvite() {
@@ -697,6 +710,13 @@ onMounted(async () => {
   color: #9ca3af;
   font-size: 25rpx;
   text-align: center;
+}
+
+.empty-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 22rpx;
 }
 
 .prep-list {

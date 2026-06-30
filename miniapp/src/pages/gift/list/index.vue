@@ -22,6 +22,14 @@
       </view>
     </view>
 
+    <view v-if="banquetId" class="manage-card">
+      <view>
+        <text class="manage-title">收礼管理</text>
+        <text class="manage-desc">{{ lastSyncText || '从宴席管理台进入后，可随时返回继续办席。' }}</text>
+      </view>
+      <button class="mini-button" @tap="openBanquetDetail">返回管理台</button>
+    </view>
+
     <view class="tool-card">
       <view class="search-box">
         <text class="search-icon">⌕</text>
@@ -47,10 +55,16 @@
     <view class="list-card">
       <view class="section-head">
         <text class="section-title">{{ activeTheme.giftRecordLabel }}</text>
-        <text class="section-note">{{ gifts.length }} 条</text>
+        <button class="refresh-btn" :loading="loading" @tap="refreshList">刷新 {{ gifts.length }} 条</button>
       </view>
       <view v-if="loading" class="state-box">同步{{ activeTheme.giftRecordLabel }}中</view>
-      <view v-else-if="gifts.length === 0" class="state-box">{{ emptyText }}</view>
+      <view v-else-if="gifts.length === 0" class="state-box">
+        <text class="state-title">{{ emptyText }}</text>
+        <view class="empty-actions">
+          <button class="mini-button primary" @tap="openOfflineGift">{{ activeTheme.offlineGiftLabel }}</button>
+          <button class="mini-button" @tap="openBanquetDetail">返回管理台</button>
+        </view>
+      </view>
       <view
         v-for="gift in gifts"
         :key="gift.id"
@@ -101,6 +115,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
@@ -129,6 +144,7 @@ const sourceIndex = ref(0);
 const loading = ref(false);
 const highlightId = ref('');
 const selectedGift = ref<GiftRecord>();
+const lastSyncText = ref('');
 const eventType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(eventType.value));
 const sources = computed(() => [
@@ -196,7 +212,15 @@ function openOfflineGift() {
   if (!banquetId.value) {
     return;
   }
-  uni.navigateTo({ url: `/pages/gift/offline/index?banquetId=${banquetId.value}` });
+  safeNavigate(`/pages/gift/offline/index?banquetId=${banquetId.value}`, `${activeTheme.value.offlineGiftLabel}打开失败`);
+}
+
+function openBanquetDetail() {
+  if (!banquetId.value) {
+    requireBanquetToast();
+    return;
+  }
+  safeNavigate(`/pages/banquet/detail/index?id=${banquetId.value}`, '宴席管理台打开失败');
 }
 
 function openGiftDetail(gift: GiftRecord) {
@@ -268,9 +292,15 @@ async function load() {
     ]);
     gifts.value = list;
     summary.value = stat;
+    lastSyncText.value = `已同步 ${formatTime(new Date().toISOString()).slice(5)}`;
   } finally {
     loading.value = false;
   }
+}
+
+async function refreshList() {
+  await load();
+  uni.showToast({ title: `${activeTheme.value.giftRecordLabel}已刷新`, icon: 'success' });
 }
 
 onMounted(async () => {
@@ -290,6 +320,12 @@ onMounted(async () => {
   highlightId.value = current.options?.highlightId || '';
   eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
   await load();
+});
+
+onShow(() => {
+  if (banquetId.value) {
+    load();
+  }
 });
 </script>
 
@@ -387,13 +423,40 @@ onMounted(async () => {
 }
 
 .tool-card,
-.list-card {
+.list-card,
+.manage-card {
   margin-top: 24rpx;
   padding: 26rpx;
   border: 1rpx solid #f0dfcf;
   border-radius: 24rpx;
   background: #fff;
   box-shadow: 0 12rpx 32rpx rgba(82, 45, 24, 0.07);
+}
+
+.manage-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.manage-title,
+.manage-desc,
+.state-title {
+  display: block;
+}
+
+.manage-title {
+  color: #171c2a;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.manage-desc {
+  margin-top: 8rpx;
+  color: #8a7768;
+  font-size: 23rpx;
+  line-height: 1.4;
 }
 
 .search-box {
@@ -493,6 +556,23 @@ onMounted(async () => {
   font-size: 24rpx;
 }
 
+.refresh-btn {
+  height: 58rpx;
+  margin: 0;
+  padding: 0 22rpx;
+  border: 1rpx solid #ead8ca;
+  border-radius: 999rpx;
+  background: #fffaf5;
+  color: #9e4d32;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 58rpx;
+}
+
+.refresh-btn::after {
+  border: 0;
+}
+
 .state-box {
   padding: 54rpx 20rpx;
   border: 1rpx dashed #ead8ca;
@@ -501,6 +581,18 @@ onMounted(async () => {
   color: #9a6a4c;
   font-size: 26rpx;
   text-align: center;
+}
+
+.state-title {
+  color: #9a6a4c;
+  font-size: 26rpx;
+}
+
+.empty-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 24rpx;
 }
 
 .gift-row {

@@ -23,6 +23,15 @@
 
     <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail">返回宴席管理台</button>
 
+    <view v-if="lastOrderText" class="success-card">
+      <text class="success-title">设备订单已记录</text>
+      <text class="success-desc">{{ lastOrderText }}</text>
+      <view class="success-actions">
+        <button class="small-button" @tap="refreshOrders">刷新订单</button>
+        <button class="small-button primary" @tap="returnBanquetDetail">返回管理台</button>
+      </view>
+    </view>
+
     <view class="time-card">
       <text class="section-title">租用时间</text>
       <view class="time-grid">
@@ -50,7 +59,9 @@
     <view class="orders-card">
       <view class="section-head">
         <text class="section-title">设备订单跟踪</text>
-        <text class="section-note">{{ orders.length ? `${orders.length} 单` : '暂无订单' }}</text>
+        <button class="refresh-btn" :loading="loadingOrders" @tap="refreshOrders">
+          刷新 {{ orders.length ? `${orders.length} 单` : '暂无订单' }}
+        </button>
       </view>
       <view v-if="!orders.length" class="order-empty">
         <text class="empty-title">还没有设备订单</text>
@@ -160,6 +171,8 @@ const orders = ref<DeviceOrder[]>([]);
 const banquetId = ref('');
 const submittingId = ref<number>();
 const payingOrderNo = ref('');
+const loadingOrders = ref(false);
+const lastOrderText = ref('');
 const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
@@ -192,7 +205,12 @@ async function loadOrders() {
   if (!banquetId.value) {
     return;
   }
-  orders.value = await request<DeviceOrder[]>(`/devices/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
+  loadingOrders.value = true;
+  try {
+    orders.value = await request<DeviceOrder[]>(`/devices/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
+  } finally {
+    loadingOrders.value = false;
+  }
 }
 
 async function createOrder(config: DeviceConfig) {
@@ -221,6 +239,7 @@ async function createOrder(config: DeviceConfig) {
     });
     orders.value = [order, ...orders.value.filter((item) => item.orderNo !== order.orderNo)];
     cacheOrder(order);
+    lastOrderText.value = `${deviceTypeLabel(order.deviceType)} · ${formatRentWindow(order)} · ${deliveryLabel(order.deliveryMethod)}`;
     uni.showToast({ title: '设备订单已创建', icon: 'success' });
   } finally {
     submittingId.value = undefined;
@@ -233,10 +252,16 @@ async function mockPay(orderNo: string) {
     await request(`/devices/orders/${orderNo}/mock-success`, { method: 'POST' });
     await loadOrders();
     clearCachedOrder(orderNo);
+    lastOrderText.value = '设备订单支付状态已确认，可返回管理台查看进度。';
     uni.showToast({ title: '设备订单已确认', icon: 'success' });
   } finally {
     payingOrderNo.value = '';
   }
+}
+
+async function refreshOrders() {
+  await loadOrders();
+  uni.showToast({ title: '设备订单已刷新', icon: 'success' });
 }
 
 function toLocalDateTime(date: string, time: string) {
@@ -480,7 +505,8 @@ onMounted(async () => {
 .time-card,
 .orders-card,
 .configs-card,
-.scope-card {
+.scope-card,
+.success-card {
   margin-top: 24rpx;
   border: 1rpx solid #f0dfcf;
   border-radius: 24rpx;
@@ -549,6 +575,37 @@ onMounted(async () => {
   line-height: 76rpx;
 }
 
+.success-card {
+  padding: 26rpx 28rpx;
+  border-color: #b8ebc8;
+  background: linear-gradient(180deg, #f0fff5, #fff);
+}
+
+.success-title,
+.success-desc {
+  display: block;
+}
+
+.success-title {
+  color: #166534;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.success-desc {
+  margin-top: 8rpx;
+  color: #54705d;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.success-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
 .right-ok {
   padding: 10rpx 20rpx;
   border-radius: 999rpx;
@@ -603,6 +660,23 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20rpx;
+}
+
+.refresh-btn {
+  height: 58rpx;
+  margin: 0;
+  padding: 0 22rpx;
+  border: 1rpx solid #ead8ca;
+  border-radius: 999rpx;
+  background: #fffaf5;
+  color: #9e4d32;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 58rpx;
+}
+
+.refresh-btn::after {
+  border: 0;
 }
 
 .order-row {
