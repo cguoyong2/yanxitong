@@ -91,6 +91,7 @@
         </view>
         <view class="detail-actions">
           <button class="mini-button" @tap="copyGiftDetail">复制记录</button>
+          <button class="mini-button" @tap="openFavorFromGift">查看人情</button>
           <button class="mini-button primary" @tap="closeGiftDetail">关闭</button>
         </view>
       </view>
@@ -215,6 +216,38 @@ function copyGiftDetail() {
     data: `${gift.guestName} ${sourceLabel(gift.giftSource)} ${formatMoney(gift.amount)} ${formatTime(gift.receivedAt)} ${gift.blessing || ''}`.trim(),
     success: () => uni.showToast({ title: '已复制记录', icon: 'success' }),
     fail: () => uni.showToast({ title: '复制失败', icon: 'none' })
+  });
+}
+
+async function openFavorFromGift() {
+  if (!selectedGift.value) {
+    return;
+  }
+  uni.setStorageSync('favor-focus-contact', selectedGift.value.guestName);
+  try {
+    const result = await request<{ contact?: { id?: number } }>(`/favor/compare?contactName=${encodeURIComponent(selectedGift.value.guestName)}`);
+    const id = result.contact?.id;
+    if (id) {
+      closeGiftDetail();
+      safeNavigate(`/pages/favor/detail/index?id=${id}`, '人情详情打开失败');
+      return;
+    }
+  } catch {
+    // Fall back to the tab when the comparison cannot be loaded.
+  }
+  closeGiftDetail();
+  uni.switchTab({ url: '/pages/favor/index/index' });
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
   });
 }
 
@@ -638,7 +671,7 @@ onMounted(async () => {
 
 .detail-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16rpx;
   margin-top: 24rpx;
 }

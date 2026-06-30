@@ -46,6 +46,7 @@
       <view class="saved-actions">
         <button class="saved-link secondary" @tap="continueRegistration">继续登记</button>
         <button class="saved-link" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
+        <button class="saved-link" @tap="openLastFavor">查看人情往来</button>
       </view>
       <view v-if="recentSaved.length > 1" class="recent-saved">
         <text class="recent-title">本次已保存 {{ recentSaved.length }} 笔</text>
@@ -81,6 +82,7 @@ const banquetId = ref('');
 const submitting = ref(false);
 const lastSavedText = ref('');
 const lastSavedId = ref<number>();
+const lastSavedGuestName = ref('');
 const recentSaved = ref<GiftRecord[]>([]);
 const eventType = ref(readActiveEventType());
 const quickAmounts = [200, 500, 800, 1000, 1200, 2000];
@@ -95,6 +97,7 @@ async function submit() {
   try {
     const saved = await request<GiftRecord>('/gifts/offline', { method: 'POST', data: { ...form, banquetId: Number(banquetId.value) } });
     lastSavedId.value = saved.id;
+    lastSavedGuestName.value = saved.guestName;
     lastSavedText.value = `${saved.guestName} · ¥${Number(saved.amount || 0).toLocaleString('zh-CN')}`;
     recentSaved.value = [saved, ...recentSaved.value].slice(0, 5);
     uni.showToast({ title: '已保存', icon: 'success' });
@@ -140,6 +143,29 @@ function openGiftList() {
   }
   const highlight = lastSavedId.value ? `&highlightId=${lastSavedId.value}` : '';
   safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}&source=CASH${highlight}`, `${activeTheme.value.giftRecordLabel}打开失败`);
+}
+
+async function openLastFavor() {
+  if (!lastSavedGuestName.value) {
+    uni.showToast({ title: '暂无可查看的人情对象', icon: 'none' });
+    return;
+  }
+  await openFavorByName(lastSavedGuestName.value);
+}
+
+async function openFavorByName(name: string) {
+  uni.setStorageSync('favor-focus-contact', name);
+  try {
+    const result = await request<{ contact?: { id?: number } }>(`/favor/compare?contactName=${encodeURIComponent(name)}`);
+    const id = result.contact?.id;
+    if (id) {
+      safeNavigate(`/pages/favor/detail/index?id=${id}`, '人情详情打开失败');
+      return;
+    }
+  } catch {
+    // Fall through to the ledger tab when the comparison endpoint is unavailable.
+  }
+  uni.switchTab({ url: '/pages/favor/index/index' });
 }
 
 function continueRegistration() {
@@ -414,7 +440,7 @@ onMounted(async () => {
 
 .saved-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 14rpx;
   margin-top: 18rpx;
 }

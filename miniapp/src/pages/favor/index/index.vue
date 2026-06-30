@@ -349,6 +349,20 @@ async function load() {
   }
 }
 
+async function consumeFocusedContact() {
+  const name = uni.getStorageSync('favor-focus-contact');
+  if (!name) {
+    return false;
+  }
+  uni.removeStorageSync('favor-focus-contact');
+  keyword.value = String(name);
+  compareName.value = String(name);
+  await load();
+  await runDefaultCompare();
+  uni.pageScrollTo({ selector: '#compare-panel', duration: 260 });
+  return true;
+}
+
 async function addManual() {
   if (!manual.contactName.trim()) {
     uni.showToast({ title: '请输入对象姓名', icon: 'none' });
@@ -434,10 +448,16 @@ function contactInitial(name?: string) {
   return (name || '人').slice(0, 1);
 }
 
-onMounted(load);
-onShow(() => {
+onMounted(async () => {
+  if (!await consumeFocusedContact()) {
+    await load();
+  }
+});
+onShow(async () => {
   activeType.value = readActiveEventType();
-  load();
+  if (!await consumeFocusedContact()) {
+    load();
+  }
 });
 </script>
 
