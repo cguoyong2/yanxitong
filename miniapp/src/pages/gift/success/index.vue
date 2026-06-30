@@ -31,6 +31,7 @@
         {{ confirmed ? '已模拟入账' : '模拟支付成功入账' }}
       </button>
       <button v-if="banquetId" class="ghost-button" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
+      <button v-if="shareUrl" class="ghost-button" @tap="backToInvitation">返回请柬</button>
       <button class="text-button" @tap="goBack">返回</button>
     </view>
   </view>
@@ -44,6 +45,7 @@ import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveE
 const orderNo = ref('');
 const banquetId = ref('');
 const guestName = ref('');
+const shareUrl = ref('');
 const amount = ref(0);
 const submitting = ref(false);
 const confirmed = ref(false);
@@ -76,11 +78,31 @@ async function confirmSuccess() {
 }
 
 function openGiftList() {
-  uni.navigateTo({ url: `/pages/gift/list/index?banquetId=${banquetId.value}` });
+  safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}`, `${activeTheme.value.giftRecordLabel}打开失败`);
+}
+
+function backToInvitation() {
+  if (!shareUrl.value) {
+    goBack();
+    return;
+  }
+  safeNavigate(shareUrl.value, '请柬页面打开失败');
 }
 
 function goBack() {
   uni.navigateBack();
+}
+
+function safeNavigate(url: string, failTitle: string) {
+  uni.navigateTo({
+    url,
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
+  });
 }
 
 function formatNow() {
@@ -95,6 +117,7 @@ onMounted(async () => {
   orderNo.value = current.options?.orderNo || '';
   banquetId.value = current.options?.banquetId || '';
   guestName.value = current.options?.guestName ? decodeURIComponent(current.options.guestName) : '';
+  shareUrl.value = current.options?.shareUrl ? decodeURIComponent(current.options.shareUrl) : '';
   amount.value = Number(current.options?.amount || 0);
   currentTime.value = formatNow();
   if (banquetId.value) {

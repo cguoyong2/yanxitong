@@ -42,7 +42,7 @@
             <text class="info-sub">{{ formatClock(data.banquet.banquetTime) }}</text>
           </view>
         </view>
-        <view class="info-row">
+        <view class="info-row" @tap="showMapTip">
           <text class="info-icon">地</text>
           <view class="info-main">
             <text class="info-label">宴席地点</text>
@@ -57,11 +57,12 @@
             <text class="info-value">{{ basicFields.hostName }}</text>
           </view>
         </view>
-        <view v-if="basicFields.contactPhone" class="info-row">
+        <view v-if="basicFields.contactPhone" class="info-row" @tap="showContactTip">
           <text class="info-icon">电</text>
           <view class="info-main">
             <text class="info-label">联系电话</text>
             <text class="info-value">{{ basicFields.contactPhone }}</text>
+            <text class="info-sub">点击可复制电话</text>
           </view>
         </view>
       </view>
@@ -342,6 +343,19 @@ function showMapTip() {
   uni.setClipboardData({
     data: address,
     success: () => uni.showToast({ title: '地址已复制，可打开地图导航', icon: 'success' })
+  });
+}
+
+function showContactTip() {
+  const phone = basicFields.value.contactPhone;
+  if (!phone) {
+    uni.showToast({ title: '暂无联系电话', icon: 'none' });
+    return;
+  }
+  uni.setClipboardData({
+    data: phone,
+    success: () => uni.showToast({ title: '电话已复制', icon: 'success' }),
+    fail: () => uni.showToast({ title: '复制失败', icon: 'none' })
   });
 }
 

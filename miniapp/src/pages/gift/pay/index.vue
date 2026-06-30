@@ -22,10 +22,10 @@
 
     <view v-if="!paymentEntryEnabled" class="notice-card">
       <text class="notice-title">当前为非支付体验版</text>
-      <text class="notice-text">{{ activeTheme.onlineGiftLabel }}和现场扫码支付暂未开放，请先使用{{ activeTheme.offlineGiftLabel }}完成记录流程。</text>
+      <text class="notice-text">{{ activeTheme.onlineGiftLabel }}和现场扫码支付暂未开放。您可以先返回请柬提交回执，正式支付配置完成后会开放统一支付入口。</text>
       <view class="notice-actions">
-        <button class="notice-button" @tap="openOfflineGift">去{{ activeTheme.offlineGiftLabel }}</button>
-        <button v-if="shareUrl" class="notice-button ghost" @tap="backToInvitation">返回请柬</button>
+        <button class="notice-button" @tap="backToInvitation">{{ shareUrl ? '返回请柬' : '返回上一页' }}</button>
+        <button class="notice-button ghost" @tap="showPaymentNotice">了解说明</button>
       </view>
     </view>
 
@@ -155,8 +155,9 @@ async function submit() {
       method: 'POST',
       data: { ...form, banquetId: Number(banquetId.value), clientRequestId: ensureClientRequestId() }
     });
+    const share = shareUrl.value ? `&shareUrl=${encodeURIComponent(shareUrl.value)}` : '';
     safeNavigate(
-      `/pages/gift/success/index?orderNo=${result.order.orderNo}&banquetId=${banquetId.value}&amount=${form.amount || 0}&guestName=${encodeURIComponent(form.guestName)}`,
+      `/pages/gift/success/index?orderNo=${result.order.orderNo}&banquetId=${banquetId.value}&amount=${form.amount || 0}&guestName=${encodeURIComponent(form.guestName)}${share}`,
       `${activeTheme.value.giftLabel}成功页打开失败`
     );
   } finally {
@@ -187,12 +188,13 @@ function validate() {
   return true;
 }
 
-function openOfflineGift() {
-  if (!banquetId.value) {
-    uni.showToast({ title: '缺少宴席信息', icon: 'none' });
-    return;
-  }
-  safeNavigate(`/pages/gift/offline/index?banquetId=${banquetId.value}`, `${activeTheme.value.offlineGiftLabel}打开失败`);
+function showPaymentNotice() {
+  uni.showModal({
+    title: '支付暂未开放',
+    content: `${activeTheme.value.onlineGiftLabel}和现场扫码共用统一支付能力，需完成微信支付配置后开放。`,
+    showCancel: false,
+    confirmText: '知道了'
+  });
 }
 
 function backToInvitation() {

@@ -173,7 +173,7 @@ const successText = computed(() => {
   }
   return activeTheme.value.rsvpSuccessText || `已记录 ${submitResult.value.guestCount || 1} 位来宾出席。`;
 });
-const giftActionText = computed(() => features.value.mockPaymentEnabled ? activeTheme.value.giftActionLabel : `去${activeTheme.value.offlineGiftLabel}`);
+const giftActionText = computed(() => features.value.mockPaymentEnabled ? activeTheme.value.giftActionLabel : '查看随礼说明');
 const currentStatusLabel = computed(() => {
   const value = submitResult.value?.attendanceStatus || form.attendanceStatus;
   return statuses.find((item) => item.value === value)?.label || '已提交';
@@ -248,11 +248,12 @@ function openGift() {
   if (!banquetId.value) {
     return;
   }
+  const share = shareUrl.value ? `&shareUrl=${encodeURIComponent(shareUrl.value)}` : '';
   if (!features.value.mockPaymentEnabled) {
-    safeNavigate(`/pages/gift/offline/index?banquetId=${banquetId.value}`, `${activeTheme.value.offlineGiftLabel}打开失败`);
+    safeNavigate(`/pages/gift/pay/index?banquetId=${banquetId.value}&entrySource=ONLINE_GIFT&guestName=${encodeURIComponent(form.guestName)}${share}`, `${activeTheme.value.onlineGiftLabel}说明页打开失败`);
     return;
   }
-  safeNavigate(`/pages/gift/pay/index?banquetId=${banquetId.value}&entrySource=ONLINE_GIFT&guestName=${encodeURIComponent(form.guestName)}`, `${activeTheme.value.onlineGiftLabel}打开失败`);
+  safeNavigate(`/pages/gift/pay/index?banquetId=${banquetId.value}&entrySource=ONLINE_GIFT&guestName=${encodeURIComponent(form.guestName)}${share}`, `${activeTheme.value.onlineGiftLabel}打开失败`);
 }
 
 function backToInvitation() {
