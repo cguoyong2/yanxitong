@@ -2,7 +2,7 @@
   <view class="page" :class="activeTheme.tone">
     <view class="hero-card">
       <view class="hero-art">
-        <text class="hero-symbol">柬</text>
+        <text class="hero-symbol">{{ activeTheme.mark }}</text>
       </view>
       <text class="hero-label">基础请柬</text>
       <text class="hero-title">编辑请柬</text>
@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
 import { request } from '../../../api/client';
-import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
 
 const invitationId = ref('');
@@ -105,7 +105,8 @@ const banquetId = ref('');
 const submitting = ref(false);
 const shareUrl = ref('');
 const lastSavedAt = ref('');
-const activeTheme = computed(() => eventThemeFor(readActiveEventType()));
+const eventType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(eventType.value));
 const activeThemeAccent = computed(() => {
   const palette: Record<string, string> = {
     red: '#e60012',
@@ -168,6 +169,9 @@ function fillForm(detail: InvitationDetail) {
     banquetId.value = String(cached.id);
   }
   if (cached?.id) {
+    if (cached.eventTypeCode) {
+      eventType.value = writeActiveEventType(cached.eventTypeCode);
+    }
     writeLastBanquetContext({
       id: cached.id,
       invitationId: Number(invitationId.value) || cached.invitationId,
@@ -286,6 +290,9 @@ onMounted(async () => {
     setTimeout(() => uni.navigateBack(), 700);
     return;
   }
+  if (banquetId.value) {
+    eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
+  }
   await loadInvitation();
 });
 </script>
@@ -294,9 +301,12 @@ onMounted(async () => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
+  --accent-shadow: rgba(184, 17, 21, 0.22);
   min-height: 100vh;
   padding: 24rpx 24rpx 0;
-  background: #fff8ef;
+  background: var(--page-bg);
   box-sizing: border-box;
   color: #171c2a;
 }
@@ -304,31 +314,49 @@ onMounted(async () => {
 .page.orange {
   --accent: #d96a11;
   --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
+  --accent-shadow: rgba(166, 86, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
+  --accent-shadow: rgba(183, 45, 76, 0.18);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
+  --accent-shadow: rgba(12, 95, 62, 0.17);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
+  --accent-shadow: rgba(29, 78, 216, 0.17);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
+  --accent-shadow: rgba(13, 15, 18, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
+  --accent-shadow: rgba(91, 33, 182, 0.18);
 }
 
 .hero-card {
@@ -339,7 +367,7 @@ onMounted(async () => {
   background:
     radial-gradient(circle at 84% 18%, rgba(255, 217, 150, 0.38), transparent 180rpx),
     linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
-  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
 }
 
 .hero-art {
@@ -426,7 +454,7 @@ onMounted(async () => {
   width: 34rpx;
   height: 34rpx;
   border-radius: 50%;
-  background: #fff0ea;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 20rpx;
   font-weight: 900;
@@ -485,7 +513,7 @@ onMounted(async () => {
   padding: 0 22rpx;
   border: 1rpx solid #ead8ca;
   border-radius: 999rpx;
-  background: #fff8ef;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 24rpx;
   font-weight: 900;
@@ -542,7 +570,7 @@ onMounted(async () => {
   display: block;
   padding: 18rpx;
   border-radius: 16rpx;
-  background: #fff8ef;
+  background: var(--accent-soft);
   color: #7b5a45;
   font-size: 24rpx;
   line-height: 1.5;
@@ -561,7 +589,7 @@ onMounted(async () => {
   margin: 0;
   border: 1rpx solid #ead8ca;
   border-radius: 18rpx;
-  background: #fffaf5;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 27rpx;
   font-weight: 900;
@@ -582,7 +610,7 @@ onMounted(async () => {
   left: 0;
   z-index: 20;
   padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
-  background: rgba(255, 248, 239, 0.96);
+  background: var(--page-bg);
   box-shadow: 0 -8rpx 28rpx rgba(72, 45, 24, 0.08);
 }
 

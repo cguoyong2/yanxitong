@@ -340,9 +340,12 @@ onMounted(async () => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
+  --accent-shadow: rgba(184, 17, 21, 0.22);
   min-height: 100vh;
   padding: 24rpx;
-  background: #fff8ef;
+  background: var(--page-bg);
   box-sizing: border-box;
   color: #171c2a;
 }
@@ -350,31 +353,49 @@ onMounted(async () => {
 .page.orange {
   --accent: #d96a11;
   --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
+  --accent-shadow: rgba(166, 86, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
+  --accent-shadow: rgba(183, 45, 76, 0.18);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
+  --accent-shadow: rgba(12, 95, 62, 0.17);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
+  --accent-shadow: rgba(29, 78, 216, 0.17);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
+  --accent-shadow: rgba(13, 15, 18, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
+  --accent-shadow: rgba(91, 33, 182, 0.18);
 }
 
 .hero-card {
@@ -385,7 +406,7 @@ onMounted(async () => {
   background:
     radial-gradient(circle at 86% 20%, rgba(255, 217, 150, 0.38), transparent 180rpx),
     linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
-  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
 }
 
 .hero-art {
@@ -524,7 +545,7 @@ onMounted(async () => {
 }
 
 .summary-icon.red {
-  background: #fff0f0;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
@@ -579,7 +600,7 @@ onMounted(async () => {
   padding: 0 22rpx;
   border: 1rpx solid #ead8ca;
   border-radius: 999rpx;
-  background: #fffaf5;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 24rpx;
   font-weight: 800;
@@ -662,7 +683,7 @@ onMounted(async () => {
   height: 62rpx;
   border: 1rpx solid #ead8ca;
   border-radius: 999rpx;
-  background: #fffaf5;
+  background: var(--accent-soft);
   color: #7e7168;
   font-size: 23rpx;
   font-weight: 800;
@@ -720,7 +741,7 @@ onMounted(async () => {
 }
 
 .record-status.red {
-  background: #fff0f0;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
@@ -829,7 +850,7 @@ onMounted(async () => {
 
 .ghost-button {
   border: 1rpx solid #ead8ca;
-  background: #fffaf5;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 

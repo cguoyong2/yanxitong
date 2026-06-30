@@ -21,7 +21,9 @@
 
     <view class="content">
       <view class="overview-card">
-        <image class="overview-cover" src="/static/home/banquet_cover.png" mode="aspectFill" />
+        <view class="overview-cover">
+          <text>{{ activeTheme.mark }}</text>
+        </view>
         <view class="overview-body">
           <view class="overview-title-row">
             <text class="overview-title">{{ detail.banquet.name }}</text>
@@ -289,7 +291,7 @@ const dashboardItems = computed(() => [
     tone: 'dash-red'
   },
   {
-    title: '收礼',
+    title: activeTheme.value.giftRecordLabel,
     value: formatMoney(giftSummary.value?.totalAmount || 0),
     desc: `${giftSummary.value?.totalRecords || 0} 笔${activeTheme.value.giftLabel}`,
     action: 'giftList',
@@ -359,7 +361,7 @@ const nextStep = computed(() => {
   return {
     icon: '账',
     title: '查看人情账本',
-    desc: '回执和收礼记录已经形成基础闭环，可以继续核对往来关系。',
+    desc: `回执和${activeTheme.value.giftRecordLabel}已经形成基础闭环，可以继续核对往来关系。`,
     button: '人情账本',
     action: 'favor'
   };
@@ -610,9 +612,11 @@ onShow(() => {
   --accent: #e60012;
   --accent-dark: #c40005;
   --accent-soft: #fff0ee;
+  --page-bg: #f7f3ee;
+  --accent-shadow: rgba(184, 17, 21, 0.22);
   box-sizing: border-box;
   min-height: 100vh;
-  background: #f7f3ee;
+  background: var(--page-bg);
   color: #151823;
 }
 
@@ -620,36 +624,48 @@ onShow(() => {
   --accent: #d96a11;
   --accent-dark: #a64209;
   --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
+  --accent-shadow: rgba(166, 86, 17, 0.2);
 }
 
 .tone-baby {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
   --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
+  --accent-shadow: rgba(183, 45, 76, 0.18);
 }
 
 .tone-house {
   --accent: #188356;
   --accent-dark: #0c5f3e;
   --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
+  --accent-shadow: rgba(12, 95, 62, 0.17);
 }
 
 .tone-school {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
   --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
+  --accent-shadow: rgba(29, 78, 216, 0.17);
 }
 
 .tone-memorial {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
   --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
+  --accent-shadow: rgba(13, 15, 18, 0.2);
 }
 
 .tone-other {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
   --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
+  --accent-shadow: rgba(91, 33, 182, 0.18);
 }
 
 .loading {
@@ -694,7 +710,7 @@ onShow(() => {
 .state-button {
   height: 88rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  background: linear-gradient(135deg, var(--accent, #e60012), var(--accent-dark, #c40005));
   color: #fff8df;
   font-size: 30rpx;
   font-weight: 900;
@@ -702,7 +718,7 @@ onShow(() => {
 
 .state-link {
   background: transparent;
-  color: #9c4b31;
+  color: var(--accent, #e60012);
   font-size: 27rpx;
 }
 
@@ -883,15 +899,26 @@ onShow(() => {
   padding: 22rpx;
   border: 1rpx solid #f3ded2;
   border-radius: 28rpx;
-  background: linear-gradient(180deg, #fffaf4, #fff);
-  box-shadow: 0 18rpx 42rpx rgba(89, 37, 28, 0.1);
+  background: linear-gradient(180deg, var(--accent-soft), #fff);
+  box-shadow: 0 18rpx 42rpx var(--accent-shadow);
 }
 
 .overview-cover {
+  display: flex;
   flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
   width: 190rpx;
   height: 132rpx;
   border-radius: 20rpx;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.22), transparent 72rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: rgba(255, 248, 230, 0.92);
+  font-family: serif;
+  font-size: 64rpx;
+  font-weight: 900;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.32);
 }
 
 .overview-body {
@@ -974,10 +1001,10 @@ onShow(() => {
   align-items: center;
   gap: 18rpx;
   padding: 24rpx;
-  border-color: #ffd9ad;
+  border-color: var(--accent-soft);
   background:
     radial-gradient(circle at 92% 22%, rgba(255, 224, 170, 0.42), transparent 140rpx),
-    #fff7ed;
+    var(--accent-soft);
 }
 
 .next-icon {
@@ -1004,7 +1031,7 @@ onShow(() => {
 }
 
 .next-label {
-  color: #a85d2b;
+  color: var(--accent);
   font-size: 22rpx;
   font-weight: 900;
 }
@@ -1119,11 +1146,11 @@ onShow(() => {
 }
 
 .dashboard-item.dash-red {
-  background: linear-gradient(145deg, #fff4f1, #fff);
+  background: linear-gradient(145deg, var(--accent-soft), #fff);
 }
 
 .dashboard-item.dash-red .dashboard-value {
-  color: #cf161b;
+  color: var(--accent);
 }
 
 .dashboard-item.dash-orange {
@@ -1246,7 +1273,7 @@ onShow(() => {
   padding: 18rpx;
   border: 1rpx solid #f1dfd5;
   border-radius: 18rpx;
-  background: linear-gradient(180deg, #fffaf6, #fff);
+  background: linear-gradient(180deg, var(--accent-soft), #fff);
 }
 
 .action-icon {
@@ -1262,7 +1289,7 @@ onShow(() => {
 }
 
 .action-icon.red {
-  background: linear-gradient(135deg, #ff6a5f, var(--accent));
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
 }
 
 .action-icon.orange {
@@ -1306,9 +1333,9 @@ onShow(() => {
   justify-content: center;
   width: 104rpx;
   height: 104rpx;
-  border: 1rpx solid #f5cfb5;
+  border: 1rpx solid rgba(255, 255, 255, 0.36);
   border-radius: 24rpx;
-  background: linear-gradient(135deg, #fff3dc, #d82222);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff1c8;
   font-size: 42rpx;
   font-weight: 900;
@@ -1341,7 +1368,7 @@ onShow(() => {
 .invite-path {
   overflow: hidden;
   margin-top: 6rpx;
-  color: #a9755d;
+  color: var(--accent);
   font-size: 21rpx;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1368,7 +1395,7 @@ button::after {
 .invite-actions button,
 .dual-buttons button {
   height: 68rpx;
-  border: 1rpx solid #ffd6ca;
+  border: 1rpx solid var(--accent-soft);
   border-radius: 999rpx;
   background: var(--accent-soft);
   color: var(--accent);
@@ -1410,8 +1437,8 @@ button::after {
   margin-top: 14rpx;
   padding: 20rpx;
   border-radius: 16rpx;
-  background: linear-gradient(180deg, #fff8ef, #fff);
-  color: #8a4d20;
+  background: linear-gradient(180deg, var(--accent-soft), #fff);
+  color: var(--accent);
   font-size: 24rpx;
   line-height: 1.6;
 }
