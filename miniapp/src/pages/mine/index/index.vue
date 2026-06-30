@@ -303,9 +303,48 @@ onShow(() => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
   min-height: 100vh;
   background: #f7f7f7;
   color: #151823;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
 }
 
 .red-stage {
@@ -508,7 +547,7 @@ onShow(() => {
 }
 
 .dot.active {
-  background: #e60012;
+  background: var(--accent);
 }
 
 .profile-card,
@@ -662,7 +701,7 @@ button::after {
 }
 
 .red {
-  color: #e60012;
+  color: var(--accent);
 }
 
 .orange {
@@ -810,7 +849,7 @@ button::after {
 .agent-btn {
   height: 68rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #e60012, #c40005);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 26rpx;
   font-weight: 900;

@@ -463,9 +463,55 @@ onShow(async () => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --accent-shadow: rgba(230, 0, 18, 0.18);
   min-height: 100vh;
   background: #f7f7f7;
   color: #151823;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --accent-shadow: rgba(217, 106, 17, 0.18);
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --accent-shadow: rgba(231, 86, 111, 0.18);
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --accent-shadow: rgba(24, 131, 86, 0.18);
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --accent-shadow: rgba(37, 99, 235, 0.18);
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --accent-shadow: rgba(47, 51, 56, 0.18);
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --accent-shadow: rgba(124, 58, 237, 0.18);
 }
 
 .red-stage {
@@ -673,7 +719,7 @@ onShow(async () => {
 }
 
 .dot.active {
-  background: #e60012;
+  background: var(--accent);
 }
 
 .summary-card,
@@ -750,8 +796,8 @@ onShow(async () => {
 }
 
 .summary-item.selected {
-  background: #fff0ee;
-  box-shadow: inset 0 0 0 2rpx rgba(230, 0, 18, 0.16);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2rpx var(--accent-shadow);
 }
 
 .summary-item::after {
@@ -779,7 +825,7 @@ onShow(async () => {
 .summary-icon.receive,
 .red,
 .red-text {
-  color: #e60012;
+  color: var(--accent);
 }
 
 .summary-icon.give {
@@ -860,12 +906,12 @@ onShow(async () => {
   width: 14rpx;
   height: 14rpx;
   border-radius: 50%;
-  background: #e60012;
+  background: var(--accent);
 }
 
 .sync-arrow {
   flex: 0 0 auto;
-  color: #c7191e;
+  color: var(--accent);
   font-size: 30rpx;
 }
 
@@ -874,8 +920,8 @@ onShow(async () => {
   padding: 0 18rpx;
   border: 1rpx solid #ffe0dc;
   border-radius: 999rpx;
-  background: #fff4f2;
-  color: #e60012;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 24rpx;
   font-weight: 800;
   line-height: 52rpx;
@@ -908,8 +954,8 @@ button::after {
 }
 
 .favor-card.selected {
-  border-color: #e60012;
-  box-shadow: inset 0 0 0 2rpx rgba(230, 0, 18, 0.12);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2rpx var(--accent-shadow);
 }
 
 .receive-card {
@@ -926,7 +972,7 @@ button::after {
 
 .favor-card-icon {
   flex: 0 0 auto;
-  color: #e60012;
+  color: var(--accent);
   font-size: 46rpx;
 }
 
@@ -1006,8 +1052,8 @@ button::after {
 
 .quick-item.selected {
   border-radius: 999rpx;
-  background: #fff0ee;
-  color: #e60012;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-weight: 900;
 }
 
@@ -1024,7 +1070,7 @@ button::after {
 }
 
 .quick-icon.red {
-  background: linear-gradient(135deg, #ff6a5f, #e60012);
+  background: linear-gradient(135deg, #ff6a5f, var(--accent));
 }
 
 .quick-icon.orange {
@@ -1112,8 +1158,8 @@ button::after {
 }
 
 .direction.in {
-  background: #fff0ee;
-  color: #e60012;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .direction.out {
@@ -1127,7 +1173,7 @@ button::after {
 }
 
 .recent-amount.in {
-  color: #e60012;
+  color: var(--accent);
 }
 
 .recent-amount.out {
@@ -1158,8 +1204,8 @@ button::after {
 
 .compare-chip.active {
   border-color: transparent;
-  background: #fff0ee;
-  color: #e60012;
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .compare-person {
@@ -1191,10 +1237,10 @@ button::after {
   width: 100%;
   height: 58rpx;
   margin-top: 18rpx;
-  border: 1rpx solid #ff8a80;
+  border: 1rpx solid var(--accent);
   border-radius: 999rpx;
   background: #fff;
-  color: #e60012;
+  color: var(--accent);
   font-size: 24rpx;
   font-weight: 800;
   line-height: 58rpx;
@@ -1208,8 +1254,8 @@ button::after {
   flex: 0 0 auto;
   padding: 8rpx 16rpx;
   border-radius: 999rpx;
-  background: #fff0ee;
-  color: #e60012;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 22rpx;
   font-weight: 900;
 }
@@ -1260,7 +1306,7 @@ button::after {
 .submit-btn {
   height: 78rpx;
   border-radius: 12rpx;
-  background: linear-gradient(135deg, #e60012, #c40005);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 27rpx;
   font-weight: 900;

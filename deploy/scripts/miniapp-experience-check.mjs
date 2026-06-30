@@ -77,6 +77,7 @@ const requiredTexts = [
   ['miniapp/src/pages/home/index/index.vue', 'readLastBanquetContext', 'home can recover latest banquet from local context'],
   ['miniapp/src/pages/home/index/index.vue', 'writeLastBanquetContext', 'home stores latest banquet context'],
   ['miniapp/src/pages/home/index/index.vue', 'safeNavigate', 'home workflow entries have navigation failure feedback'],
+  ['miniapp/src/pages/home/index/index.vue', '--accent', 'home tab uses event theme accent variables'],
   ['miniapp/src/pages/banquet/create/index.vue', '填入体验数据', 'create page sample-data helper'],
   ['miniapp/src/pages/banquet/create/index.vue', '慎终追远，思念长存', 'create page memorial copy'],
   ['miniapp/src/pages/banquet/create/index.vue', 'currentDesign.mark', 'create page hero mark follows event type'],
@@ -184,6 +185,7 @@ const requiredTexts = [
   ['miniapp/src/pages/favor/index/index.vue', 'consumeFocusedContact', 'favor page consumes gift-to-favor focus context'],
   ['miniapp/src/pages/favor/index/index.vue', 'lastManualText', 'favor manual entry shows visible success state'],
   ['miniapp/src/pages/favor/index/index.vue', 'compareCandidates', 'favor compare offers quick contact choices'],
+  ['miniapp/src/pages/favor/index/index.vue', '--accent', 'favor tab uses event theme accent variables'],
   ['miniapp/src/pages/favor/detail/index.vue', 'copySummary', 'favor detail can copy compare summary'],
   ['miniapp/src/pages/favor/detail/index.vue', 'copyEntry', 'favor detail can copy a single entry'],
   ['miniapp/src/pages/favor/index/index.vue', '{{ activeTheme.mark }}', 'favor tab hero follows selected event type'],
@@ -195,6 +197,7 @@ const requiredTexts = [
   ['miniapp/src/pages/invitation/index/index.vue', 'readLastBanquetContext', 'invitation tab can recover latest invitation from local context'],
   ['miniapp/src/pages/invitation/index/index.vue', 'eventTypeCode=${activeType.value}', 'invitation create entry keeps selected event type'],
   ['miniapp/src/pages/invitation/index/index.vue', 'safeNavigate', 'invitation tab workflow entries have navigation failure feedback'],
+  ['miniapp/src/pages/invitation/index/index.vue', '--accent', 'invitation tab uses event theme accent variables'],
   ['miniapp/src/pages/mine/index/index.vue', '{{ activeTheme.mark }}', 'mine tab hero follows selected event type'],
   ['miniapp/src/pages/mine/index/index.vue', '{{ activeTheme.mineText }}', 'mine tab copy follows selected event type'],
   ['miniapp/src/pages/mine/index/index.vue', 'readLastBanquetContext', 'mine tab can recover latest services from local context'],
@@ -214,7 +217,8 @@ const requiredTexts = [
   ['miniapp/src/pages/mine/index/index.vue', 'openLatestBanquet', 'mine service opens latest banquet'],
   ['miniapp/src/pages/mine/index/index.vue', 'openLatestInvitation', 'mine service opens latest invitation'],
   ['miniapp/src/pages/mine/index/index.vue', 'openGiftRecords', 'mine gift records require latest banquet context'],
-  ['miniapp/src/pages/mine/index/index.vue', 'safeNavigate', 'mine workflow entries have navigation failure feedback']
+  ['miniapp/src/pages/mine/index/index.vue', 'safeNavigate', 'mine workflow entries have navigation failure feedback'],
+  ['miniapp/src/pages/mine/index/index.vue', '--accent', 'mine tab uses event theme accent variables']
 ];
 
 for (const [file, text, reason] of requiredTexts) {
