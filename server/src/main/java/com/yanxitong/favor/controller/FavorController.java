@@ -26,8 +26,10 @@ public class FavorController {
     }
 
     @GetMapping("/contacts")
-    public ApiResponse<List<FavorContactSummary>> contacts(@RequestParam(required = false) String keyword) {
-        return ApiResponse.ok(favorService.contacts(keyword));
+    public ApiResponse<List<FavorContactSummary>> contacts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long banquetId) {
+        return ApiResponse.ok(favorService.contacts(keyword, banquetId));
     }
 
     @GetMapping("/contacts/{id}")

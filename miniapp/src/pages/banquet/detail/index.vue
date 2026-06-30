@@ -61,6 +61,26 @@
         <button class="next-button" @tap="handleAction(nextStep.action)">{{ nextStep.button }}</button>
       </view>
 
+      <view class="dashboard-card">
+        <view class="section-head">
+          <text class="section-title">办席看板</text>
+          <text class="section-more">关键数据入口</text>
+        </view>
+        <view class="dashboard-grid">
+          <view
+            v-for="item in dashboardItems"
+            :key="item.title"
+            class="dashboard-item"
+            :class="item.tone"
+            @tap="handleAction(item.action)"
+          >
+            <text class="dashboard-label">{{ item.title }}</text>
+            <text class="dashboard-value">{{ item.value }}</text>
+            <text class="dashboard-desc">{{ item.desc }}</text>
+          </view>
+        </view>
+      </view>
+
       <view class="section-card progress-card">
         <view class="section-head">
           <text class="section-title">管理进度</text>
@@ -204,6 +224,14 @@ interface DeviceOrder {
   orderStatus: string;
 }
 
+interface FavorContact {
+  contactId: number;
+  contactName: string;
+  receivedAmount: number;
+  givenAmount: number;
+  balance: number;
+}
+
 const detail = ref<BanquetDetail>();
 const currentBanquetId = ref('');
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
@@ -211,6 +239,7 @@ const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const rsvpStats = ref<RsvpStats>();
 const giftSummary = ref<GiftSummary>();
 const deviceOrders = ref<DeviceOrder[]>([]);
+const favorContacts = ref<FavorContact[]>([]);
 const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
@@ -247,6 +276,38 @@ const progressItems = computed(() => [
     desc: `${entitlements.currentPlan?.name || '基础版'} · ${deviceOrders.value.length ? `${deviceOrders.value.length} 个设备订单` : hasDeviceRight.value ? '可租设备' : '设备未开通'}`,
     done: Boolean(deviceOrders.value.length),
     action: hasDeviceRight.value ? 'device' : 'plan'
+  }
+]);
+const favorBalance = computed(() => favorContacts.value.reduce((total, contact) => total + Number(contact.balance || 0), 0));
+const devicePaidCount = computed(() => deviceOrders.value.filter((order) => order.payStatus === 'PAID').length);
+const dashboardItems = computed(() => [
+  {
+    title: '回执',
+    value: `${rsvpStats.value?.totalRecords || 0} 条`,
+    desc: `${rsvpStats.value?.totalGuests || 0} 人出席/统计`,
+    action: 'rsvp',
+    tone: 'dash-red'
+  },
+  {
+    title: '收礼',
+    value: formatMoney(giftSummary.value?.totalAmount || 0),
+    desc: `${giftSummary.value?.totalRecords || 0} 笔${activeTheme.value.giftLabel}`,
+    action: 'giftList',
+    tone: 'dash-orange'
+  },
+  {
+    title: '人情',
+    value: `${favorContacts.value.length} 人`,
+    desc: `差额 ${signedMoney(favorBalance.value)}`,
+    action: 'favor',
+    tone: 'dash-green'
+  },
+  {
+    title: '设备',
+    value: `${deviceOrders.value.length} 单`,
+    desc: `${devicePaidCount.value} 单已确认`,
+    action: 'device',
+    tone: 'dash-blue'
   }
 ]);
 const nextStep = computed(() => {
@@ -324,13 +385,14 @@ const invitationShareUrl = computed(() => {
 async function load(id: string) {
   currentBanquetId.value = id;
   pageState.value = 'loading';
-  const [runtimeFeatures, banquetDetail, result, rsvp, gifts, devices] = await Promise.all([
+  const [runtimeFeatures, banquetDetail, result, rsvp, gifts, devices, favors] = await Promise.all([
     loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
     request<BanquetDetail>(`/banquets/${id}`),
     request<Entitlements>(`/plans/banquets/${id}/entitlements`),
     request<RsvpStats>(`/rsvp/stats?banquetId=${id}`).catch(() => ({ totalGuests: 0 })),
     request<GiftSummary>(`/gifts/summary?banquetId=${id}`).catch(() => ({ totalAmount: 0 })),
-    request<DeviceOrder[]>(`/devices/orders?banquetId=${id}`).catch(() => [])
+    request<DeviceOrder[]>(`/devices/orders?banquetId=${id}`).catch(() => []),
+    request<FavorContact[]>(`/favor/contacts?banquetId=${id}`).catch(() => [])
   ]);
   features.value = runtimeFeatures;
   detail.value = banquetDetail;
@@ -351,6 +413,7 @@ async function load(id: string) {
   rsvpStats.value = rsvp;
   giftSummary.value = gifts;
   deviceOrders.value = devices;
+  favorContacts.value = favors;
   pageState.value = 'ready';
 }
 
@@ -377,6 +440,17 @@ function formatTime(value?: string) {
 
 function formatMoney(value: unknown) {
   return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function signedMoney(value: unknown) {
+  const amount = Number(value || 0);
+  if (amount > 0) {
+    return `+${formatMoney(amount)}`;
+  }
+  if (amount < 0) {
+    return `-${formatMoney(Math.abs(amount))}`;
+  }
+  return formatMoney(0);
 }
 
 function handleAction(action: string) {
@@ -837,6 +911,7 @@ onShow(() => {
 
 .summary-card,
 .next-card,
+.dashboard-card,
 .section-card,
 .invite-card,
 .copy-card {
@@ -955,6 +1030,85 @@ onShow(() => {
   width: 1rpx;
   height: 58rpx;
   background: #efe4dd;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+  margin-top: 22rpx;
+}
+
+.dashboard-item {
+  min-height: 132rpx;
+  padding: 20rpx;
+  border: 1rpx solid #f0e3d9;
+  border-radius: 22rpx;
+  background: #fffaf6;
+}
+
+.dashboard-label,
+.dashboard-value,
+.dashboard-desc {
+  display: block;
+}
+
+.dashboard-label {
+  color: #7a6d64;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.dashboard-value {
+  margin-top: 12rpx;
+  overflow: hidden;
+  color: #171923;
+  font-size: 36rpx;
+  font-weight: 900;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-desc {
+  margin-top: 10rpx;
+  overflow: hidden;
+  color: #7a7f8c;
+  font-size: 22rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-item.dash-red {
+  background: linear-gradient(145deg, #fff4f1, #fff);
+}
+
+.dashboard-item.dash-red .dashboard-value {
+  color: #cf161b;
+}
+
+.dashboard-item.dash-orange {
+  background: linear-gradient(145deg, #fff7e8, #fff);
+}
+
+.dashboard-item.dash-orange .dashboard-value {
+  color: #dc6d00;
+}
+
+.dashboard-item.dash-green {
+  background: linear-gradient(145deg, #effdf4, #fff);
+}
+
+.dashboard-item.dash-green .dashboard-value {
+  color: #16844a;
+}
+
+.dashboard-item.dash-blue {
+  background: linear-gradient(145deg, #f0f7ff, #fff);
+}
+
+.dashboard-item.dash-blue .dashboard-value {
+  color: #2563eb;
 }
 
 .progress-card {
