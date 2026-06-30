@@ -2,7 +2,7 @@
   <view class="page" :class="activeTheme.tone">
     <view class="hero-card">
       <view class="hero-art">
-        <text class="hero-symbol">屏</text>
+        <text class="hero-symbol">{{ activeTheme.mark }}</text>
       </view>
       <text class="hero-label">宴席通设备服务</text>
       <text class="hero-title">设备租赁</text>
@@ -136,7 +136,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
-import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 interface DeviceConfig {
   id: number;
@@ -174,7 +174,8 @@ const submittingId = ref<number>();
 const payingOrderNo = ref('');
 const loadingOrders = ref(false);
 const lastOrderText = ref('');
-const activeTheme = computed(() => eventThemeFor(readActiveEventType()));
+const eventType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(eventType.value));
 const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
@@ -409,6 +410,8 @@ onMounted(async () => {
   banquetId.value = await resolveBanquetId(current.options?.banquetId);
   if (!banquetId.value) {
     requireBanquetToast();
+  } else {
+    eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
   }
   setDefaultDate();
   await load();

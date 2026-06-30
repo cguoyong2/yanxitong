@@ -598,7 +598,7 @@ function templateCoverStyle(item: InvitationTemplate) {
     'memorial-simple': 'linear-gradient(135deg, #111827, #4b5563 60%, #9ca3af)',
     'general-warm': 'linear-gradient(135deg, #92400e, #c27803 58%, #f5d287)'
   };
-  return { background: palettes[item.presentation?.styleCode || ''] || '#e60012' };
+  return { background: palettes[item.presentation?.styleCode || ''] || 'linear-gradient(135deg, var(--accent), var(--accent-dark))' };
 }
 
 function showUploadTip() {
@@ -1094,7 +1094,7 @@ onMounted(() => {
   width: 7rpx;
   height: 34rpx;
   border-radius: 999rpx;
-  background: #e60012;
+  background: var(--accent);
 }
 
 .section-title,
@@ -1163,13 +1163,13 @@ onMounted(() => {
 
 .upload-icon {
   display: block;
-  color: #e60012;
+  color: var(--accent);
   font-size: 38rpx;
 }
 
 .upload-title {
   margin-top: 8rpx;
-  color: #e60012;
+  color: var(--accent);
   font-size: 28rpx;
   font-weight: 900;
 }
@@ -1201,7 +1201,7 @@ onMounted(() => {
 }
 
 .template-item.selected {
-  border-color: #e60012;
+  border-color: var(--accent);
 }
 
 .template-cover {
@@ -1234,7 +1234,7 @@ onMounted(() => {
 
 .template-price {
   margin-top: 5rpx;
-  color: #e60012;
+  color: var(--accent);
   font-size: 20rpx;
 }
 
@@ -1430,7 +1430,7 @@ button::after {
 
 .confirm-button {
   border: 0;
-  background: linear-gradient(135deg, #d71920, #b91c1c);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff8df;
 }
 </style>
