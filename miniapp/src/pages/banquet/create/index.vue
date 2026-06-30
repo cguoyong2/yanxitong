@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="currentDesign.tone">
     <view class="hero" :class="currentDesign.tone">
       <view class="hero-art">
         <text class="hero-mark">{{ currentDesign.mark }}</text>
@@ -694,10 +694,42 @@ onMounted(() => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
   min-height: 100vh;
   padding-bottom: 126rpx;
   background: #fff8ef;
   color: #151823;
+}
+
+.page.tone-birthday {
+  --accent: #c15b10;
+  --accent-dark: #743005;
+}
+
+.page.tone-baby {
+  --accent: #e7566f;
+  --accent-dark: #932742;
+}
+
+.page.tone-house {
+  --accent: #1b8a58;
+  --accent-dark: #0b4b31;
+}
+
+.page.tone-school {
+  --accent: #2563eb;
+  --accent-dark: #1e3a8a;
+}
+
+.page.tone-memorial {
+  --accent: #202124;
+  --accent-dark: #050607;
+}
+
+.page.tone-other {
+  --accent: #7c3aed;
+  --accent-dark: #3b0764;
 }
 
 .hero {
@@ -1075,7 +1107,7 @@ onMounted(() => {
 
 .type-pill.active {
   border-color: transparent;
-  background: linear-gradient(135deg, #e60012, #c40005);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
 }
 
@@ -1195,7 +1227,7 @@ button::after {
   width: 100%;
   height: 88rpx;
   border-radius: 12rpx;
-  background: linear-gradient(135deg, #e60012, #c40005);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 30rpx;
   font-weight: 900;
