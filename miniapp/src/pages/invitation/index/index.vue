@@ -396,8 +396,9 @@ onShow(() => {
   --accent-dark: #c40005;
   --accent-soft: #fff0ee;
   --accent-shadow: rgba(230, 0, 18, 0.22);
+  --page-bg: linear-gradient(180deg, #fff0ee 0%, #fff8f2 42%, #f7f7f7 100%);
   min-height: 100vh;
-  background: #f7f7f7;
+  background: var(--page-bg);
   color: #151823;
 }
 
@@ -406,6 +407,7 @@ onShow(() => {
   --accent-dark: #a64209;
   --accent-soft: #fff3e3;
   --accent-shadow: rgba(217, 106, 17, 0.22);
+  --page-bg: linear-gradient(180deg, #fff3e3 0%, #fff9f0 42%, #f8f4ef 100%);
 }
 
 .page.pink {
@@ -413,6 +415,7 @@ onShow(() => {
   --accent-dark: #b52d4c;
   --accent-soft: #fff0f4;
   --accent-shadow: rgba(231, 86, 111, 0.22);
+  --page-bg: linear-gradient(180deg, #fff0f4 0%, #fff8fa 42%, #f8f2f4 100%);
 }
 
 .page.green {
@@ -420,6 +423,7 @@ onShow(() => {
   --accent-dark: #0c5f3e;
   --accent-soft: #edf9f1;
   --accent-shadow: rgba(24, 131, 86, 0.22);
+  --page-bg: linear-gradient(180deg, #edf9f1 0%, #f7fcf8 42%, #f1f7f3 100%);
 }
 
 .page.blue {
@@ -427,6 +431,7 @@ onShow(() => {
   --accent-dark: #1d4ed8;
   --accent-soft: #edf4ff;
   --accent-shadow: rgba(37, 99, 235, 0.22);
+  --page-bg: linear-gradient(180deg, #edf4ff 0%, #f7fbff 42%, #f1f5fb 100%);
 }
 
 .page.black {
@@ -434,6 +439,7 @@ onShow(() => {
   --accent-dark: #0d0f12;
   --accent-soft: #f1f2f4;
   --accent-shadow: rgba(47, 51, 56, 0.22);
+  --page-bg: linear-gradient(180deg, #1f2226 0%, #f1f2f4 40%, #f7f7f7 100%);
 }
 
 .page.purple {
@@ -441,6 +447,7 @@ onShow(() => {
   --accent-dark: #5b21b6;
   --accent-soft: #f4efff;
   --accent-shadow: rgba(124, 58, 237, 0.22);
+  --page-bg: linear-gradient(180deg, #f4efff 0%, #fbf8ff 42%, #f6f2fb 100%);
 }
 
 .red-stage {
@@ -450,7 +457,7 @@ onShow(() => {
   padding: calc(var(--status-bar-height) + 34rpx) 40rpx 0;
   background:
     radial-gradient(circle at 72% 38%, rgba(255, 190, 80, 0.18), transparent 26%),
-    linear-gradient(135deg, #d8000f 0%, #c40005 58%, #a80000 100%);
+    linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 58%, var(--accent-dark) 100%);
   color: #fff;
 }
 
@@ -497,7 +504,7 @@ onShow(() => {
   left: -60rpx;
   height: 118rpx;
   border-radius: 0 0 50% 50%;
-  background: #f7f7f7;
+  background: var(--page-bg);
   transform: rotate(7deg);
   transform-origin: left top;
   content: '';
