@@ -152,6 +152,7 @@ const requiredTexts = [
   ['miniapp/src/pages/rsvp/stats/index.vue', 'copyInvitePath', 'RSVP stats can copy invitation path'],
   ['miniapp/src/pages/rsvp/stats/index.vue', 'filterItems', 'RSVP stats supports status filters'],
   ['miniapp/src/pages/rsvp/stats/index.vue', 'refreshStats', 'RSVP stats has explicit refresh feedback'],
+  ['miniapp/src/pages/rsvp/stats/index.vue', 'writeLastBanquetContext', 'RSVP stats writes banquet event context for theme sync'],
   ['miniapp/src/pages/rsvp/stats/index.vue', '去发送请柬', 'RSVP empty state guides invitation sharing'],
   ['miniapp/src/pages/rsvp/stats/index.vue', ':class="activeTheme.tone"', 'RSVP stats page follows event theme tone'],
   ['miniapp/src/pages/rsvp/stats/index.vue', '--accent', 'RSVP stats page uses event theme accent variables'],

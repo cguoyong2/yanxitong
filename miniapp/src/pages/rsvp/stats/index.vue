@@ -136,7 +136,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { request } from '../../../api/client';
-import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
+import { requireBanquetToast, resolveBanquetId, writeLastBanquetContext } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 interface RsvpStats {
@@ -312,8 +312,24 @@ onMounted(async () => {
     requireBanquetToast();
   }
   if (banquetId.value) {
-    const detail = await request<{ banquet?: { eventTypeCode?: string }; invitation?: { shareSlug?: string } }>(`/banquets/${banquetId.value}`).catch(() => undefined);
-    eventType.value = writeActiveEventType(detail?.banquet?.eventTypeCode || await fetchBanquetEventType(banquetId.value, request, eventType.value));
+    const detail = await request<{
+      banquet?: { id?: number; name?: string; eventTypeCode?: string; themeCode?: string; banquetTime?: string; location?: string };
+      eventTypeCode?: string;
+      invitation?: { shareSlug?: string };
+    }>(`/banquets/${banquetId.value}`).catch(() => undefined);
+    const resolvedEventType = detail?.banquet?.eventTypeCode || detail?.eventTypeCode || await fetchBanquetEventType(banquetId.value, request, eventType.value);
+    eventType.value = writeActiveEventType(resolvedEventType);
+    if (detail?.banquet?.id) {
+      writeLastBanquetContext({
+        id: detail.banquet.id,
+        name: detail.banquet.name,
+        eventTypeCode: resolvedEventType,
+        themeCode: detail.banquet.themeCode,
+        banquetTime: detail.banquet.banquetTime,
+        location: detail.banquet.location,
+        shareSlug: detail.invitation?.shareSlug
+      });
+    }
     shareSlug.value = detail?.invitation?.shareSlug || '';
   }
   await load();
@@ -564,7 +580,7 @@ onMounted(async () => {
   border: 1rpx solid #ead8ca;
   border-radius: 999rpx;
   background: #fffaf5;
-  color: #9e4d32;
+  color: var(--accent);
   font-size: 24rpx;
   font-weight: 800;
   line-height: 58rpx;
@@ -728,7 +744,7 @@ onMounted(async () => {
 }
 
 .record-message {
-  color: #9e4d32;
+  color: var(--accent);
 }
 
 .record-time {
@@ -814,7 +830,7 @@ onMounted(async () => {
 .ghost-button {
   border: 1rpx solid #ead8ca;
   background: #fffaf5;
-  color: #9e4d32;
+  color: var(--accent);
 }
 
 .primary-button::after,
