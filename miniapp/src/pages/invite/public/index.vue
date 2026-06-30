@@ -441,7 +441,7 @@ onShareAppMessage(() => ({
 .state-button {
   height: 80rpx;
   border-radius: 18rpx;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--primary), var(--primary));
   color: #fff;
   font-weight: 900;
   line-height: 80rpx;
@@ -471,7 +471,7 @@ onShareAppMessage(() => ({
 }
 
 .brand {
-  color: #c7191e;
+  color: var(--primary);
   font-size: 34rpx;
   font-weight: 900;
 }
@@ -615,7 +615,7 @@ onShareAppMessage(() => ({
   height: 56rpx;
   border-radius: 50%;
   background: #fff0ea;
-  color: #c7191e;
+  color: var(--primary);
   font-size: 24rpx;
   font-weight: 900;
 }
@@ -675,7 +675,7 @@ onShareAppMessage(() => ({
   height: 46rpx;
   border-radius: 50%;
   background: #fff0ea;
-  color: #c7191e;
+  color: var(--primary);
   font-size: 22rpx;
   font-weight: 900;
 }
@@ -720,7 +720,7 @@ onShareAppMessage(() => ({
   width: 42rpx;
   height: 42rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--primary), var(--primary));
   color: #fff;
   font-size: 22rpx;
   font-weight: 900;
@@ -751,7 +751,7 @@ onShareAppMessage(() => ({
 }
 
 .guide-action {
-  color: #c7191e;
+  color: var(--primary);
   font-size: 24rpx;
   font-weight: 900;
   white-space: nowrap;
@@ -787,7 +787,7 @@ onShareAppMessage(() => ({
   width: 38rpx;
   height: 38rpx;
   border-radius: 50%;
-  background: #c7191e;
+  background: var(--primary);
   color: #fff;
   font-size: 20rpx;
   font-weight: 900;
@@ -844,7 +844,7 @@ onShareAppMessage(() => ({
 }
 
 .primary-action {
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--primary), var(--primary));
   color: #fff;
 }
 

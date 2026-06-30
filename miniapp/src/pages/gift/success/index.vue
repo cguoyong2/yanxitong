@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="activeTheme.tone">
     <view class="success-card">
       <view class="lantern"></view>
       <view class="flower"></view>
@@ -129,11 +129,43 @@ onMounted(async () => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
   min-height: 100vh;
   padding: 24rpx;
   background: #fff8ef;
   box-sizing: border-box;
   color: #171c2a;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
 }
 
 .success-card {
@@ -144,7 +176,7 @@ onMounted(async () => {
   border-radius: 28rpx;
   background:
     radial-gradient(circle at 50% 38%, rgba(255, 216, 144, 0.22), transparent 250rpx),
-    linear-gradient(135deg, #e71921 0%, #c9161c 62%, #9b0e13 100%);
+    linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
   box-shadow: 0 18rpx 46rpx rgba(184, 17, 21, 0.24);
   text-align: center;
 }
@@ -307,7 +339,7 @@ onMounted(async () => {
 
 .primary-button {
   height: 92rpx;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   line-height: 92rpx;
 }

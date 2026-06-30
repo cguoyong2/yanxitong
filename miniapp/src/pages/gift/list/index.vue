@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="activeTheme.tone">
     <view class="summary-card">
       <view class="summary-art">
         <text class="summary-knot">{{ activeTheme.mark }}</text>
@@ -331,11 +331,43 @@ onShow(() => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
   min-height: 100vh;
   padding: 24rpx;
   background: #fff8ef;
   box-sizing: border-box;
   color: #171c2a;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
 }
 
 .summary-card {
@@ -345,7 +377,7 @@ onShow(() => {
   border-radius: 28rpx;
   background:
     radial-gradient(circle at 86% 22%, rgba(255, 214, 150, 0.36), transparent 170rpx),
-    linear-gradient(135deg, #e71921 0%, #c9161c 60%, #9b0e13 100%);
+    linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 60%, var(--accent-dark) 100%);
   box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
 }
 
@@ -505,7 +537,7 @@ onShow(() => {
 
 .source-tab.active {
   border-color: transparent;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
 }
 
@@ -531,7 +563,7 @@ onShow(() => {
 .mini-button.primary {
   border-color: transparent;
   background: #fff1ea;
-  color: #c7191e;
+  color: var(--accent);
 }
 
 .mini-button::after {
@@ -620,7 +652,7 @@ onShow(() => {
   width: 72rpx;
   height: 72rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #f07a64, #dc2e2a);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 30rpx;
   font-weight: 900;
@@ -667,7 +699,7 @@ onShow(() => {
 
 .source-badge.online {
   background: #fff0f0;
-  color: #c7191e;
+  color: var(--accent);
 }
 
 .gift-meta {
@@ -689,7 +721,7 @@ onShow(() => {
 }
 
 .gift-amount {
-  color: #c7191e;
+  color: var(--accent);
   font-size: 30rpx;
   font-weight: 900;
   white-space: nowrap;
@@ -730,7 +762,7 @@ onShow(() => {
 
 .detail-amount {
   margin-top: 18rpx;
-  color: #c7191e;
+  color: var(--accent);
   font-size: 58rpx;
   font-weight: 900;
 }

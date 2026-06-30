@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="activeTheme.tone">
     <view class="hero-card">
       <view class="hero-art">
         <text class="hero-knot">{{ activeTheme.mark }}</text>
@@ -322,11 +322,43 @@ onMounted(async () => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
   min-height: 100vh;
   padding: 24rpx;
   background: #fff8ef;
   box-sizing: border-box;
   color: #171c2a;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
 }
 
 .hero-card {
@@ -336,7 +368,7 @@ onMounted(async () => {
   border-radius: 28rpx;
   background:
     radial-gradient(circle at 86% 20%, rgba(255, 217, 150, 0.38), transparent 180rpx),
-    linear-gradient(135deg, #e71921 0%, #c9161c 62%, #9b0e13 100%);
+    linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
   box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
 }
 
@@ -477,7 +509,7 @@ onMounted(async () => {
 
 .summary-icon.red {
   background: #fff0f0;
-  color: #c7191e;
+  color: var(--accent);
 }
 
 .summary-icon.orange {
@@ -571,7 +603,7 @@ onMounted(async () => {
 
 .legend.red,
 .progress-fill.red {
-  background: #d92323;
+  background: var(--accent);
 }
 
 .legend.orange,
@@ -624,7 +656,7 @@ onMounted(async () => {
 
 .filter-tab.active {
   border-color: transparent;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
 }
 
@@ -673,7 +705,7 @@ onMounted(async () => {
 
 .record-status.red {
   background: #fff0f0;
-  color: #c7191e;
+  color: var(--accent);
 }
 
 .record-status.orange {
@@ -743,7 +775,7 @@ onMounted(async () => {
 }
 
 .prep-value {
-  color: #c7191e;
+  color: var(--accent);
   font-size: 29rpx;
   font-weight: 900;
 }
@@ -775,7 +807,7 @@ onMounted(async () => {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
 }
 

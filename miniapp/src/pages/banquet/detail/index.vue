@@ -607,10 +607,49 @@ onShow(() => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
   box-sizing: border-box;
   min-height: 100vh;
   background: #f7f3ee;
   color: #151823;
+}
+
+.tone-birthday {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+}
+
+.tone-baby {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+}
+
+.tone-house {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+}
+
+.tone-school {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+}
+
+.tone-memorial {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+}
+
+.tone-other {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
 }
 
 .loading {
@@ -655,7 +694,7 @@ onShow(() => {
 .state-button {
   height: 88rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #e71921, #c7191e);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff8df;
   font-size: 30rpx;
   font-weight: 900;
@@ -890,8 +929,8 @@ onShow(() => {
   flex: 0 0 auto;
   padding: 7rpx 14rpx;
   border-radius: 999rpx;
-  background: #fff0e9;
-  color: #d61d24;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 22rpx;
   font-weight: 900;
 }
@@ -945,7 +984,7 @@ onShow(() => {
   width: 76rpx;
   height: 76rpx;
   border-radius: 22rpx;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff8df;
   font-family: serif;
   font-size: 30rpx;
@@ -992,7 +1031,7 @@ onShow(() => {
   margin: 0;
   padding: 0 22rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 24rpx;
   font-weight: 900;
@@ -1017,7 +1056,7 @@ onShow(() => {
 }
 
 .summary-value.red {
-  color: #e60012;
+  color: var(--accent);
 }
 
 .summary-label {
@@ -1175,7 +1214,7 @@ onShow(() => {
 }
 
 .progress-link {
-  color: #e60012;
+  color: var(--accent);
   font-size: 23rpx;
   font-weight: 900;
 }
@@ -1223,7 +1262,7 @@ onShow(() => {
 }
 
 .action-icon.red {
-  background: linear-gradient(135deg, #ff6a5f, #e60012);
+  background: linear-gradient(135deg, #ff6a5f, var(--accent));
 }
 
 .action-icon.orange {
@@ -1331,8 +1370,8 @@ button::after {
   height: 68rpx;
   border: 1rpx solid #ffd6ca;
   border-radius: 999rpx;
-  background: #fff6f2;
-  color: #e60012;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 23rpx;
   font-weight: 800;
   line-height: 64rpx;

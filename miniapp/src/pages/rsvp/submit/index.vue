@@ -1,5 +1,5 @@
 <template>
-  <view class="page" v-if="!submitted">
+  <view class="page" :class="activeTheme.tone" v-if="!submitted">
     <view class="hero">
       <view class="hero-lantern"></view>
       <view class="hero-flower flower-a"></view>
@@ -85,7 +85,7 @@
     </view>
   </view>
 
-  <view class="page success-page" v-else>
+  <view class="page success-page" :class="activeTheme.tone" v-else>
     <view class="success-hero">
       <text class="success-icon">✓</text>
       <text class="success-title">{{ submitResult?.created ? '回执已提交' : '回执已更新' }}</text>
@@ -325,6 +325,8 @@ onMounted(async () => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
   min-height: 100vh;
   padding: 24rpx 24rpx 0;
   background:
@@ -332,6 +334,36 @@ onMounted(async () => {
     #fffaf5;
   box-sizing: border-box;
   color: #151824;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
 }
 
 .hero {
@@ -343,7 +375,7 @@ onMounted(async () => {
   border-radius: 24rpx;
   background:
     radial-gradient(circle at 82% 24%, rgba(255, 210, 150, 0.34), transparent 150rpx),
-    linear-gradient(135deg, #d90b12 0%, #be1016 56%, #a1060b 100%);
+    linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 56%, var(--accent-dark) 100%);
   box-shadow: 0 18rpx 42rpx rgba(172, 16, 17, 0.24);
   text-align: center;
   box-sizing: border-box;
@@ -446,7 +478,7 @@ onMounted(async () => {
 }
 
 .required {
-  color: #d92820;
+  color: var(--accent);
 }
 
 .field-input {
@@ -484,7 +516,7 @@ onMounted(async () => {
 
 .segment.active {
   border-color: transparent;
-  background: linear-gradient(135deg, #ee4038, #cf191e);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   box-shadow: 0 8rpx 18rpx rgba(214, 28, 28, 0.2);
 }
@@ -591,7 +623,7 @@ onMounted(async () => {
 
 .primary-button {
   height: 96rpx;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   line-height: 96rpx;
   box-shadow: 0 12rpx 26rpx rgba(213, 24, 26, 0.2);
@@ -650,7 +682,7 @@ onMounted(async () => {
   padding: 8rpx 18rpx;
   border-radius: 999rpx;
   background: #fff1ee;
-  color: #c7191e;
+  color: var(--accent);
   font-size: 23rpx;
   font-weight: 800;
 }
@@ -692,7 +724,7 @@ onMounted(async () => {
   width: 104rpx;
   height: 104rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 64rpx;
   font-weight: 800;
