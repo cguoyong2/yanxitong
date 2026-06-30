@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :class="activeTheme.tone">
     <view class="hero-card">
       <view class="hero-art">
         <text class="hero-symbol">冠</text>
@@ -106,6 +106,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
+import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
 
 interface Plan {
   id: number;
@@ -138,6 +139,7 @@ const paying = ref(false);
 const pendingOrder = ref<PlanOrder>();
 const planOrders = ref<PlanOrder[]>([]);
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
+const activeTheme = computed(() => eventThemeFor(readActiveEventType()));
 const entitlements = reactive<Entitlements>({
   rightValues: {},
   paidPlanActive: false,
@@ -328,11 +330,43 @@ onMounted(async () => {
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
   min-height: 100vh;
   padding: 24rpx;
   background: #fff8ef;
   box-sizing: border-box;
   color: #171c2a;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
 }
 
 .hero-card {
@@ -342,7 +376,7 @@ onMounted(async () => {
   border-radius: 28rpx;
   background:
     radial-gradient(circle at 84% 18%, rgba(255, 217, 150, 0.38), transparent 180rpx),
-    linear-gradient(135deg, #e71921 0%, #c9161c 62%, #9b0e13 100%);
+    linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
   box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
 }
 
@@ -433,7 +467,7 @@ onMounted(async () => {
 .current-plan {
   display: block;
   margin-top: 8rpx;
-  color: #c7191e;
+  color: var(--accent);
   font-size: 38rpx;
   font-weight: 900;
 }
@@ -479,7 +513,7 @@ onMounted(async () => {
 }
 
 .small-button.primary {
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
 }
 
@@ -495,7 +529,7 @@ onMounted(async () => {
   border: 1rpx solid #ead8ca;
   border-radius: 18rpx;
   background: #fff;
-  color: #9e4d32;
+  color: var(--accent);
   font-size: 27rpx;
   font-weight: 900;
   line-height: 76rpx;
@@ -565,7 +599,7 @@ onMounted(async () => {
 }
 
 .order-price {
-  color: #c7191e;
+  color: var(--accent);
   font-size: 29rpx;
   font-weight: 900;
 }
@@ -576,7 +610,7 @@ onMounted(async () => {
   border: 1rpx solid #f3c4af;
   border-radius: 999rpx;
   background: #fff0ea;
-  color: #c7191e;
+  color: var(--accent);
   font-size: 22rpx;
   line-height: 54rpx;
 }
@@ -590,7 +624,7 @@ onMounted(async () => {
 }
 
 .plan-card.recommended {
-  border-color: #e83a32;
+  border-color: var(--accent);
 }
 
 .plan-card.current {
@@ -631,7 +665,7 @@ onMounted(async () => {
 .badge {
   padding: 5rpx 10rpx;
   border-radius: 999rpx;
-  background: #e83a32;
+  background: var(--accent);
   color: #fff;
   font-size: 20rpx;
   font-weight: 900;
@@ -655,7 +689,7 @@ onMounted(async () => {
 }
 
 .price {
-  color: #c7191e;
+  color: var(--accent);
   font-size: 38rpx;
   font-weight: 900;
 }
@@ -685,7 +719,7 @@ onMounted(async () => {
   height: 86rpx;
   margin: 24rpx 0 0;
   border-radius: 18rpx;
-  background: linear-gradient(135deg, #e83a32, #c91419);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 29rpx;
   font-weight: 900;
@@ -695,7 +729,7 @@ onMounted(async () => {
 .open-button.ghost {
   border: 1rpx solid #ead8ca;
   background: #fffaf5;
-  color: #9e4d32;
+  color: var(--accent);
 }
 
 .scope-card {
