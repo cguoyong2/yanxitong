@@ -45,6 +45,9 @@
           <text class="row-icon">▣</text>
           <text class="row-label">宴席时间</text>
           <view class="datetime-field">
+            <view class="selected-inline" :class="{ placeholder: !form.banquetTime }" @tap="openTimePanel">
+              {{ form.banquetTime ? banquetTimeDisplay : '请选择宴席日期和时间' }}
+            </view>
             <picker mode="date" :value="selectedDate" :start="dateStart" :end="dateEnd" @change="onDateChange">
               <view class="datetime-picker-cell">
                 <text class="datetime-display" :class="{ placeholder: !selectedDate }">{{ selectedDate || '选择日期' }}</text>
@@ -66,13 +69,9 @@
           <text class="row-icon">⌖</text>
           <text class="row-label">宴席地点</text>
           <view class="location-field">
-            <input
-              v-model="form.location"
-              class="row-input"
-              placeholder="可手动输入酒店或宴会厅"
-              :focus="locationInputFocused"
-              @blur="locationInputFocused = false"
-            />
+            <view class="selected-inline location-summary" :class="{ placeholder: !form.location }" @tap.stop="openLocationPanel">
+              {{ form.location || '请选择或输入酒店、宴会厅、地址' }}
+            </view>
             <button class="map-button" @tap.stop="chooseBanquetLocation">地图选点</button>
             <button class="map-button secondary" @tap.stop="openLocationPanel">手动填写</button>
           </view>
@@ -337,15 +336,23 @@ function syncBanquetTime() {
 }
 
 function onDateChange(event: { detail: { value: string } }) {
-  selectedDate.value = event.detail.value;
+  selectedDate.value = String(event.detail.value || '');
   syncBanquetTime();
-  uni.showToast({ title: selectedTime.value ? '时间已更新' : '请选择时间', icon: 'none' });
+  if (!selectedTime.value) {
+    selectedTime.value = '18:00';
+    syncBanquetTime();
+  }
+  uni.showToast({ title: '日期已填入', icon: 'success' });
 }
 
 function onTimeChange(event: { detail: { value: string } }) {
-  selectedTime.value = event.detail.value;
+  selectedTime.value = String(event.detail.value || '');
   syncBanquetTime();
-  uni.showToast({ title: selectedDate.value ? '时间已更新' : '请选择日期', icon: 'none' });
+  if (!selectedDate.value) {
+    selectedDate.value = formatDateInput(new Date());
+    syncBanquetTime();
+  }
+  uni.showToast({ title: '时间已填入', icon: 'success' });
 }
 
 function fillDefaultTime() {
@@ -433,7 +440,9 @@ async function chooseBanquetLocation() {
       showLocationSettingTip();
       return;
     }
-    uni.showToast({ title: '地图未打开，请检查定位权限或手动输入', icon: 'none' });
+    manualLocation.value = form.location;
+    showLocationPanel.value = true;
+    uni.showToast({ title: '地图未打开，请手动填写地点', icon: 'none' });
   } finally {
     uni.hideLoading();
   }
@@ -532,6 +541,8 @@ function showLocationSettingTip() {
     success: (result) => {
       if (result.confirm) {
         uni.openSetting();
+      } else {
+        openLocationPanel();
       }
     }
   });
@@ -902,7 +913,7 @@ onMounted(() => {
 }
 
 .row-icon {
-  color: #e60012;
+  color: var(--accent);
   font-size: 32rpx;
   font-weight: 900;
 }
@@ -936,8 +947,33 @@ onMounted(() => {
   min-width: 0;
 }
 
-.datetime-field {
+.datetime-field,
+.location-field {
   width: 100%;
+}
+
+.selected-inline {
+  width: 100%;
+  min-height: 56rpx;
+  padding: 8rpx 18rpx;
+  border: 1rpx solid #efe1d5;
+  border-radius: 16rpx;
+  background: #fffdf9;
+  color: #171923;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 1.45;
+  box-sizing: border-box;
+  word-break: break-all;
+}
+
+.selected-inline.placeholder {
+  color: #9aa0aa;
+  font-weight: 600;
+}
+
+.location-summary {
+  min-height: 68rpx;
 }
 
 .datetime-picker-cell {
@@ -999,7 +1035,7 @@ onMounted(() => {
   border: 1rpx solid #efe1d5;
   border-radius: 999rpx;
   background: #fffaf5;
-  color: #a65a28;
+  color: var(--accent);
   font-size: 25rpx;
   font-weight: 700;
   line-height: 58rpx;
@@ -1009,7 +1045,7 @@ onMounted(() => {
 .map-button.secondary {
   border-color: #e8c09b;
   background: #fff2e6;
-  color: #b42318;
+  color: var(--accent);
 }
 
 .map-button {
