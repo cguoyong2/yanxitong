@@ -25,8 +25,18 @@
 
     <view class="content">
       <swiper class="banner-card" circular :indicator-dots="false" autoplay @change="bannerIndex = Number($event.detail.current)">
-        <swiper-item v-for="banner in banners" :key="banner.image">
-          <image class="banner-image" :src="banner.image" mode="aspectFill" @tap="handleBanner(banner.action)" />
+        <swiper-item v-for="banner in banners" :key="banner.title">
+          <view class="theme-banner" @tap="handleBanner(banner.action)">
+            <view>
+              <text class="banner-eyebrow">宴席通</text>
+              <text class="banner-title">{{ banner.title }}</text>
+              <text class="banner-desc">{{ banner.desc }}</text>
+              <view class="banner-tags">
+                <text v-for="tag in banner.tags" :key="tag">{{ tag }}</text>
+              </view>
+            </view>
+            <text class="banner-mark">{{ activeTheme.mark }}</text>
+          </view>
         </swiper-item>
       </swiper>
         <view class="banner-dots">
@@ -109,7 +119,9 @@
       </view>
 
       <view class="agent-card">
-        <image class="agent-image" src="/static/mine/service_agent.png" mode="aspectFill" />
+        <view class="agent-image theme-mini-cover">
+          <text>{{ activeTheme.mark }}</text>
+        </view>
         <view class="agent-main">
           <view class="agent-title-line">
             <text class="agent-title">专属客服</text>
@@ -131,7 +143,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
-import { eventThemeFor, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
+import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
 import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
 
 interface Banquet {
@@ -148,9 +160,9 @@ const bannerIndex = ref(0);
 const activeType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(activeType.value));
 const banners = [
-  { image: '/static/mine/mine_banner.png', action: 'banquet' },
-  { image: '/static/home/home_banner.png', action: 'invitation' },
-  { image: '/static/favor/favor_banner.png', action: 'favor' }
+  { title: '我的宴席', desc: '查看当前类型下的宴席与服务', tags: ['宴席', '订单', '服务'], action: 'banquet' },
+  { title: '我的请柬', desc: '继续分享请柬与查看回执', tags: ['请柬', '回执'], action: 'invitation' },
+  { title: '人情账本', desc: '收送往来清楚记录', tags: ['人情', '收礼', '对比'], action: 'favor' }
 ];
 const orders = [
   { title: '版本订单', icon: '▤', tone: 'red', action: 'plan' },
@@ -270,7 +282,6 @@ async function loadProfileStats() {
       invitationCount.value = cached.shareSlug ? 1 : 0;
       latestBanquetId.value = cached.id;
       latestInvitationSlug.value = cached.shareSlug || '';
-      activeType.value = writeActiveEventType(cached.eventTypeCode || activeType.value);
     }
     return;
   }
@@ -288,9 +299,6 @@ async function loadProfileStats() {
       invitationId: detail?.invitation?.id,
       shareSlug: detail?.invitation?.shareSlug
     });
-    if (detail?.banquet?.eventTypeCode) {
-      activeType.value = writeActiveEventType(detail.banquet.eventTypeCode);
-    }
   }
 }
 
@@ -306,6 +314,7 @@ onShow(() => {
   --accent: #e60012;
   --accent-dark: #c40005;
   --accent-soft: #fff0ee;
+  --accent-shadow: rgba(230, 0, 18, 0.2);
   --page-bg: linear-gradient(180deg, #fff0ee 0%, #fff8f2 42%, #f7f7f7 100%);
   min-height: 100vh;
   background: var(--page-bg);
@@ -316,6 +325,7 @@ onShow(() => {
   --accent: #d96a11;
   --accent-dark: #a64209;
   --accent-soft: #fff3e3;
+  --accent-shadow: rgba(217, 106, 17, 0.2);
   --page-bg: linear-gradient(180deg, #fff3e3 0%, #fff9f0 42%, #f8f4ef 100%);
 }
 
@@ -323,6 +333,7 @@ onShow(() => {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
   --accent-soft: #fff0f4;
+  --accent-shadow: rgba(231, 86, 111, 0.2);
   --page-bg: linear-gradient(180deg, #fff0f4 0%, #fff8fa 42%, #f8f2f4 100%);
 }
 
@@ -330,6 +341,7 @@ onShow(() => {
   --accent: #188356;
   --accent-dark: #0c5f3e;
   --accent-soft: #edf9f1;
+  --accent-shadow: rgba(24, 131, 86, 0.2);
   --page-bg: linear-gradient(180deg, #edf9f1 0%, #f7fcf8 42%, #f1f7f3 100%);
 }
 
@@ -337,6 +349,7 @@ onShow(() => {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
   --accent-soft: #edf4ff;
+  --accent-shadow: rgba(37, 99, 235, 0.2);
   --page-bg: linear-gradient(180deg, #edf4ff 0%, #f7fbff 42%, #f1f5fb 100%);
 }
 
@@ -344,6 +357,7 @@ onShow(() => {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
   --accent-soft: #f1f2f4;
+  --accent-shadow: rgba(47, 51, 56, 0.22);
   --page-bg: linear-gradient(180deg, #1f2226 0%, #f1f2f4 40%, #f7f7f7 100%);
 }
 
@@ -351,6 +365,7 @@ onShow(() => {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
   --accent-soft: #f4efff;
+  --accent-shadow: rgba(124, 58, 237, 0.2);
   --page-bg: linear-gradient(180deg, #f4efff 0%, #fbf8ff 42%, #f6f2fb 100%);
 }
 
@@ -524,14 +539,78 @@ onShow(() => {
   overflow: hidden;
   height: 386rpx;
   border-radius: 24rpx;
-  background: transparent;
-  box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  box-shadow: 0 16rpx 34rpx var(--accent-shadow);
 }
 
-.banner-image {
-  display: block;
-  width: 100%;
+.theme-banner {
+  position: relative;
+  overflow: hidden;
   height: 386rpx;
+  padding: 44rpx 40rpx;
+  background:
+    radial-gradient(circle at 78% 28%, rgba(255, 255, 255, 0.18), transparent 170rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  box-sizing: border-box;
+  color: #fff;
+}
+
+.banner-eyebrow,
+.banner-title,
+.banner-desc {
+  position: relative;
+  z-index: 2;
+  display: block;
+}
+
+.banner-eyebrow {
+  color: rgba(255, 248, 232, 0.88);
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.banner-title {
+  margin-top: 18rpx;
+  font-family: serif;
+  font-size: 54rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.banner-desc {
+  width: 66%;
+  margin-top: 16rpx;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 27rpx;
+  line-height: 1.45;
+}
+
+.banner-tags {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 26rpx;
+}
+
+.banner-tags text {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.banner-mark {
+  position: absolute;
+  right: 34rpx;
+  bottom: -8rpx;
+  color: rgba(255, 255, 255, 0.18);
+  font-family: serif;
+  font-size: 190rpx;
+  font-weight: 900;
 }
 
 .banner-dots {
@@ -652,10 +731,10 @@ button::after {
 
 .edit-btn {
   height: 58rpx;
-  border: 1rpx solid #f6d8c9;
+  border: 1rpx solid rgba(180, 120, 70, 0.18);
   border-radius: 999rpx;
-  background: #fff6ef;
-  color: #8a4a21;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 23rpx;
   line-height: 58rpx;
 }
@@ -807,14 +886,24 @@ button::after {
   grid-template-columns: 126rpx 1fr 154rpx;
   align-items: center;
   gap: 20rpx;
-  background: linear-gradient(90deg, #fff8f1, #fff);
-  border: 1rpx solid #f7e0d2;
+  background: linear-gradient(90deg, var(--accent-soft), #fff);
+  border: 1rpx solid rgba(180, 120, 70, 0.18);
 }
 
 .agent-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 126rpx;
   height: 120rpx;
   border-radius: 12rpx;
+  background:
+    radial-gradient(circle at 76% 24%, rgba(255, 255, 255, 0.2), transparent 58rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: rgba(255, 255, 255, 0.9);
+  font-family: serif;
+  font-size: 56rpx;
+  font-weight: 900;
 }
 
 .agent-main {
@@ -849,7 +938,7 @@ button::after {
 }
 
 .agent-tags text {
-  color: #e65a42;
+  color: var(--accent);
   font-size: 20rpx;
 }
 

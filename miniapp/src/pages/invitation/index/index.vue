@@ -25,8 +25,18 @@
 
     <view class="content">
       <swiper class="banner-card" circular :indicator-dots="false" autoplay @change="bannerIndex = Number($event.detail.current)">
-        <swiper-item v-for="banner in banners" :key="banner.image">
-          <image class="banner-image" :src="banner.image" mode="aspectFill" @tap="handleBanner(banner.action)" />
+        <swiper-item v-for="banner in banners" :key="banner.title">
+          <view class="theme-banner" @tap="handleBanner(banner.action)">
+            <view>
+              <text class="banner-eyebrow">宴席通</text>
+              <text class="banner-title">{{ banner.title }}</text>
+              <text class="banner-desc">{{ banner.desc }}</text>
+              <view class="banner-tags">
+                <text v-for="tag in banner.tags" :key="tag">{{ tag }}</text>
+              </view>
+            </view>
+            <text class="banner-mark">{{ activeTheme.mark }}</text>
+          </view>
         </swiper-item>
       </swiper>
         <view class="banner-dots">
@@ -80,7 +90,10 @@
           <view v-if="loadingTemplates" class="template-empty">模板加载中</view>
           <view v-else-if="filteredTemplates.length === 0" class="template-empty">暂无符合条件的模板</view>
           <view v-for="item in filteredTemplates" :key="item.id" class="template-item">
-            <image class="template-image" :src="templateImage(item)" mode="aspectFill" />
+            <view class="template-image theme-cover">
+              <text class="cover-mark">{{ activeTheme.mark }}</text>
+              <text class="cover-title">{{ activeTheme.invitationTitle }}</text>
+            </view>
             <view class="template-info">
               <text class="template-name">{{ item.name }}</text>
               <text class="template-badge" :class="{ paid: item.priceType !== 'FREE' }">{{ templatePrice(item) }}</text>
@@ -94,7 +107,9 @@
       </view>
 
       <view class="custom-card">
-        <image class="custom-image" src="/static/invitation/custom_invite.png" mode="aspectFill" />
+        <view class="custom-image theme-mini-cover">
+          <text>{{ activeTheme.mark }}</text>
+        </view>
         <view class="custom-main">
           <text class="custom-title">定制请柬</text>
           <text class="custom-desc">没有合适模板？可申请专属定制请柬</text>
@@ -113,7 +128,9 @@
           <text class="more" @tap="openMyInvitation()">全部请柬 ›</text>
         </view>
         <view v-if="myInvitation" class="mine-row" @tap="openMyInvitation()">
-          <image class="mine-cover" src="/static/invitation/my_invite_cover.png" mode="aspectFill" />
+          <view class="mine-cover theme-mini-cover">
+            <text>{{ activeTheme.mark }}</text>
+          </view>
           <view class="mine-main">
             <view class="mine-title-line">
               <text class="mine-title">{{ myInvitation.title }}</text>
@@ -209,9 +226,9 @@ const loadingTemplates = ref(false);
 const bannerIndex = ref(0);
 const filters = ['全部', '免费', '付费', '定制', '热门'];
 const banners = [
-  { image: '/static/invitation/invitation_banner.png', action: 'mine' },
-  { image: '/static/invitation/tpl_red.png', action: 'create' },
-  { image: '/static/invitation/tpl_gold.png', action: 'custom' }
+  { title: '我的请柬', desc: '查看已创建请柬与分享路径', tags: ['分享', '回执', '访问'], action: 'mine' },
+  { title: '创建请柬', desc: '选择类型后进入对应宴席模板', tags: ['类型匹配', '主题同步'], action: 'create' },
+  { title: '定制请柬', desc: '专属版式后续开放', tags: ['专属设计', '人工服务'], action: 'custom' }
 ];
 const eventTypes = EVENT_THEMES;
 const activeTheme = computed(() => eventThemeFor(activeType.value));
@@ -310,14 +327,6 @@ function templatePrice(item: InvitationTemplate) {
   return `¥${Number(item.price || 0).toFixed(0)}`;
 }
 
-function templateImage(item: InvitationTemplate) {
-  if (item.coverUrl) return item.coverUrl;
-  if (item.templateCode.includes('GOLD')) return '/static/invitation/tpl_gold.png';
-  if (item.templateCode.includes('CHINESE')) return '/static/invitation/tpl_chinese.png';
-  if (item.templateCode.includes('MEMORIAL')) return '/static/invitation/tpl_simple.png';
-  return '/static/invitation/tpl_red.png';
-}
-
 async function loadTemplates() {
   loadingTemplates.value = true;
   try {
@@ -345,7 +354,6 @@ async function loadMyInvitation() {
         rsvpGuests: 0,
         status: '已发布'
       };
-      activeType.value = writeActiveEventType(cached.eventTypeCode || activeType.value);
       return;
     }
     myInvitation.value = undefined;
@@ -367,7 +375,6 @@ async function loadMyInvitation() {
     invitationId: detail.invitation.id,
     shareSlug: detail.invitation.shareSlug
   });
-  activeType.value = writeActiveEventType(detail.banquet.eventTypeCode || activeType.value);
   myInvitation.value = {
     id: detail.invitation.id,
     title: detail.invitation.title || `${detail.banquet.name}邀请函`,
@@ -623,14 +630,78 @@ onShow(() => {
   overflow: hidden;
   height: 386rpx;
   border-radius: 24rpx;
-  background: transparent;
-  box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  box-shadow: 0 16rpx 34rpx var(--accent-shadow);
 }
 
-.banner-image {
-  display: block;
-  width: 100%;
+.theme-banner {
+  position: relative;
+  overflow: hidden;
   height: 386rpx;
+  padding: 44rpx 40rpx;
+  background:
+    radial-gradient(circle at 78% 28%, rgba(255, 255, 255, 0.18), transparent 170rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  box-sizing: border-box;
+  color: #fff;
+}
+
+.banner-eyebrow,
+.banner-title,
+.banner-desc {
+  position: relative;
+  z-index: 2;
+  display: block;
+}
+
+.banner-eyebrow {
+  color: rgba(255, 248, 232, 0.88);
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.banner-title {
+  margin-top: 18rpx;
+  font-family: serif;
+  font-size: 54rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.banner-desc {
+  width: 66%;
+  margin-top: 16rpx;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 27rpx;
+  line-height: 1.45;
+}
+
+.banner-tags {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 26rpx;
+}
+
+.banner-tags text {
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.banner-mark {
+  position: absolute;
+  right: 34rpx;
+  bottom: -8rpx;
+  color: rgba(255, 255, 255, 0.18);
+  font-family: serif;
+  font-size: 190rpx;
+  font-weight: 900;
 }
 
 .banner-dots {
@@ -864,10 +935,39 @@ onShow(() => {
 }
 
 .template-image {
-  display: block;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   aspect-ratio: 192 / 173;
   border-radius: 14rpx 14rpx 0 0;
+}
+
+.theme-cover {
+  background:
+    radial-gradient(circle at 78% 28%, rgba(255, 255, 255, 0.2), transparent 76rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+}
+
+.cover-mark {
+  display: block;
+  color: rgba(255, 255, 255, 0.24);
+  font-family: serif;
+  font-size: 72rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.cover-title {
+  display: block;
+  margin-top: 6rpx;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 19rpx;
+  font-weight: 900;
 }
 
 .template-info {
@@ -943,13 +1043,24 @@ button::after {
   grid-template-columns: 132rpx 1fr 166rpx;
   align-items: center;
   gap: 24rpx;
-  background: linear-gradient(90deg, #fff6ef, #fff);
-  border: 1rpx solid #f6d8c9;
+  background: linear-gradient(90deg, var(--accent-soft), #fff);
+  border: 1rpx solid rgba(180, 120, 70, 0.18);
 }
 
 .custom-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 132rpx;
   height: 107rpx;
+  border-radius: 16rpx;
+  background:
+    radial-gradient(circle at 74% 22%, rgba(255, 255, 255, 0.2), transparent 58rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: rgba(255, 255, 255, 0.9);
+  font-family: serif;
+  font-size: 52rpx;
+  font-weight: 900;
 }
 
 .custom-title {
@@ -972,7 +1083,7 @@ button::after {
 
 .custom-tags text {
   padding: 4rpx 10rpx;
-  border: 1rpx solid #ffd6ca;
+  border: 1rpx solid rgba(180, 120, 70, 0.18);
   border-radius: 999rpx;
   color: var(--accent);
   font-size: 19rpx;
@@ -997,9 +1108,19 @@ button::after {
 }
 
 .mine-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 112rpx;
   height: 88rpx;
   border-radius: 10rpx;
+  background:
+    radial-gradient(circle at 76% 24%, rgba(255, 255, 255, 0.2), transparent 48rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: rgba(255, 255, 255, 0.9);
+  font-family: serif;
+  font-size: 42rpx;
+  font-weight: 900;
 }
 
 .mine-main {
