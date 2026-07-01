@@ -25,7 +25,7 @@ const routes = [
   { path: '/templates', name: 'templates', text: '模板' },
   { path: '/devices', name: 'devices', text: '设备' },
   { path: banquetId ? `/banquets?banquetId=${encodeURIComponent(banquetId)}` : '/banquets', name: 'banquets', text: '宴席' },
-  { path: '/business', name: 'business', text: '业务' },
+  { path: '/business', name: 'business', text: '宴席核对总览' },
   { path: '/orders', name: 'orders', text: '订单' },
   { path: '/payments', name: 'payments', text: '支付' },
   { path: '/broadcast-logs', name: 'broadcast-logs', text: '播报' },

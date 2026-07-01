@@ -13,6 +13,66 @@
       title="导出超过配置上限会被拒绝；上限由配置中心 export.max_rows 维护。"
     />
 
+    <section class="audit-panel">
+      <div class="audit-head">
+        <div>
+          <h2>宴席核对总览</h2>
+          <p>按宴席汇总小程序产生的回执、收礼、人情和操作日志，方便运营快速核对闭环。</p>
+        </div>
+        <div class="audit-actions">
+          <el-select v-model="auditBanquetId" filterable clearable placeholder="选择宴席" class="audit-select">
+            <el-option
+              v-for="item in banquetOptions"
+              :key="item.id"
+              :label="`${item.id} · ${item.name}`"
+              :value="String(item.id)"
+            />
+          </el-select>
+          <el-button type="primary" :disabled="!auditBanquetId" :loading="loading.audit" @click="loadAudit">核对</el-button>
+          <el-button :disabled="!auditBanquetId" @click="applyAuditFilters">套用到下方表格</el-button>
+        </div>
+      </div>
+
+      <section class="metric-grid audit-metrics">
+        <article class="metric">
+          <span>回执记录</span>
+          <strong>{{ audit.rsvpStats?.totalRecords ?? '-' }}</strong>
+          <small>{{ audit.rsvpStats ? `预计 ${audit.rsvpStats.totalGuests || 0} 人` : '待核对' }}</small>
+        </article>
+        <article class="metric">
+          <span>收礼记录</span>
+          <strong>{{ audit.gifts.length }}</strong>
+          <small>{{ formatMoney(auditGiftTotal) }}</small>
+        </article>
+        <article class="metric">
+          <span>人情对象</span>
+          <strong>{{ audit.favorContacts.length }}</strong>
+          <small>{{ balanceText(auditFavorBalance) }}</small>
+        </article>
+        <article class="metric">
+          <span>关键操作</span>
+          <strong>{{ audit.operationLogs.length }}</strong>
+          <small>创建、回执、记礼、补录可追踪</small>
+        </article>
+        <article class="metric">
+          <span>核对状态</span>
+          <strong :class="auditStatusClass">{{ auditStatusText }}</strong>
+          <small>{{ auditStatusHint }}</small>
+        </article>
+      </section>
+
+      <el-table :data="auditRows" border stripe empty-text="请选择宴席后核对">
+        <el-table-column prop="name" label="核对项" width="150" />
+        <el-table-column prop="value" label="结果" min-width="180" />
+        <el-table-column prop="hint" label="说明" min-width="280" show-overflow-tooltip />
+        <el-table-column label="状态" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.ok ? 'success' : 'warning'">{{ row.ok ? '通过' : '待补' }}</el-tag>
+          </template>
+        </el-table-column>
+      </el-table>
+    </section>
+
     <el-tabs>
       <el-tab-pane label="礼金记录">
         <section class="toolbar">
@@ -310,6 +370,18 @@ interface FavorDetail {
   entries: Record<string, unknown>[];
 }
 
+interface BanquetOption {
+  id: number;
+  name: string;
+}
+
+interface AuditState {
+  rsvpStats: RsvpStats | null;
+  gifts: Record<string, unknown>[];
+  favorContacts: Record<string, unknown>[];
+  operationLogs: Record<string, unknown>[];
+}
+
 const gifts = ref<Record<string, unknown>[]>([]);
 const route = useRoute();
 const router = useRouter();
@@ -317,12 +389,20 @@ const rsvpRows = ref<Record<string, unknown>[]>([]);
 const favorContacts = ref<Record<string, unknown>[]>([]);
 const favorDetail = ref<FavorDetail | null>(null);
 const rsvpStats = ref<RsvpStats | null>(null);
+const banquetOptions = ref<BanquetOption[]>([]);
+const auditBanquetId = ref(String(route.query.banquetId || ''));
 const favorKeyword = ref('');
 const favorExportBanquetId = ref(String(route.query.banquetId || ''));
 const offlineGiftVisible = ref(false);
 const favorManualVisible = ref(false);
 const favorDetailVisible = ref(false);
-const loading = reactive({ gifts: false, rsvp: false, favor: false });
+const loading = reactive({ gifts: false, rsvp: false, favor: false, audit: false });
+const audit = reactive<AuditState>({
+  rsvpStats: null,
+  gifts: [],
+  favorContacts: [],
+  operationLogs: []
+});
 
 const giftFilters = reactive({ banquetId: String(route.query.banquetId || ''), source: '', keyword: '' });
 const rsvpFilters = reactive({ banquetId: String(route.query.banquetId || ''), status: '', keyword: '' });
@@ -377,6 +457,41 @@ const favorSummary = computed<FavorSummary>(() => {
     balance: receivedAmount - givenAmount
   };
 });
+const auditGiftTotal = computed(() => sum(audit.gifts.map((row) => row.amount)));
+const auditFavorBalance = computed(() => {
+  const receivedAmount = sum(audit.favorContacts.map((row) => row.receivedAmount));
+  const givenAmount = sum(audit.favorContacts.map((row) => row.givenAmount));
+  return receivedAmount - givenAmount;
+});
+const auditRows = computed(() => [
+  {
+    name: '回执',
+    value: audit.rsvpStats ? `${audit.rsvpStats.totalRecords} 条 / ${audit.rsvpStats.totalGuests} 人` : '未核对',
+    hint: '来自小程序请柬回执，返回统计页后会自动刷新。',
+    ok: Boolean(audit.rsvpStats && audit.rsvpStats.totalRecords >= 0)
+  },
+  {
+    name: '收礼',
+    value: `${audit.gifts.length} 笔 / ${formatMoney(auditGiftTotal.value)}`,
+    hint: '线上随礼、现场扫码和线下记礼统一写入收礼记录。',
+    ok: audit.gifts.length > 0
+  },
+  {
+    name: '人情',
+    value: `${audit.favorContacts.length} 个对象 / ${balanceText(auditFavorBalance.value)}`,
+    hint: '收礼和手动补录会沉淀到人情账本，用于往来对比。',
+    ok: audit.favorContacts.length > 0
+  },
+  {
+    name: '操作日志',
+    value: `${audit.operationLogs.length} 条`,
+    hint: '关键创建、回执、记礼、补录和配置动作应可追踪。',
+    ok: audit.operationLogs.length > 0
+  }
+]);
+const auditStatusText = computed(() => auditRows.value.every((row) => row.ok) ? '闭环完整' : '存在待补');
+const auditStatusHint = computed(() => auditRows.value.every((row) => row.ok) ? '该宴席关键数据均可追踪' : '建议查看下方明细或操作日志补齐数据');
+const auditStatusClass = computed(() => auditRows.value.every((row) => row.ok) ? 'positive' : 'negative');
 
 function query(params: Record<string, string>) {
   const search = new URLSearchParams();
@@ -427,7 +542,48 @@ async function loadFavorContacts() {
 }
 
 async function loadAll() {
-  await Promise.all([loadGifts(), loadRsvp(), loadFavorContacts()]);
+  await Promise.all([loadBanquetOptions(), loadGifts(), loadRsvp(), loadFavorContacts()]);
+  if (auditBanquetId.value) {
+    await loadAudit();
+  }
+}
+
+async function loadBanquetOptions() {
+  const response = await http.get<ApiResponse<BanquetOption[]>>('/admin/banquets');
+  banquetOptions.value = response.data.data || [];
+}
+
+async function loadAudit() {
+  if (!auditBanquetId.value) {
+    ElMessage.warning('请先选择宴席');
+    return;
+  }
+  loading.audit = true;
+  try {
+    const [rsvpResponse, giftResponse, favorResponse, operationLogResponse] = await Promise.all([
+      http.get<ApiResponse<RsvpStats>>(`/admin/rsvp/stats?banquetId=${encodeURIComponent(auditBanquetId.value)}`),
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/gifts?banquetId=${encodeURIComponent(auditBanquetId.value)}&pageSize=100`),
+      http.get<ApiResponse<Record<string, unknown>[]>>(`/admin/favor/contacts?banquetId=${encodeURIComponent(auditBanquetId.value)}`),
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/operation-logs?targetType=banquet&targetId=${encodeURIComponent(auditBanquetId.value)}&pageSize=100`)
+    ]);
+    audit.rsvpStats = rsvpResponse.data.data;
+    audit.gifts = recordsOf(giftResponse.data.data);
+    audit.favorContacts = favorResponse.data.data || [];
+    audit.operationLogs = recordsOf(operationLogResponse.data.data);
+  } finally {
+    loading.audit = false;
+  }
+}
+
+async function applyAuditFilters() {
+  if (!auditBanquetId.value) {
+    return;
+  }
+  giftFilters.banquetId = auditBanquetId.value;
+  rsvpFilters.banquetId = auditBanquetId.value;
+  favorExportBanquetId.value = auditBanquetId.value;
+  await Promise.all([loadGifts(), loadRsvp(), loadRsvpStats(), loadFavorContacts()]);
+  ElMessage.success('已套用宴席筛选');
 }
 
 function resetGiftFilters() {
@@ -635,6 +791,48 @@ header {
   margin-bottom: 14px;
 }
 
+.audit-panel {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.audit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.audit-head h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+}
+
+.audit-head p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.audit-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.audit-select {
+  width: 260px;
+}
+
+.audit-metrics {
+  margin-bottom: 14px;
+}
+
 h1 {
   margin: 0;
   font-size: 20px;
@@ -717,8 +915,15 @@ h1 {
   }
 
   .toolbar .el-input,
-  .toolbar .el-select {
+  .toolbar .el-select,
+  .audit-select {
     width: 100%;
+  }
+
+  .audit-head,
+  .audit-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
 </style>
