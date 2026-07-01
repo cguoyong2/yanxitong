@@ -1070,7 +1070,7 @@ button::after {
 }
 
 .quick-icon.red {
-  background: linear-gradient(135deg, #ff6a5f, var(--accent));
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
 }
 
 .quick-icon.orange {

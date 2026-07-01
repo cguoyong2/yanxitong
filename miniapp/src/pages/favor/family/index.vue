@@ -1,18 +1,19 @@
 <template>
-  <view class="page">
+  <view class="page" :class="activeTheme.tone">
     <view class="hero">
+      <text class="hero-mark">{{ activeTheme.mark }}</text>
       <text class="eyebrow">家庭共享</text>
       <text class="title">家庭人情簿</text>
-      <text class="subtitle">家庭协作功能将在后续版本开放，当前可先查看入口结构。</text>
+      <text class="subtitle">{{ activeTheme.favorText }}，家庭协作功能将在后续版本开放。</text>
     </view>
 
     <view class="summary-card">
       <view class="summary-item">
-        <text class="summary-label">家庭总收礼</text>
+        <text class="summary-label">家庭总收到{{ activeTheme.giftLabel }}</text>
         <text class="summary-value">¥0</text>
       </view>
       <view class="summary-item">
-        <text class="summary-label">家庭总送礼</text>
+        <text class="summary-label">家庭总送出{{ activeTheme.giftLabel }}</text>
         <text class="summary-value">¥0</text>
       </view>
       <view class="summary-item">
@@ -50,7 +51,7 @@
       </view>
       <view v-if="records.length === 0" class="empty">
         <text class="empty-title">暂无家庭往来记录</text>
-        <text class="empty-desc">家庭协作开放后，可按成员汇总收礼、送礼和差额。</text>
+        <text class="empty-desc">家庭协作开放后，可按成员汇总{{ activeTheme.giftLabel }}收送和差额。</text>
       </view>
       <view v-for="record in records" :key="record.id" class="record-row">
         <text class="record-badge" :class="record.type">{{ record.type === 'receive' ? '收' : '送' }}</text>
@@ -67,31 +68,106 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
+import { eventThemeFor, readActiveEventType } from '../../../utils/event-theme';
+
 const members: Array<{ name: string; role: string }> = [];
 const records: Array<{ id: number; type: string; name: string; event: string; date: string; owner: string; amount: number }> = [];
+const activeType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(activeType.value));
 
 function showComingSoon() {
   uni.showToast({ title: '家庭协作功能将在后续版本开放', icon: 'none' });
 }
+
+onShow(() => {
+  activeType.value = readActiveEventType();
+});
 </script>
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #f7f3ee;
+  --accent-shadow: rgba(184, 17, 21, 0.22);
   box-sizing: border-box;
   min-height: 100vh;
   padding: 24rpx 24rpx 140rpx;
-  background: #f7f7f7;
+  background: var(--page-bg);
   color: #151823;
 }
 
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
+  --accent-shadow: rgba(166, 86, 17, 0.2);
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
+  --accent-shadow: rgba(183, 45, 76, 0.18);
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
+  --accent-shadow: rgba(12, 95, 62, 0.17);
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
+  --accent-shadow: rgba(29, 78, 216, 0.17);
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
+  --accent-shadow: rgba(13, 15, 18, 0.2);
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
+  --accent-shadow: rgba(91, 33, 182, 0.18);
+}
+
 .hero {
+  position: relative;
   overflow: hidden;
   padding: 34rpx 28rpx;
   border-radius: 16rpx;
   background:
     radial-gradient(circle at 84% 16%, rgba(255, 232, 190, 0.32), transparent 26%),
-    linear-gradient(135deg, #e60012, #b80000);
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
+}
+
+.hero-mark {
+  position: absolute;
+  right: 28rpx;
+  bottom: 12rpx;
+  color: rgba(255, 239, 206, 0.28);
+  font-family: serif;
+  font-size: 118rpx;
+  font-weight: 900;
 }
 
 .eyebrow,
@@ -136,7 +212,7 @@ function showComingSoon() {
 .summary-item,
 .member-card,
 .panel {
-  border: 1rpx solid #eeeeee;
+  border: 1rpx solid #f0dfcf;
   border-radius: 12rpx;
   background: #fff;
   box-shadow: 0 10rpx 24rpx rgba(30, 18, 12, 0.04);
@@ -160,7 +236,7 @@ function showComingSoon() {
 
 .positive,
 .record-amount.receive {
-  color: #c71916;
+  color: var(--accent);
 }
 
 .member-card,
@@ -198,10 +274,10 @@ button::after {
 
 .plain-btn {
   padding: 0 18rpx;
-  border: 1rpx solid #f0d4bd;
+  border: 1rpx solid var(--accent-soft);
   border-radius: 999rpx;
-  background: #fff8ef;
-  color: #b80000;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 23rpx;
   line-height: 56rpx;
 }
@@ -225,7 +301,7 @@ button::after {
   height: 64rpx;
   margin: 0 auto;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ef6a62, #d8271f);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-weight: 800;
 }
@@ -289,7 +365,7 @@ button::after {
 }
 
 .record-badge.receive {
-  background: #e60012;
+  background: var(--accent);
 }
 
 .record-badge.give {
@@ -327,7 +403,7 @@ button::after {
   bottom: 34rpx;
   left: 24rpx;
   border-radius: 12rpx;
-  background: linear-gradient(135deg, #e60012, #c71916);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff;
   font-size: 29rpx;
   font-weight: 800;

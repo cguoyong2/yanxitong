@@ -1,8 +1,9 @@
 <template>
-  <view class="page" v-if="detail">
+  <view class="page" v-if="detail" :class="activeTheme.tone">
     <view class="hero-card">
+      <text class="hero-mark">{{ activeTheme.mark }}</text>
       <view class="avatar">{{ contactInitial(detail.contact?.contactName) }}</view>
-      <text class="hero-label">人情往来详情</text>
+      <text class="hero-label">{{ activeTheme.favorText }}</text>
       <text class="hero-name">{{ detail.contact?.contactName || '未命名联系人' }}</text>
       <text class="hero-note">{{ balanceText(detail.balance) }}</text>
       <view class="balance-box">
@@ -13,11 +14,11 @@
 
     <view class="summary-grid">
       <view class="summary-item">
-        <text class="summary-label">他送我的</text>
+        <text class="summary-label">他送我的{{ activeTheme.giftLabel }}</text>
         <text class="summary-value red">{{ formatMoney(detail.receivedAmount) }}</text>
       </view>
       <view class="summary-item">
-        <text class="summary-label">我送他的</text>
+        <text class="summary-label">我送他的{{ activeTheme.giftLabel }}</text>
         <text class="summary-value green">{{ formatMoney(detail.givenAmount) }}</text>
       </view>
       <view class="summary-item">
@@ -53,8 +54,8 @@
       </view>
     </view>
   </view>
-  <view class="page loading" v-else-if="pageState === 'loading'">加载中</view>
-  <view class="page state-page" v-else>
+  <view class="page loading" :class="activeTheme.tone" v-else-if="pageState === 'loading'">加载中</view>
+  <view class="page state-page" :class="activeTheme.tone" v-else>
     <text class="state-title">人情详情加载失败</text>
     <text class="state-desc">该联系人可能不存在，或网络暂时不可用。</text>
     <button class="state-button" @tap="bootstrap">重新加载</button>
@@ -65,6 +66,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { request } from '../../../api/client';
+import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
 
 interface FavorDetail {
   contact: { contactName: string };
@@ -76,6 +78,8 @@ interface FavorDetail {
 
 const detail = ref<FavorDetail>();
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
+const eventType = ref(readActiveEventType());
+const activeTheme = computed(() => eventThemeFor(eventType.value));
 const entries = computed(() => detail.value?.entries || []);
 
 function formatTime(value?: string) {
@@ -94,14 +98,14 @@ function signedMoney(value: unknown) {
 }
 
 function directionLabel(value: string) {
-  return value === 'GIVEN' ? '我送他的' : '他送我的';
+  return value === 'GIVEN' ? `我送他的${activeTheme.value.giftLabel}` : `他送我的${activeTheme.value.giftLabel}`;
 }
 
 function sourceLabel(value: string) {
   const labels: Record<string, string> = {
-    ONLINE_GIFT: '线上随礼',
+    ONLINE_GIFT: activeTheme.value.onlineGiftLabel,
     ONSITE_QR: '现场扫码',
-    CASH: '现金记礼',
+    CASH: activeTheme.value.offlineGiftLabel,
     MANUAL: '手动补录'
   };
   return labels[value] || value;
@@ -138,7 +142,7 @@ function copySummary() {
     return;
   }
   const name = detail.value.contact?.contactName || '未命名联系人';
-  const text = `${name} 人情往来：他送我 ${formatMoney(detail.value.receivedAmount)}，我送他 ${formatMoney(detail.value.givenAmount)}，差额 ${signedMoney(detail.value.balance)}。`;
+  const text = `${name} 人情往来：他送我的${activeTheme.value.giftLabel} ${formatMoney(detail.value.receivedAmount)}，我送他的${activeTheme.value.giftLabel} ${formatMoney(detail.value.givenAmount)}，差额 ${signedMoney(detail.value.balance)}。`;
   uni.setClipboardData({
     data: text,
     success: () => uni.showToast({ title: '已复制摘要', icon: 'success' }),
@@ -163,6 +167,10 @@ async function bootstrap() {
     pageState.value = 'loading';
     try {
       detail.value = await request<FavorDetail>(`/favor/contacts/${id}`);
+      const banquetId = detail.value.entries.find((entry) => entry.banquetId)?.banquetId;
+      if (banquetId) {
+        eventType.value = writeActiveEventType(await fetchBanquetEventType(String(banquetId), request, eventType.value));
+      }
       pageState.value = 'ready';
     } catch {
       pageState.value = 'error';
@@ -182,11 +190,64 @@ onMounted(bootstrap);
 
 <style scoped>
 .page {
+  --accent: #e60012;
+  --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
+  --accent-shadow: rgba(184, 17, 21, 0.22);
   min-height: 100vh;
   padding: 24rpx;
-  background: #fff8ef;
+  background: var(--page-bg);
   box-sizing: border-box;
   color: #171c2a;
+}
+
+.page.orange {
+  --accent: #d96a11;
+  --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
+  --accent-shadow: rgba(166, 86, 17, 0.2);
+}
+
+.page.pink {
+  --accent: #e7566f;
+  --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
+  --accent-shadow: rgba(183, 45, 76, 0.18);
+}
+
+.page.green {
+  --accent: #188356;
+  --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
+  --accent-shadow: rgba(12, 95, 62, 0.17);
+}
+
+.page.blue {
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
+  --accent-shadow: rgba(29, 78, 216, 0.17);
+}
+
+.page.black {
+  --accent: #2f3338;
+  --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
+  --accent-shadow: rgba(13, 15, 18, 0.2);
+}
+
+.page.purple {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
+  --accent-shadow: rgba(91, 33, 182, 0.18);
 }
 
 .loading {
@@ -225,7 +286,7 @@ onMounted(bootstrap);
 .state-button {
   height: 88rpx;
   border-radius: 999rpx;
-  background: linear-gradient(135deg, #e71921, #c7191e);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: #fff8df;
   font-size: 30rpx;
   font-weight: 900;
@@ -233,7 +294,7 @@ onMounted(bootstrap);
 
 .state-link {
   background: transparent;
-  color: #9c4b31;
+  color: var(--accent);
   font-size: 27rpx;
 }
 
@@ -244,8 +305,18 @@ onMounted(bootstrap);
   border-radius: 28rpx;
   background:
     radial-gradient(circle at 84% 18%, rgba(255, 217, 150, 0.38), transparent 180rpx),
-    linear-gradient(135deg, #e71921 0%, #c9161c 62%, #9b0e13 100%);
-  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+    linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
+}
+
+.hero-mark {
+  position: absolute;
+  right: 40rpx;
+  top: 30rpx;
+  color: rgba(255, 239, 206, 0.3);
+  font-family: serif;
+  font-size: 100rpx;
+  font-weight: 900;
 }
 
 .avatar {
@@ -255,7 +326,7 @@ onMounted(bootstrap);
   height: 96rpx;
   border-radius: 50%;
   background: rgba(255, 247, 225, 0.92);
-  color: #c7191e;
+  color: var(--accent);
   font-size: 42rpx;
   font-weight: 900;
 }
@@ -340,8 +411,8 @@ onMounted(bootstrap);
   margin: 0;
   border: 1rpx solid #ead8ca;
   border-radius: 16rpx;
-  background: #fff;
-  color: #9e4d32;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 26rpx;
   font-weight: 900;
   line-height: 78rpx;
@@ -383,7 +454,7 @@ onMounted(bootstrap);
 }
 
 .summary-value.red {
-  color: #c7191e;
+  color: var(--accent);
 }
 
 .summary-value.green {
@@ -417,8 +488,8 @@ onMounted(bootstrap);
   padding: 48rpx 20rpx;
   border: 1rpx dashed #ead8ca;
   border-radius: 18rpx;
-  background: #fffaf6;
-  color: #9a6a4c;
+  background: var(--accent-soft);
+  color: var(--accent);
   text-align: center;
 }
 
@@ -447,7 +518,7 @@ onMounted(bootstrap);
 }
 
 .entry-badge.received {
-  background: #d92323;
+  background: var(--accent);
 }
 
 .entry-badge.given {
@@ -476,14 +547,14 @@ onMounted(bootstrap);
   margin-top: 12rpx;
   padding: 12rpx 16rpx;
   border-radius: 14rpx;
-  background: #fff8ef;
-  color: #865b3e;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 24rpx;
   line-height: 1.5;
 }
 
 .entry-amount {
-  color: #c7191e;
+  color: var(--accent);
   font-size: 28rpx;
   font-weight: 900;
   white-space: nowrap;
