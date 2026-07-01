@@ -142,7 +142,8 @@ function openGiftList() {
     return;
   }
   const highlight = lastSavedId.value ? `&highlightId=${lastSavedId.value}` : '';
-  safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}&source=CASH${highlight}`, `${activeTheme.value.giftRecordLabel}打开失败`);
+  const highlightName = lastSavedGuestName.value ? `&highlightName=${encodeURIComponent(lastSavedGuestName.value)}` : '';
+  safeNavigate(`/pages/gift/list/index?banquetId=${banquetId.value}&source=CASH${highlight}${highlightName}`, `${activeTheme.value.giftRecordLabel}打开失败`);
 }
 
 async function openLastFavor() {
@@ -165,7 +166,10 @@ async function openFavorByName(name: string) {
   } catch {
     // Fall through to the ledger tab when the comparison endpoint is unavailable.
   }
-  uni.switchTab({ url: '/pages/favor/index/index' });
+  uni.switchTab({
+    url: '/pages/favor/index/index',
+    fail: () => uni.showToast({ title: '人情账本打开失败', icon: 'none' })
+  });
 }
 
 function continueRegistration() {

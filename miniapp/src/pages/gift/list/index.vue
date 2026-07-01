@@ -30,6 +30,11 @@
       <button class="mini-button" @tap="openBanquetDetail">返回管理台</button>
     </view>
 
+    <view v-if="highlightNoticeText" class="highlight-card">
+      <text>{{ highlightNoticeText }}</text>
+      <button class="mini-button" @tap="refreshList">刷新确认</button>
+    </view>
+
     <view class="tool-card">
       <view class="search-box">
         <text class="search-icon">⌕</text>
@@ -143,6 +148,7 @@ const keyword = ref('');
 const sourceIndex = ref(0);
 const loading = ref(false);
 const highlightId = ref('');
+const highlightName = ref('');
 const selectedGift = ref<GiftRecord>();
 const lastSyncText = ref('');
 const eventType = ref(readActiveEventType());
@@ -154,6 +160,16 @@ const sources = computed(() => [
   { label: activeTheme.value.offlineGiftLabel, value: 'CASH' }
 ]);
 const onlineTotal = computed(() => sourceAmount('ONLINE_GIFT') + sourceAmount('ONSITE_QR'));
+const highlightedGift = computed(() => gifts.value.find((gift) => String(gift.id) === highlightId.value));
+const highlightNoticeText = computed(() => {
+  if (!highlightId.value && !highlightName.value) {
+    return '';
+  }
+  if (highlightedGift.value) {
+    return `已定位最近保存：${highlightedGift.value.guestName} · ${formatMoney(highlightedGift.value.amount)}`;
+  }
+  return highlightName.value ? `正在同步最近保存：${highlightName.value}，如未出现请点刷新确认。` : '正在同步最近保存记录，如未出现请点刷新确认。';
+});
 const emptyText = computed(() => {
   const source = sources.value[sourceIndex.value].label;
   if (keyword.value && sources.value[sourceIndex.value].value) {
@@ -260,7 +276,10 @@ async function openFavorFromGift() {
     // Fall back to the tab when the comparison cannot be loaded.
   }
   closeGiftDetail();
-  uni.switchTab({ url: '/pages/favor/index/index' });
+  uni.switchTab({
+    url: '/pages/favor/index/index',
+    fail: () => uni.showToast({ title: '人情账本打开失败', icon: 'none' })
+  });
 }
 
 function safeNavigate(url: string, failTitle: string) {
@@ -318,6 +337,7 @@ onMounted(async () => {
   }
   keyword.value = current.options?.keyword || '';
   highlightId.value = current.options?.highlightId || '';
+  highlightName.value = current.options?.highlightName ? decodeURIComponent(current.options.highlightName) : '';
   eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
   await load();
 });
@@ -477,6 +497,7 @@ onShow(() => {
 
 .tool-card,
 .list-card,
+.highlight-card,
 .manage-card {
   margin-top: 24rpx;
   padding: 26rpx;
@@ -491,6 +512,23 @@ onShow(() => {
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
+}
+
+.highlight-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  border-color: transparent;
+  background: var(--accent-soft);
+}
+
+.highlight-card text {
+  flex: 1;
+  color: var(--accent-dark);
+  font-size: 25rpx;
+  font-weight: 800;
+  line-height: 1.5;
 }
 
 .manage-title,

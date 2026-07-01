@@ -135,6 +135,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId, writeLastBanquetContext } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
@@ -333,6 +334,14 @@ onMounted(async () => {
     shareSlug.value = detail?.invitation?.shareSlug || '';
   }
   await load();
+});
+
+onShow(() => {
+  if (banquetId.value) {
+    load().catch(() => {
+      uni.showToast({ title: '回执统计刷新失败', icon: 'none' });
+    });
+  }
 });
 </script>
 

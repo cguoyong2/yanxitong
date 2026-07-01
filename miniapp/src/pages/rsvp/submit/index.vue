@@ -281,10 +281,7 @@ function openRsvpStats() {
     uni.showToast({ title: '缺少宴席信息', icon: 'none' });
     return;
   }
-  uni.navigateTo({
-    url: `/pages/rsvp/stats/index?banquetId=${banquetId.value}`,
-    fail: () => uni.showToast({ title: '回执统计打开失败', icon: 'none' })
-  });
+  safeNavigate(`/pages/rsvp/stats/index?banquetId=${banquetId.value}`, '回执统计打开失败');
 }
 
 function editAgain() {
