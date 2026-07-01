@@ -486,7 +486,7 @@ function handleAction(action: string) {
   }
   if (action === 'onlineGift') {
     if (!paymentEntryEnabled.value) {
-      uni.showToast({ title: `${activeTheme.value.onlineGiftLabel}暂未开放`, icon: 'none' });
+      openGiftPay('ONLINE_GIFT');
       return;
     }
     openGiftPay('ONLINE_GIFT');

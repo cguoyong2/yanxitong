@@ -335,7 +335,14 @@ function withShareUrl(url: string) {
 }
 
 function showGiftDisabled() {
-  uni.showToast({ title: `${activeTheme.value.onlineGiftLabel}需完成微信支付配置后开放`, icon: 'none' });
+  if (!data.value?.banquet.id) {
+    uni.showToast({ title: `${activeTheme.value.onlineGiftLabel}需完成微信支付配置后开放`, icon: 'none' });
+    return;
+  }
+  safeNavigate(
+    withShareUrl(`/pages/gift/pay/index?banquetId=${data.value.banquet.id}&entrySource=ONLINE_GIFT`),
+    `${activeTheme.value.onlineGiftLabel}说明页打开失败`
+  );
 }
 
 function showMapTip() {
