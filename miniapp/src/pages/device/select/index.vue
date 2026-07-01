@@ -369,8 +369,8 @@ function deviceTone(value: string) {
 }
 
 function deviceDesc(value: string) {
-  if (value === 'CLOUD_SPEAKER') return '礼金到账后模拟播报祝福语';
-  if (value === 'CONFIRM_SCREEN') return '礼金成功后大屏展示宾客与金额';
+  if (value === 'CLOUD_SPEAKER') return `${activeTheme.value.giftLabel}到账后模拟播报${activeTheme.value.blessingLabel}`;
+  if (value === 'CONFIRM_SCREEN') return `${activeTheme.value.giftLabel}成功后大屏展示宾客与金额`;
   return '适用于宴席现场设备服务';
 }
 
@@ -422,9 +422,12 @@ onMounted(async () => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
+  --accent-shadow: rgba(184, 17, 21, 0.22);
   min-height: 100vh;
   padding: 24rpx;
-  background: #fff8ef;
+  background: var(--page-bg);
   box-sizing: border-box;
   color: #171c2a;
 }
@@ -432,31 +435,49 @@ onMounted(async () => {
 .page.orange {
   --accent: #d96a11;
   --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
+  --accent-shadow: rgba(166, 86, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
+  --accent-shadow: rgba(183, 45, 76, 0.18);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
+  --accent-shadow: rgba(12, 95, 62, 0.17);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
+  --accent-shadow: rgba(29, 78, 216, 0.17);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
+  --accent-shadow: rgba(13, 15, 18, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
+  --accent-shadow: rgba(91, 33, 182, 0.18);
 }
 
 .hero-card {
@@ -467,7 +488,7 @@ onMounted(async () => {
   background:
     radial-gradient(circle at 84% 18%, rgba(255, 217, 150, 0.38), transparent 180rpx),
     linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
-  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
 }
 
 .hero-art {
@@ -559,7 +580,7 @@ onMounted(async () => {
 }
 
 .rights-card.blocked {
-  background: #fff7ed;
+  background: var(--accent-soft);
 }
 
 .card-title,
@@ -670,7 +691,7 @@ onMounted(async () => {
   padding: 18rpx 12rpx;
   border: 1rpx solid #ead8ca;
   border-radius: 18rpx;
-  background: #fffaf5;
+  background: var(--accent-soft);
   text-align: center;
 }
 
@@ -705,7 +726,7 @@ onMounted(async () => {
   padding: 0 22rpx;
   border: 1rpx solid #ead8ca;
   border-radius: 999rpx;
-  background: #fffaf5;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 24rpx;
   font-weight: 800;
@@ -729,7 +750,7 @@ onMounted(async () => {
   padding: 30rpx 24rpx;
   border: 1rpx dashed #ead8ca;
   border-radius: 18rpx;
-  background: #fffaf6;
+  background: var(--accent-soft);
 }
 
 .empty-title,
@@ -790,7 +811,7 @@ onMounted(async () => {
 .status-tag {
   padding: 7rpx 12rpx;
   border-radius: 999rpx;
-  background: #fff0ea;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 21rpx;
   font-weight: 900;
@@ -807,7 +828,7 @@ onMounted(async () => {
   margin: 0;
   padding: 0 18rpx;
   border-radius: 999rpx;
-  background: #fff0ea;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 23rpx;
   font-weight: 900;
@@ -818,8 +839,8 @@ onMounted(async () => {
   padding: 48rpx 20rpx;
   border: 1rpx dashed #ead8ca;
   border-radius: 18rpx;
-  background: #fffaf6;
-  color: #9a6a4c;
+  background: var(--accent-soft);
+  color: var(--accent);
   text-align: center;
 }
 
@@ -898,8 +919,8 @@ onMounted(async () => {
 .device-meta text {
   padding: 8rpx 14rpx;
   border-radius: 999rpx;
-  background: #fff7ed;
-  color: #9a5b30;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 22rpx;
   font-weight: 800;
 }

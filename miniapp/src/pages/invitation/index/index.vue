@@ -928,8 +928,8 @@ onShow(() => {
   padding: 48rpx 20rpx;
   border: 1rpx dashed #ead8ca;
   border-radius: 18rpx;
-  background: #fffaf6;
-  color: #9a6a4c;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 25rpx;
   text-align: center;
 }
@@ -1195,7 +1195,7 @@ button::after {
   padding: 28rpx;
   border: 1rpx dashed #f0cfc3;
   border-radius: 18rpx;
-  background: #fffaf6;
+  background: var(--accent-soft);
 }
 
 .empty-title,

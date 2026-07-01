@@ -106,9 +106,9 @@
           <text class="guide-index">2</text>
           <view class="guide-main">
             <text class="guide-title">{{ activeTheme.onlineGiftLabel }}</text>
-            <text class="guide-desc">{{ showGiftEntry ? '线上随礼和现场扫码共用统一支付能力。' : '当前先开放回执流程，随礼入口待支付配置完成后开启。' }}</text>
+            <text class="guide-desc">{{ giftGuideDesc }}</text>
           </view>
-          <text class="guide-action">{{ showGiftEntry ? '去随礼' : '未开放' }}</text>
+          <text class="guide-action">{{ giftGuideAction }}</text>
         </view>
       </view>
 
@@ -232,6 +232,10 @@ const scheduleItems = computed(() => (basicFields.value.scheduleText || data.val
   .map((item) => item.trim())
   .filter(Boolean));
 const showGiftEntry = computed(() => basicFields.value.showGiftEntry !== '0' && features.value.mockPaymentEnabled);
+const giftGuideDesc = computed(() => showGiftEntry.value
+  ? `${activeTheme.value.onlineGiftLabel}和现场扫码共用统一支付能力。`
+  : `当前先开放回执流程，${activeTheme.value.onlineGiftLabel}待支付配置完成后开启。`);
+const giftGuideAction = computed(() => showGiftEntry.value ? activeTheme.value.giftActionLabel : '未开放');
 const disabledEntryMessages = computed(() => {
   const messages: string[] = [];
   if (!showGiftEntry.value) {

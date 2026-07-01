@@ -290,15 +290,15 @@ function planIcon(plan: Plan) {
 function planDesc(plan: Plan) {
   if (Number(plan.price) === 0) return '基础功能体验，适合小型宴席';
   if (/PREMIUM|VIP|DIAMOND/i.test(plan.planCode)) return '高阶权益组合，适合更完整的办宴流程';
-  if (/STANDARD|PRO/i.test(plan.planCode)) return '核心功能齐全，覆盖收礼、设备和数据';
+  if (/STANDARD|PRO/i.test(plan.planCode)) return `核心功能齐全，覆盖${activeTheme.value.giftRecordLabel}、设备和数据`;
   return '满足日常宴席管理需求';
 }
 
 function rightsPreview(plan: Plan) {
   if (Number(plan.price) === 0) return ['创建宴席', '基础请柬', '回执管理'];
   if (/PREMIUM|VIP|DIAMOND/i.test(plan.planCode)) return ['包含设备租赁', '数据导出权益', '高级配置预留'];
-  if (/STANDARD|PRO/i.test(plan.planCode)) return ['收礼记录', '设备租赁', '人情账本'];
-  return ['请柬管理', '回执统计', '线下记礼'];
+  if (/STANDARD|PRO/i.test(plan.planCode)) return [activeTheme.value.giftRecordLabel, '设备租赁', '人情账本'];
+  return ['请柬管理', '回执统计', activeTheme.value.offlineGiftLabel];
 }
 
 function buttonText(plan: Plan) {
@@ -335,9 +335,12 @@ onMounted(async () => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
+  --accent-shadow: rgba(184, 17, 21, 0.22);
   min-height: 100vh;
   padding: 24rpx;
-  background: #fff8ef;
+  background: var(--page-bg);
   box-sizing: border-box;
   color: #171c2a;
 }
@@ -345,31 +348,49 @@ onMounted(async () => {
 .page.orange {
   --accent: #d96a11;
   --accent-dark: #a64209;
+  --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
+  --accent-shadow: rgba(166, 86, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
+  --accent-shadow: rgba(183, 45, 76, 0.18);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
+  --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
+  --accent-shadow: rgba(12, 95, 62, 0.17);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
+  --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
+  --accent-shadow: rgba(29, 78, 216, 0.17);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
+  --accent-shadow: rgba(13, 15, 18, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
+  --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
+  --accent-shadow: rgba(91, 33, 182, 0.18);
 }
 
 .hero-card {
@@ -380,7 +401,7 @@ onMounted(async () => {
   background:
     radial-gradient(circle at 84% 18%, rgba(255, 217, 150, 0.38), transparent 180rpx),
     linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 62%, var(--accent-dark) 100%);
-  box-shadow: 0 16rpx 42rpx rgba(184, 17, 21, 0.24);
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
 }
 
 .hero-art {
@@ -455,8 +476,8 @@ onMounted(async () => {
 }
 
 .pending-card {
-  border-color: #ffd9ad;
-  background: #fff7ed;
+  border-color: var(--accent-soft);
+  background: var(--accent-soft);
 }
 
 .card-title,
@@ -610,9 +631,9 @@ onMounted(async () => {
 .small-button.pay {
   height: 54rpx;
   padding: 0 18rpx;
-  border: 1rpx solid #f3c4af;
+  border: 1rpx solid var(--accent-soft);
   border-radius: 999rpx;
-  background: #fff0ea;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 22rpx;
   line-height: 54rpx;
@@ -631,7 +652,7 @@ onMounted(async () => {
 }
 
 .plan-card.current {
-  background: #fffdf8;
+  background: linear-gradient(180deg, var(--accent-soft), #fff);
 }
 
 .plan-head {
@@ -712,8 +733,8 @@ onMounted(async () => {
 .rights-preview text {
   padding: 9rpx 14rpx;
   border-radius: 999rpx;
-  background: #fff7ed;
-  color: #9a5b30;
+  background: var(--accent-soft);
+  color: var(--accent);
   font-size: 22rpx;
   font-weight: 800;
 }
@@ -731,7 +752,7 @@ onMounted(async () => {
 
 .open-button.ghost {
   border: 1rpx solid #ead8ca;
-  background: #fffaf5;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 

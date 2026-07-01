@@ -159,11 +159,11 @@ const latestInvitationSlug = ref('');
 const bannerIndex = ref(0);
 const activeType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(activeType.value));
-const banners = [
+const banners = computed(() => [
   { title: '我的宴席', desc: '查看当前类型下的宴席与服务', tags: ['宴席', '订单', '服务'], action: 'banquet' },
   { title: '我的请柬', desc: '继续分享请柬与查看回执', tags: ['请柬', '回执'], action: 'invitation' },
-  { title: '人情账本', desc: '收送往来清楚记录', tags: ['人情', '收礼', '对比'], action: 'favor' }
-];
+  { title: '人情账本', desc: '收送往来清楚记录', tags: ['人情', activeTheme.value.giftLabel, '对比'], action: 'favor' }
+]);
 const orders = [
   { title: '版本订单', icon: '▤', tone: 'red', action: 'plan' },
   { title: '模板订单', icon: '▦', tone: 'orange', action: 'invitation' },
@@ -176,14 +176,14 @@ const devices = [
   { title: '绑定记录', icon: '↗', tone: 'green', action: 'device' },
   { title: '交付说明', icon: '▰', tone: 'blue', action: 'device' }
 ];
-const services = [
-  { title: '我的宴席', icon: '囍', tone: 'red', action: 'banquet' },
+const services = computed(() => [
+  { title: '我的宴席', icon: activeTheme.value.mark, tone: 'red', action: 'banquet' },
   { title: '我的请柬', icon: '✉', tone: 'red', action: 'invitation' },
-  { title: '收礼记录', icon: '▣', tone: 'orange', action: 'gift' },
+  { title: activeTheme.value.giftRecordLabel, icon: '▣', tone: 'orange', action: 'gift' },
   { title: '人情账本', icon: '▤', tone: 'orange', action: 'favor' },
   { title: '使用教程', icon: '▶', tone: 'green', action: 'help' },
   { title: '联系客服', icon: '☊', tone: 'blue', action: 'service' }
-];
+]);
 const settings = [
   { title: '常见问题', icon: '?' },
   { title: '消息通知', icon: '♧' },
@@ -245,7 +245,7 @@ function openGiftRecords() {
     uni.showToast({ title: '请先创建宴席', icon: 'none' });
     return;
   }
-  safeNavigate(`/pages/gift/list/index?banquetId=${latestBanquetId.value}`, '收礼记录打开失败');
+  safeNavigate(`/pages/gift/list/index?banquetId=${latestBanquetId.value}`, `${activeTheme.value.giftRecordLabel}打开失败`);
 }
 
 function openPlanOrders() {
