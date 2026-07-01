@@ -707,40 +707,54 @@ onMounted(() => {
 .page {
   --accent: #e60012;
   --accent-dark: #c40005;
+  --accent-soft: #fff0ee;
+  --page-bg: #fff8ef;
   min-height: 100vh;
   padding-bottom: 126rpx;
-  background: #fff8ef;
+  background: var(--page-bg);
   color: #151823;
 }
 
 .page.tone-birthday {
   --accent: #c15b10;
   --accent-dark: #743005;
+  --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
 }
 
 .page.tone-baby {
   --accent: #e7566f;
   --accent-dark: #932742;
+  --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
 }
 
 .page.tone-house {
   --accent: #1b8a58;
   --accent-dark: #0b4b31;
+  --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
 }
 
 .page.tone-school {
   --accent: #2563eb;
   --accent-dark: #1e3a8a;
+  --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
 }
 
 .page.tone-memorial {
   --accent: #202124;
   --accent-dark: #050607;
+  --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
 }
 
 .page.tone-other {
   --accent: #7c3aed;
   --accent-dark: #3b0764;
+  --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
 }
 
 .hero {
@@ -982,7 +996,7 @@ onMounted(() => {
   padding: 0 16rpx;
   border: 1rpx solid #efe1d5;
   border-radius: 999rpx;
-  background: #fffaf5;
+  background: var(--accent-soft);
   line-height: 58rpx;
   box-sizing: border-box;
 }
@@ -1017,7 +1031,7 @@ onMounted(() => {
 .map-tip-row {
   padding: 0 28rpx 20rpx 144rpx;
   border-bottom: 1rpx solid #efe6df;
-  color: #9a5a2c;
+  color: var(--accent-dark);
   font-size: 23rpx;
   line-height: 1.45;
 }
@@ -1034,7 +1048,7 @@ onMounted(() => {
   padding: 0 16rpx;
   border: 1rpx solid #efe1d5;
   border-radius: 999rpx;
-  background: #fffaf5;
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: 25rpx;
   font-weight: 700;
@@ -1044,7 +1058,7 @@ onMounted(() => {
 .picker-button.strong,
 .map-button.secondary {
   border-color: #e8c09b;
-  background: #fff2e6;
+  background: var(--accent-soft);
   color: var(--accent);
 }
 

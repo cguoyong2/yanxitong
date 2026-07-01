@@ -25,8 +25,18 @@
 
     <view class="content">
       <swiper class="banner-card" circular :indicator-dots="false" autoplay @change="bannerIndex = Number($event.detail.current)">
-        <swiper-item v-for="banner in banners" :key="banner.image">
-          <image class="banner-image" :src="banner.image" mode="aspectFill" @tap="handleBanner(banner.action)" />
+        <swiper-item v-for="banner in banners" :key="banner.title">
+          <view class="theme-banner" @tap="handleBanner(banner.action)">
+            <view>
+              <text class="banner-eyebrow">{{ activeTheme.name }}</text>
+              <text class="banner-title">{{ banner.title }}</text>
+              <text class="banner-desc">{{ banner.desc }}</text>
+              <view class="banner-tags">
+                <text v-for="tag in banner.tags" :key="tag">{{ tag }}</text>
+              </view>
+            </view>
+            <text class="banner-mark">{{ activeTheme.mark }}</text>
+          </view>
         </swiper-item>
       </swiper>
         <view class="banner-dots">
@@ -248,11 +258,11 @@ const activeType = ref(readActiveEventType());
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
 const activeTheme = computed(() => eventThemeFor(activeType.value));
 const manualNotePlaceholder = computed(() => activeTheme.value.code === 'MEMORIAL' ? '备注，例如：亲友追思心意' : `备注，例如：朋友${activeTheme.value.name}往来`);
-const banners = [
-  { image: '/static/favor/favor_banner.png', action: 'manual-received' },
-  { image: '/static/home/package_gold.png', action: 'manual-given' },
-  { image: '/static/home/package_red.png', action: 'compare' }
-];
+const banners = computed(() => [
+  { title: `记录收到的${activeTheme.value.giftLabel}`, desc: `把${activeTheme.value.name}往来沉淀到人情账本`, tags: ['记收到', '自动汇总', '可对比'], action: 'manual-received' },
+  { title: `记录送出的${activeTheme.value.giftLabel}`, desc: '补录过往往来，形成亲友关系账', tags: ['记送出', '亲友关系', '备注'], action: 'manual-given' },
+  { title: '往来对比', desc: `按对象查看${activeTheme.value.name}中的往来差额`, tags: ['收到', '送出', '差额'], action: 'compare' }
+]);
 const sourceContacts = computed(() => contacts.value);
 const displayContacts = computed(() => showAllContacts.value ? sourceContacts.value : sourceContacts.value.slice(0, 4));
 const compareCandidates = computed(() => sourceContacts.value.slice(0, 6));
@@ -466,9 +476,10 @@ onShow(async () => {
   --accent: #e60012;
   --accent-dark: #c40005;
   --accent-soft: #fff0ee;
+  --page-bg: #f7f3ee;
   --accent-shadow: rgba(230, 0, 18, 0.18);
   min-height: 100vh;
-  background: #f7f7f7;
+  background: var(--page-bg);
   color: #151823;
 }
 
@@ -476,6 +487,7 @@ onShow(async () => {
   --accent: #d96a11;
   --accent-dark: #a64209;
   --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
   --accent-shadow: rgba(217, 106, 17, 0.18);
 }
 
@@ -483,6 +495,7 @@ onShow(async () => {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
   --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
   --accent-shadow: rgba(231, 86, 111, 0.18);
 }
 
@@ -490,6 +503,7 @@ onShow(async () => {
   --accent: #188356;
   --accent-dark: #0c5f3e;
   --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
   --accent-shadow: rgba(24, 131, 86, 0.18);
 }
 
@@ -497,6 +511,7 @@ onShow(async () => {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
   --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
   --accent-shadow: rgba(37, 99, 235, 0.18);
 }
 
@@ -504,6 +519,7 @@ onShow(async () => {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
   --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
   --accent-shadow: rgba(47, 51, 56, 0.18);
 }
 
@@ -511,6 +527,7 @@ onShow(async () => {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
   --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
   --accent-shadow: rgba(124, 58, 237, 0.18);
 }
 
@@ -568,7 +585,7 @@ onShow(async () => {
   left: -60rpx;
   height: 118rpx;
   border-radius: 0 0 50% 50%;
-  background: #f7f7f7;
+  background: var(--page-bg);
   transform: rotate(7deg);
   transform-origin: left top;
   content: '';
@@ -690,13 +707,79 @@ onShow(async () => {
   height: 386rpx;
   border-radius: 24rpx;
   background: transparent;
-  box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
+  box-shadow: 0 16rpx 34rpx var(--accent-shadow);
 }
 
-.banner-image {
-  display: block;
+.theme-banner {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
   width: 100%;
   height: 386rpx;
+  padding: 46rpx 40rpx;
+  background:
+    radial-gradient(circle at 82% 20%, rgba(255, 239, 206, 0.2), transparent 150rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff8df;
+}
+
+.banner-eyebrow,
+.banner-title,
+.banner-desc {
+  position: relative;
+  z-index: 2;
+  display: block;
+}
+
+.banner-eyebrow {
+  font-size: 24rpx;
+  font-weight: 800;
+  opacity: 0.88;
+}
+
+.banner-title {
+  margin-top: 20rpx;
+  max-width: 430rpx;
+  font-size: 48rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.banner-desc {
+  margin-top: 18rpx;
+  max-width: 420rpx;
+  color: rgba(255, 248, 223, 0.88);
+  font-size: 25rpx;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.banner-tags {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 26rpx;
+}
+
+.banner-tags text {
+  padding: 8rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff8df;
+  font-size: 21rpx;
+  font-weight: 800;
+}
+
+.banner-mark {
+  position: absolute;
+  right: 44rpx;
+  bottom: 34rpx;
+  color: rgba(255, 239, 206, 0.2);
+  font-size: 170rpx;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .banner-dots {
@@ -1193,8 +1276,8 @@ button::after {
   padding: 10rpx 18rpx;
   border: 1rpx solid #ead8ca;
   border-radius: 999rpx;
-  background: #fffaf6;
-  color: #6d5848;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 23rpx;
   font-weight: 800;
   overflow: hidden;

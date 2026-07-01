@@ -173,7 +173,7 @@ const successText = computed(() => {
   }
   return activeTheme.value.rsvpSuccessText || `已记录 ${submitResult.value.guestCount || 1} 位来宾出席。`;
 });
-const giftActionText = computed(() => features.value.mockPaymentEnabled ? activeTheme.value.giftActionLabel : '查看随礼说明');
+const giftActionText = computed(() => features.value.mockPaymentEnabled ? activeTheme.value.giftActionLabel : `查看${activeTheme.value.onlineGiftLabel}说明`);
 const currentStatusLabel = computed(() => {
   const value = submitResult.value?.attendanceStatus || form.attendanceStatus;
   return statuses.find((item) => item.value === value)?.label || '已提交';

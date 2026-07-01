@@ -630,14 +630,14 @@ onShow(() => {
   padding: 54rpx 20rpx;
   border: 1rpx dashed #ead8ca;
   border-radius: 18rpx;
-  background: #fffaf6;
-  color: #9a6a4c;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
   font-size: 26rpx;
   text-align: center;
 }
 
 .state-title {
-  color: #9a6a4c;
+  color: var(--accent-dark);
   font-size: 26rpx;
 }
 

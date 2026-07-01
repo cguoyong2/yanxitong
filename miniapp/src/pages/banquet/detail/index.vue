@@ -1110,7 +1110,7 @@ onShow(() => {
   padding: 20rpx;
   border: 1rpx solid #f0e3d9;
   border-radius: 22rpx;
-  background: #fffaf6;
+  background: linear-gradient(180deg, var(--accent-soft), #fff);
 }
 
 .dashboard-label,

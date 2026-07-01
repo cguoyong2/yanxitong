@@ -25,8 +25,18 @@
 
     <view class="content">
       <swiper class="banner-card" circular :indicator-dots="false" autoplay @change="bannerIndex = Number($event.detail.current)">
-        <swiper-item v-for="banner in banners" :key="banner.image">
-          <image class="banner-image" :src="banner.image" mode="aspectFill" @tap="handleBanner(banner.action)" />
+        <swiper-item v-for="banner in banners" :key="banner.title">
+          <view class="theme-banner" @tap="handleBanner(banner.action)">
+            <view>
+              <text class="banner-eyebrow">宴席通</text>
+              <text class="banner-title">{{ banner.title }}</text>
+              <text class="banner-desc">{{ banner.desc }}</text>
+              <view class="banner-tags">
+                <text v-for="tag in banner.tags" :key="tag">{{ tag }}</text>
+              </view>
+            </view>
+            <text class="banner-mark">{{ activeDesign.mark }}</text>
+          </view>
         </swiper-item>
       </swiper>
         <view class="banner-dots">
@@ -68,7 +78,9 @@
         </view>
         <view class="banquet-box">
           <view class="banquet-main" @tap="openBanquet(latestBanquet.id)">
-            <image class="banquet-cover" src="/static/home/banquet_cover.png" mode="aspectFill" />
+            <view class="banquet-cover">
+              <text>{{ activeDesign.mark }}</text>
+            </view>
             <view class="banquet-info">
               <text class="banquet-title">{{ latestBanquet.name }}</text>
               <view class="meta-row">
@@ -86,7 +98,7 @@
               <text class="stats-number">{{ latestRsvpGuests }}</text>
               <text class="stats-unit">人</text>
               <view class="stats-line"></view>
-              <text class="stats-label">已收礼</text>
+              <text class="stats-label">已{{ activeDesign.giftLabel }}</text>
               <text class="gift-number">{{ formatMoney(latestGiftAmount) }}</text>
             </view>
           </view>
@@ -101,7 +113,7 @@
             </view>
             <view class="action-item" @tap="openLatestOfflineGift()">
               <text class="action-icon orange">▣</text>
-              <text>收礼记账</text>
+              <text>{{ activeDesign.offlineGiftLabel }}</text>
             </view>
             <view class="action-item" @tap="openBanquet(latestBanquet.id)">
               <text class="action-icon">▤</text>
@@ -141,9 +153,11 @@
         <scroll-view scroll-x class="package-scroll" show-scrollbar="false">
           <view class="package-list">
             <view v-for="item in packages" :key="item.name" class="package-item" @tap="showServiceTip()">
-              <image class="package-image" :src="item.image" mode="aspectFill" />
+              <view class="package-image">
+                <text>{{ activeDesign.mark }}</text>
+              </view>
               <text class="package-name">{{ item.name }}</text>
-              <text class="package-price">¥{{ item.price }} 起</text>
+              <text class="package-price">{{ item.priceText }}</text>
             </view>
           </view>
         </scroll-view>
@@ -183,17 +197,6 @@ const guides = [
   { title: '场地推荐', desc: '精选优质场地', icon: '●', tone: 'green', action: 'service' },
   { title: '注意事项', desc: '办席常见问题', icon: '▣', tone: 'purple', action: 'service' }
 ];
-const packages = [
-  { name: '浪漫粉韵', price: '10,999', image: '/static/home/package_pink.png' },
-  { name: '中式喜宴', price: '12,999', image: '/static/home/package_red.png' },
-  { name: '星空之恋', price: '13,999', image: '/static/home/package_blue.png' },
-  { name: '简约时光', price: '9,999', image: '/static/home/package_gold.png' }
-];
-const banners = [
-  { image: '/static/home/home_banner.png', action: 'create' },
-  { image: '/static/home/package_red.png', action: 'plan' },
-  { image: '/static/home/package_gold.png', action: 'invitation' }
-];
 const banquets = ref<Banquet[]>([]);
 const latestRsvpGuests = ref(0);
 const latestGiftAmount = ref(0);
@@ -205,6 +208,17 @@ const latestBanquet = computed(() => banquets.value[0] || { id: 0, name: '', eve
 const latestBanquetId = computed(() => latestBanquet.value?.id || 0);
 const activeTone = computed(() => eventTypes.find((item) => item.code === activeType.value)?.tone || 'red');
 const activeDesign = computed(() => eventTypes.find((item) => item.code === activeType.value) || eventTypes[0]);
+const packages = computed(() => [
+  { name: `${activeDesign.value.name}基础服务`, priceText: '¥9,999 起' },
+  { name: `${activeDesign.value.name}标准服务`, priceText: '¥12,999 起' },
+  { name: `${activeDesign.value.name}尊享服务`, priceText: '¥13,999 起' },
+  { name: '定制办席服务', priceText: '面议' }
+]);
+const banners = computed(() => [
+  { title: `创建${activeDesign.value.name}`, desc: activeDesign.value.homeText, tags: ['类型可选', '主题匹配', '流程管理'], action: 'create' },
+  { title: '版本与设备', desc: '按当前宴席类型开通权益与设备服务', tags: ['版本', '设备', '订单'], action: 'plan' },
+  { title: activeDesign.value.invitationTitle, desc: activeDesign.value.invitationText, tags: ['请柬', '回执', activeDesign.value.giftLabel], action: 'invitation' }
+]);
 
 function formatTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
@@ -355,8 +369,10 @@ onShow(() => {
   --accent: #e60012;
   --accent-dark: #c40005;
   --accent-soft: #fff0ee;
+  --page-bg: #f7f3ee;
+  --accent-shadow: rgba(184, 17, 21, 0.22);
   min-height: 100vh;
-  background: #f7f7f7;
+  background: var(--page-bg);
   color: #151823;
 }
 
@@ -364,36 +380,48 @@ onShow(() => {
   --accent: #d96a11;
   --accent-dark: #a64209;
   --accent-soft: #fff3e3;
+  --page-bg: #fbf4eb;
+  --accent-shadow: rgba(166, 86, 17, 0.2);
 }
 
 .page.pink {
   --accent: #e7566f;
   --accent-dark: #b52d4c;
   --accent-soft: #fff0f4;
+  --page-bg: #fff6f8;
+  --accent-shadow: rgba(183, 45, 76, 0.18);
 }
 
 .page.green {
   --accent: #188356;
   --accent-dark: #0c5f3e;
   --accent-soft: #edf9f1;
+  --page-bg: #f2f8f4;
+  --accent-shadow: rgba(12, 95, 62, 0.17);
 }
 
 .page.blue {
   --accent: #2563eb;
   --accent-dark: #1d4ed8;
   --accent-soft: #edf4ff;
+  --page-bg: #f2f6ff;
+  --accent-shadow: rgba(29, 78, 216, 0.17);
 }
 
 .page.black {
   --accent: #2f3338;
   --accent-dark: #0d0f12;
   --accent-soft: #f1f2f4;
+  --page-bg: #f3f4f5;
+  --accent-shadow: rgba(13, 15, 18, 0.2);
 }
 
 .page.purple {
   --accent: #7c3aed;
   --accent-dark: #5b21b6;
   --accent-soft: #f4efff;
+  --page-bg: #f7f3ff;
+  --accent-shadow: rgba(91, 33, 182, 0.18);
 }
 
 .red-stage {
@@ -573,13 +601,77 @@ onShow(() => {
   height: 386rpx;
   border-radius: 24rpx;
   background: transparent;
-  box-shadow: 0 16rpx 34rpx rgba(170, 36, 20, 0.2);
+  box-shadow: 0 16rpx 34rpx var(--accent-shadow);
 }
 
-.banner-image {
-  display: block;
+.theme-banner {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
   width: 100%;
   height: 386rpx;
+  padding: 46rpx 40rpx;
+  background:
+    radial-gradient(circle at 82% 20%, rgba(255, 239, 206, 0.22), transparent 150rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff8df;
+}
+
+.banner-eyebrow,
+.banner-title,
+.banner-desc {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.banner-eyebrow {
+  color: #ffe2ba;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.banner-title {
+  margin-top: 18rpx;
+  font-family: serif;
+  font-size: 54rpx;
+  font-weight: 900;
+}
+
+.banner-desc {
+  width: 70%;
+  margin-top: 14rpx;
+  color: rgba(255, 248, 232, 0.92);
+  font-size: 26rpx;
+  line-height: 1.45;
+}
+
+.banner-tags {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 14rpx;
+  flex-wrap: wrap;
+  margin-top: 28rpx;
+}
+
+.banner-tags text {
+  padding: 9rpx 16rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.17);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.banner-mark {
+  position: absolute;
+  right: 48rpx;
+  bottom: 28rpx;
+  color: rgba(255, 239, 206, 0.26);
+  font-family: serif;
+  font-size: 150rpx;
+  font-weight: 900;
 }
 
 .banner-dots {
@@ -728,7 +820,7 @@ onShow(() => {
 
 .type-item.active {
   border-color: var(--accent);
-  box-shadow: inset 0 0 0 2rpx rgba(230, 0, 18, 0.22);
+  box-shadow: inset 0 0 0 2rpx var(--accent-shadow);
 }
 
 .type-icon {
@@ -770,7 +862,7 @@ onShow(() => {
   margin-top: 20rpx;
   border: 1rpx solid #f2dcd6;
   border-radius: 20rpx;
-  background: linear-gradient(90deg, #fff 0%, #fff8f6 100%);
+  background: linear-gradient(90deg, #fff 0%, var(--accent-soft) 100%);
 }
 
 .banquet-main {
@@ -781,9 +873,19 @@ onShow(() => {
 }
 
 .banquet-cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 182rpx;
   height: 154rpx;
   border-radius: 12rpx;
+  background:
+    radial-gradient(circle at 76% 20%, rgba(255, 255, 255, 0.22), transparent 72rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: rgba(255, 248, 230, 0.92);
+  font-family: serif;
+  font-size: 72rpx;
+  font-weight: 900;
 }
 
 .banquet-info {
@@ -972,7 +1074,7 @@ button::after {
 }
 
 .guide-icon.red {
-  background: linear-gradient(135deg, #ff6a5f, var(--accent));
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
 }
 
 .guide-icon.orange {
@@ -1027,9 +1129,18 @@ button::after {
 }
 
 .package-image {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 190rpx;
   height: 135rpx;
+  background:
+    radial-gradient(circle at 76% 20%, rgba(255, 255, 255, 0.22), transparent 72rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: rgba(255, 248, 230, 0.92);
+  font-family: serif;
+  font-size: 60rpx;
+  font-weight: 900;
 }
 
 .package-name {
