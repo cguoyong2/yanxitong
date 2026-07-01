@@ -155,6 +155,35 @@
           <text class="modal-close" @tap="closeTimePanel">×</text>
         </view>
         <text class="modal-desc">如果系统日期选择器没有弹出，可直接在这里填写日期和时间。</text>
+        <view class="modal-section">
+          <text class="modal-section-title">选择日期</text>
+          <view class="quick-grid">
+            <view
+              v-for="item in dateQuickOptions"
+              :key="item.date"
+              class="quick-chip"
+              :class="{ selected: manualTime.date === item.date }"
+              @tap="applyModalDate(item.date)"
+            >
+              <text>{{ item.label }}</text>
+              <text>{{ item.date }}</text>
+            </view>
+          </view>
+        </view>
+        <view class="modal-section">
+          <text class="modal-section-title">选择时间</text>
+          <view class="time-chip-list">
+            <view
+              v-for="time in timeQuickOptions"
+              :key="time"
+              class="time-chip"
+              :class="{ selected: manualTime.time === time }"
+              @tap="applyModalTime(time)"
+            >
+              {{ time }}
+            </view>
+          </view>
+        </view>
         <view class="quick-grid">
           <view v-for="item in quickTimeOptions" :key="item.label" class="quick-chip" @tap="applyQuickTime(item)">
             <text>{{ item.label }}</text>
@@ -303,6 +332,8 @@ const quickTimeOptions = computed(() => {
     { label: '国庆晚宴', date: `${today.getFullYear()}-10-01`, time: '18:00' }
   ];
 });
+const dateQuickOptions = computed(() => quickTimeOptions.value.map((item) => ({ label: item.label.replace(/晚宴|中午/g, ''), date: item.date })));
+const timeQuickOptions = ['10:00', '11:28', '12:00', '17:30', '18:00', '18:30', '19:00'];
 const banquetTimeDisplay = computed(() => {
   if (!selectedDate.value && !selectedTime.value) {
     return '';
@@ -382,6 +413,26 @@ function applyQuickTime(item: { label: string; date: string; time: string }) {
   uni.showToast({ title: '时间已填入', icon: 'success' });
 }
 
+function applyModalDate(date: string) {
+  manualTime.date = date;
+  selectedDate.value = date;
+  if (!manualTime.time) {
+    manualTime.time = selectedTime.value || '18:00';
+  }
+  selectedTime.value = manualTime.time;
+  syncBanquetTime();
+}
+
+function applyModalTime(time: string) {
+  manualTime.time = time;
+  selectedTime.value = time;
+  if (!manualTime.date) {
+    manualTime.date = selectedDate.value || formatDateInput(new Date());
+  }
+  selectedDate.value = manualTime.date;
+  syncBanquetTime();
+}
+
 function applyManualDateTime() {
   const date = manualTime.date.trim();
   const time = manualTime.time.trim();
@@ -426,10 +477,6 @@ function validatePhone(showToast = false) {
 
 async function chooseBanquetLocation() {
   locationInputFocused.value = false;
-  const allowed = await ensureLocationPermission();
-  if (!allowed) {
-    return;
-  }
   uni.showLoading({ title: '打开地图' });
   try {
     const result = await callChooseLocation();
@@ -514,6 +561,11 @@ function callChooseLocation() {
       wxApi.chooseLocation({
         success: resolve,
         fail: (error) => {
+          const message = String(error?.errMsg || '');
+          if (/auth|authorize|permission|denied/i.test(message)) {
+            reject(error);
+            return;
+          }
           uni.chooseLocation({ success: resolve, fail: () => reject(error) });
         }
       });
@@ -1341,6 +1393,17 @@ button::after {
   line-height: 1.5;
 }
 
+.modal-section {
+  margin-top: 24rpx;
+}
+
+.modal-section-title {
+  display: block;
+  color: #171923;
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
 .quick-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1361,6 +1424,11 @@ button::after {
   box-sizing: border-box;
 }
 
+.quick-chip.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .quick-chip text {
   display: block;
   color: #171923;
@@ -1374,6 +1442,34 @@ button::after {
   color: #8a7768;
   font-size: 22rpx;
   font-weight: 600;
+}
+
+.time-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 16rpx;
+}
+
+.time-chip {
+  min-width: 116rpx;
+  height: 62rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid #ecd8c7;
+  border-radius: 999rpx;
+  background: #fff;
+  color: #171923;
+  font-size: 25rpx;
+  font-weight: 800;
+  line-height: 62rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.time-chip.selected {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
 }
 
 .manual-form {
