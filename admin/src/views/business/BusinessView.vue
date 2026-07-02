@@ -651,7 +651,7 @@ async function goAuditBanquet() {
   if (!auditBanquetId.value) {
     return;
   }
-  await router.push({ path: '/banquets', query: { banquetId: auditBanquetId.value } });
+  await router.push({ path: '/banquets', query: { banquetId: auditBanquetId.value, focus: 'overview' } });
 }
 
 async function goAuditOperationLogs() {

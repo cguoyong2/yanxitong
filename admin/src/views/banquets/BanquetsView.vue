@@ -74,6 +74,8 @@ interface BanquetAggregate {
   operationLogs: Record<string, unknown>[];
 }
 
+type DetailTab = 'overview' | 'rsvp' | 'gifts' | 'favor' | 'devices' | 'payments' | 'broadcast' | 'logs';
+
 const rows = ref<Banquet[]>([]);
 const route = useRoute();
 const router = useRouter();
@@ -84,6 +86,7 @@ const creating = ref(false);
 const detailLoading = ref(false);
 const createVisible = ref(false);
 const detailVisible = ref(false);
+const detailActiveTab = ref<DetailTab>(detailTabFromQuery(route.query.focus));
 const detail = ref<BanquetDetail>();
 const aggregate = ref<BanquetAggregate>({
   rsvpRows: [],
@@ -112,6 +115,79 @@ const failedCallbacks = computed(() => aggregate.value.paymentCallbacks.filter((
 const offlineConfirmLogs = computed(() => aggregate.value.broadcastLogs.filter((item) => item.deviceType === 'CONFIRM_SCREEN' && item.status === 'OFFLINE').length);
 const paidPlanOrders = computed(() => aggregate.value.planOrders.filter((item) => item.payStatus === 'PAID').length);
 const paidDeviceOrders = computed(() => aggregate.value.deviceOrders.filter((item) => item.payStatus === 'PAID').length);
+const workbenchChecks = computed(() => [
+  {
+    key: 'invitation',
+    title: '基础请柬',
+    status: detail.value?.invitation?.shareSlug ? 'READY' : 'TODO',
+    value: detail.value?.invitation?.shareSlug || '未生成分享码',
+    action: '复制公开页',
+    handler: copyInvite
+  },
+  {
+    key: 'rsvp',
+    title: '回执闭环',
+    status: (aggregate.value.rsvpStats?.totalRecords || 0) > 0 ? 'READY' : 'TODO',
+    value: `${aggregate.value.rsvpStats?.totalRecords || 0} 条 / ${aggregate.value.rsvpStats?.totalGuests || 0} 人`,
+    action: '处理回执',
+    handler: () => openBusinessTab('rsvp')
+  },
+  {
+    key: 'gifts',
+    title: '收礼闭环',
+    status: aggregate.value.gifts.length > 0 ? 'READY' : 'TODO',
+    value: `${aggregate.value.gifts.length} 笔 / ${formatMoney(giftTotal.value)}`,
+    action: '处理收礼',
+    handler: () => openBusinessTab('gifts')
+  },
+  {
+    key: 'favor',
+    title: '人情账本',
+    status: aggregate.value.favorContacts.length > 0 ? 'READY' : 'TODO',
+    value: `${aggregate.value.favorContacts.length} 人 / ${formatMoney(favorReceivedTotal.value - favorGivenTotal.value)}`,
+    action: '处理人情',
+    handler: () => openBusinessTab('favor')
+  },
+  {
+    key: 'payment',
+    title: '支付排障',
+    status: failedCallbacks.value > 0 ? 'RISK' : 'READY',
+    value: `${paidPaymentOrders.value}/${aggregate.value.paymentOrders.length} 已支付，${failedCallbacks.value} 个异常`,
+    action: '排查支付',
+    handler: () => goRelated('/payments')
+  },
+  {
+    key: 'device',
+    title: '设备状态',
+    status: offlineConfirmLogs.value > 0 ? 'RISK' : 'READY',
+    value: `${paidDeviceOrders.value}/${aggregate.value.deviceOrders.length} 已支付，离线 ${offlineConfirmLogs.value}`,
+    action: '查看播报',
+    handler: () => goRelated('/broadcast-logs')
+  },
+  {
+    key: 'logs',
+    title: '操作留痕',
+    status: aggregate.value.operationLogs.length > 0 ? 'READY' : 'TODO',
+    value: `${aggregate.value.operationLogs.length} 条关键操作`,
+    action: '查看日志',
+    handler: () => goOperationLog('banquet', detail.value?.banquet.id)
+  }
+]);
+const riskChecks = computed(() => workbenchChecks.value.filter((item) => item.status !== 'READY'));
+const workbenchStatus = computed(() => {
+  if (riskChecks.value.some((item) => item.status === 'RISK')) {
+    return { label: '需要排障', type: 'danger' as const };
+  }
+  if (riskChecks.value.length > 0) {
+    return { label: '待补闭环', type: 'warning' as const };
+  }
+  return { label: '闭环完整', type: 'success' as const };
+});
+
+function detailTabFromQuery(value: unknown): DetailTab {
+  const allowed: DetailTab[] = ['overview', 'rsvp', 'gifts', 'favor', 'devices', 'payments', 'broadcast', 'logs'];
+  return allowed.includes(value as DetailTab) ? value as DetailTab : 'overview';
+}
 
 async function load() {
   loading.value = true;
@@ -176,8 +252,9 @@ async function createBanquet() {
   }
 }
 
-async function openDetail(row: Banquet) {
+async function openDetail(row: Banquet, focus: DetailTab = detailTabFromQuery(route.query.focus)) {
   detailVisible.value = true;
+  detailActiveTab.value = focus;
   detailLoading.value = true;
   try {
     const [
@@ -259,6 +336,22 @@ async function goRelated(path: string) {
   await router.push({ path, query: { banquetId: id } });
 }
 
+async function openBusinessTab(tab: 'gifts' | 'rsvp' | 'favor') {
+  const id = detail.value?.banquet.id;
+  if (!id) {
+    return;
+  }
+  await router.push({ path: '/business', query: { banquetId: id, tab } });
+}
+
+async function refreshDetail() {
+  const banquet = detail.value?.banquet;
+  if (!banquet) {
+    return;
+  }
+  await openDetail(banquet, detailActiveTab.value);
+}
+
 function moneyTotal(rows: Record<string, unknown>[]) {
   return formatMoney(sumAmount(rows, 'amount'));
 }
@@ -291,7 +384,7 @@ onMounted(async () => {
   if (Number.isInteger(queryBanquetId)) {
     const target = rows.value.find((item) => item.id === queryBanquetId);
     if (target) {
-      await openDetail(target);
+      await openDetail(target, detailTabFromQuery(route.query.focus));
     }
   }
 });
@@ -323,7 +416,7 @@ onMounted(async () => {
       </el-table-column>
       <el-table-column label="操作" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+          <el-button link type="primary" @click="openDetail(row, 'overview')">工作台</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -367,8 +460,13 @@ onMounted(async () => {
               <h2>{{ detail.banquet.name }}</h2>
               <p>{{ detail.banquet.banquetNo }} · {{ detail.banquet.eventTypeCode }} · {{ detail.theme?.name || detail.banquet.themeCode }}</p>
               <p>{{ formatDateTime(detail.banquet.banquetTime) }} · {{ detail.banquet.location || '-' }}</p>
+              <div class="workbench-status">
+                <el-tag :type="workbenchStatus.type" effect="dark">{{ workbenchStatus.label }}</el-tag>
+                <span>{{ riskChecks.length ? `${riskChecks.length} 项需要处理` : '关键流程已可追踪' }}</span>
+              </div>
               <div class="quick-actions">
                 <el-button size="small" @click="copyBanquetId">复制宴席 ID</el-button>
+                <el-button size="small" @click="refreshDetail">刷新工作台</el-button>
                 <el-button size="small" @click="goRelated('/business')">业务数据</el-button>
                 <el-button size="small" @click="goRelated('/orders')">订单</el-button>
                 <el-button size="small" @click="goRelated('/payments')">支付</el-button>
@@ -388,8 +486,26 @@ onMounted(async () => {
             </div>
           </section>
 
-          <el-tabs>
-            <el-tab-pane label="概览">
+          <el-tabs v-model="detailActiveTab">
+            <el-tab-pane label="概览" name="overview">
+              <section class="workbench-grid">
+                <article v-for="item in workbenchChecks" :key="item.key" class="workbench-card" :class="{ risk: item.status === 'RISK', todo: item.status === 'TODO' }">
+                  <div>
+                    <span>{{ item.title }}</span>
+                    <strong>{{ item.value }}</strong>
+                  </div>
+                  <el-tag :type="item.status === 'READY' ? 'success' : item.status === 'RISK' ? 'danger' : 'warning'" effect="plain">
+                    {{ item.status === 'READY' ? '通过' : item.status === 'RISK' ? '风险' : '待补' }}
+                  </el-tag>
+                  <el-button size="small" @click="item.handler">{{ item.action }}</el-button>
+                </article>
+              </section>
+              <section v-if="riskChecks.length" class="advice-panel">
+                <h3>处理建议</h3>
+                <p v-for="item in riskChecks" :key="`advice-${item.key}`">
+                  {{ item.title }}：{{ item.value }}。建议点击“{{ item.action }}”进入对应处理页面。
+                </p>
+              </section>
               <section class="overview-grid">
                 <div class="panel">
                   <h3>基础请柬</h3>
@@ -434,7 +550,7 @@ onMounted(async () => {
               </section>
             </el-tab-pane>
 
-            <el-tab-pane label="RSVP">
+            <el-tab-pane label="RSVP" name="rsvp">
               <section class="summary">
                 <span>总记录 {{ aggregate.rsvpStats?.totalRecords ?? 0 }}</span>
                 <span>出席 {{ aggregate.rsvpStats?.attendingRecords ?? 0 }}</span>
@@ -459,7 +575,7 @@ onMounted(async () => {
               </el-table>
             </el-tab-pane>
 
-            <el-tab-pane label="礼金">
+            <el-tab-pane label="礼金" name="gifts">
               <section class="summary">
                 <span>记录 {{ aggregate.gifts.length }}</span>
                 <span>合计 {{ moneyTotal(aggregate.gifts) }}</span>
@@ -486,7 +602,7 @@ onMounted(async () => {
               </el-table>
             </el-tab-pane>
 
-            <el-tab-pane label="人情">
+            <el-tab-pane label="人情" name="favor">
               <section class="summary">
                 <span>联系人 {{ aggregate.favorContacts.length }}</span>
                 <span>收礼 {{ formatMoney(favorReceivedTotal) }}</span>
@@ -513,7 +629,7 @@ onMounted(async () => {
               </el-table>
             </el-tab-pane>
 
-            <el-tab-pane label="设备订单">
+            <el-tab-pane label="设备订单" name="devices">
               <el-table :data="aggregate.deviceOrders" border stripe empty-text="暂无设备订单">
                 <el-table-column prop="orderNo" label="订单号" min-width="170" />
                 <el-table-column label="设备类型" min-width="130">
@@ -543,7 +659,7 @@ onMounted(async () => {
               </el-table>
             </el-tab-pane>
 
-            <el-tab-pane label="支付">
+            <el-tab-pane label="支付" name="payments">
               <section class="summary">
                 <span>支付订单 {{ aggregate.paymentOrders.length }}</span>
                 <span>已支付 {{ paidPaymentOrders }}</span>
@@ -588,7 +704,7 @@ onMounted(async () => {
               </el-table>
             </el-tab-pane>
 
-            <el-tab-pane label="播报">
+            <el-tab-pane label="播报" name="broadcast">
               <section class="summary">
                 <span>日志 {{ aggregate.broadcastLogs.length }}</span>
                 <span>云喇叭 {{ aggregate.broadcastLogs.filter((item) => item.deviceType === 'CLOUD_SPEAKER').length }}</span>
@@ -614,7 +730,7 @@ onMounted(async () => {
               </el-table>
             </el-tab-pane>
 
-            <el-tab-pane label="操作日志">
+            <el-tab-pane label="操作日志" name="logs">
               <el-table :data="aggregate.operationLogs" border stripe empty-text="暂无宴席操作日志">
                 <el-table-column prop="id" label="ID" width="80" />
                 <el-table-column label="模块" width="120">
@@ -722,6 +838,15 @@ h1 {
   margin-top: 12px;
 }
 
+.workbench-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 13px;
+}
+
 .metrics span,
 .summary span {
   padding: 8px 10px;
@@ -730,6 +855,73 @@ h1 {
   background: #f9fafb;
   color: #374151;
   font-size: 13px;
+}
+
+.workbench-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.workbench-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+  min-height: 112px;
+  padding: 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.workbench-card.todo {
+  border-color: #fed7aa;
+  background: #fffaf5;
+}
+
+.workbench-card.risk {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.workbench-card span {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.workbench-card strong {
+  display: block;
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.workbench-card .el-button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.advice-panel {
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+}
+
+.advice-panel h3 {
+  margin: 0 0 8px;
+  color: #9a3412;
+  font-size: 16px;
+}
+
+.advice-panel p {
+  margin: 6px 0;
+  color: #7c2d12;
 }
 
 .overview-grid {
