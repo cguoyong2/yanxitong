@@ -129,6 +129,23 @@
 
     <el-drawer v-model="analyticsVisible" title="请柬访问与转化" size="720px">
       <template v-if="analytics">
+        <section class="detail-card">
+          <div class="section-title">
+            <h3>转化漏斗</h3>
+            <small>访问、回执、随礼、设备选择按同一条链路归因</small>
+          </div>
+          <div class="funnel-list">
+            <article v-for="step in invitationFunnelSteps(analytics)" :key="step.key" class="funnel-step">
+              <div class="funnel-head">
+                <span>{{ step.title }}</span>
+                <strong>{{ step.value }}</strong>
+              </div>
+              <div class="funnel-track"><i :style="{ width: rateWidth(step.rate) }"></i></div>
+              <p>{{ step.hint }}，访问转化率 {{ step.rate }}%</p>
+            </article>
+          </div>
+        </section>
+
         <section class="analytics-grid">
           <article class="metric">
             <span>访问次数</span>
@@ -144,6 +161,11 @@
             <span>随礼转化</span>
             <strong>{{ analytics.giftConversionRate }}%</strong>
             <small>{{ analytics.giftCount }} 笔 / {{ formatMoney(analytics.giftAmount) }}</small>
+          </article>
+          <article class="metric">
+            <span>设备选择</span>
+            <strong>{{ analytics.deviceConversionRate }}%</strong>
+            <small>{{ analytics.deviceOrderCount }} 单 / 已支付 {{ analytics.paidDeviceOrderCount }}</small>
           </article>
         </section>
 
@@ -174,6 +196,11 @@
             <h3>回执分布</h3>
             <p v-for="item in analytics.rsvpBreakdown" :key="item.label">{{ displayLabel(item.label) }}：{{ item.count }}</p>
             <p v-if="analytics.rsvpBreakdown.length === 0">暂无回执记录。</p>
+          </article>
+          <article class="detail-card">
+            <h3>设备选择</h3>
+            <p v-for="item in analytics.deviceBreakdown" :key="item.label">{{ displayLabel(item.label) }}：{{ item.count }}</p>
+            <p v-if="analytics.deviceBreakdown.length === 0">暂无设备订单。</p>
           </article>
         </section>
 
@@ -263,12 +290,16 @@ interface InvitationAnalytics {
   rsvpGuestCount: number;
   giftCount: number;
   giftAmount: number;
+  deviceOrderCount: number;
+  paidDeviceOrderCount: number;
   rsvpConversionRate: number;
   giftConversionRate: number;
+  deviceConversionRate: number;
   visitTrend: { date: string; count: number }[];
   sourceBreakdown: { label: string; count: number }[];
   shareChannelBreakdown: { label: string; count: number }[];
   rsvpBreakdown: { label: string; count: number }[];
+  deviceBreakdown: { label: string; count: number }[];
   recentVisits: { visitedAt: string; ipAddress?: string; source: string; userAgent?: string }[];
 }
 
@@ -428,6 +459,43 @@ function trendWidth(count: number) {
   return `${Math.max(6, Math.round((count / max) * 100))}%`;
 }
 
+function rateWidth(rate: number) {
+  return `${Math.max(4, Math.min(100, Number(rate || 0)))}%`;
+}
+
+function invitationFunnelSteps(data: InvitationAnalytics) {
+  return [
+    {
+      key: 'visit',
+      title: '访问请柬',
+      value: data.visitCount,
+      rate: data.visitCount > 0 ? 100 : 0,
+      hint: `独立 IP ${data.uniqueIpCount}`
+    },
+    {
+      key: 'rsvp',
+      title: '提交回执',
+      value: data.rsvpCount,
+      rate: data.rsvpConversionRate,
+      hint: `赴宴人数 ${data.rsvpGuestCount}`
+    },
+    {
+      key: 'gift',
+      title: '完成随礼',
+      value: data.giftCount,
+      rate: data.giftConversionRate,
+      hint: `礼金合计 ${formatMoney(data.giftAmount)}`
+    },
+    {
+      key: 'device',
+      title: '选择设备',
+      value: data.deviceOrderCount,
+      rate: data.deviceConversionRate,
+      hint: `已支付设备订单 ${data.paidDeviceOrderCount}`
+    }
+  ];
+}
+
 onMounted(async () => {
   await Promise.all([loadTemplates(), load()]);
 });
@@ -506,14 +574,14 @@ small {
 
 .analytics-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 14px;
 }
 
 .analytics-columns {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -528,6 +596,70 @@ small {
 .detail-card h2,
 .detail-card h3 {
   margin: 0 0 10px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.section-title h3 {
+  margin: 0;
+}
+
+.funnel-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.funnel-step {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff, #f8fafc);
+}
+
+.funnel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.funnel-head span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.funnel-head strong {
+  color: #111827;
+  font-size: 22px;
+}
+
+.funnel-track {
+  height: 8px;
+  margin: 10px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.funnel-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #dc2626, #f59e0b);
+}
+
+.funnel-step p {
+  min-height: 32px;
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
 }
 
 .trend-list {
@@ -600,7 +732,8 @@ dd {
   }
 
   .analytics-grid,
-  .analytics-columns {
+  .analytics-columns,
+  .funnel-list {
     grid-template-columns: 1fr;
   }
 }

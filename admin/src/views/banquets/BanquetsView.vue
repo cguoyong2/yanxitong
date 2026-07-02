@@ -60,9 +60,26 @@ interface RsvpStats {
   accommodationRequiredGuests: number;
 }
 
+interface InvitationAnalytics {
+  invitationId: number;
+  banquetId?: number;
+  visitCount: number;
+  uniqueIpCount: number;
+  rsvpCount: number;
+  rsvpGuestCount: number;
+  giftCount: number;
+  giftAmount: number;
+  deviceOrderCount: number;
+  paidDeviceOrderCount: number;
+  rsvpConversionRate: number;
+  giftConversionRate: number;
+  deviceConversionRate: number;
+}
+
 interface BanquetAggregate {
   rsvpRows: Record<string, unknown>[];
   rsvpStats?: RsvpStats;
+  invitationAnalytics?: InvitationAnalytics;
   gifts: Record<string, unknown>[];
   favorContacts: Record<string, unknown>[];
   entitlements?: Record<string, unknown>;
@@ -115,6 +132,43 @@ const failedCallbacks = computed(() => aggregate.value.paymentCallbacks.filter((
 const offlineConfirmLogs = computed(() => aggregate.value.broadcastLogs.filter((item) => item.deviceType === 'CONFIRM_SCREEN' && item.status === 'OFFLINE').length);
 const paidPlanOrders = computed(() => aggregate.value.planOrders.filter((item) => item.payStatus === 'PAID').length);
 const paidDeviceOrders = computed(() => aggregate.value.deviceOrders.filter((item) => item.payStatus === 'PAID').length);
+const invitationFunnelSteps = computed(() => {
+  const analytics = aggregate.value.invitationAnalytics;
+  const visitCount = analytics?.visitCount || 0;
+  const rsvpCount = analytics?.rsvpCount ?? aggregate.value.rsvpRows.length;
+  const giftCount = analytics?.giftCount ?? aggregate.value.gifts.length;
+  const deviceCount = analytics?.deviceOrderCount ?? aggregate.value.deviceOrders.length;
+  return [
+    {
+      key: 'visit',
+      title: '访问请柬',
+      value: visitCount,
+      rate: visitCount > 0 ? 100 : 0,
+      hint: `独立 IP ${analytics?.uniqueIpCount || 0}`
+    },
+    {
+      key: 'rsvp',
+      title: '提交回执',
+      value: rsvpCount,
+      rate: analytics?.rsvpConversionRate || fallbackRate(rsvpCount, visitCount),
+      hint: `赴宴人数 ${analytics?.rsvpGuestCount ?? aggregate.value.rsvpStats?.totalGuests ?? 0}`
+    },
+    {
+      key: 'gift',
+      title: '完成随礼',
+      value: giftCount,
+      rate: analytics?.giftConversionRate || fallbackRate(giftCount, visitCount),
+      hint: `礼金 ${formatMoney(analytics?.giftAmount ?? giftTotal.value)}`
+    },
+    {
+      key: 'device',
+      title: '选择设备',
+      value: deviceCount,
+      rate: analytics?.deviceConversionRate || fallbackRate(deviceCount, visitCount),
+      hint: `已支付 ${analytics?.paidDeviceOrderCount ?? paidDeviceOrders.value}`
+    }
+  ];
+});
 const workbenchChecks = computed(() => [
   {
     key: 'invitation',
@@ -284,12 +338,19 @@ async function openDetail(row: Banquet, focus: DetailTab = detailTabFromQuery(ro
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/payments/callbacks?pageSize=100'),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/operation-logs?targetType=banquet&targetId=${row.id}&pageSize=100`)
     ]);
-    detail.value = detailResponse.data.data;
+    const detailData = detailResponse.data.data;
+    let invitationAnalytics: InvitationAnalytics | undefined;
+    if (detailData?.invitation?.id) {
+      const analyticsResponse = await http.get<ApiResponse<InvitationAnalytics>>(`/admin/invitations/${detailData.invitation.id}/analytics`);
+      invitationAnalytics = analyticsResponse.data.data;
+    }
+    detail.value = detailData;
     const paymentOrders = recordsOf(paymentOrderResponse.data.data).filter((item) => Number(item.banquetId) === row.id);
     const paymentOrderNos = new Set(paymentOrders.map((item) => String(item.orderNo)));
     aggregate.value = {
       rsvpRows: recordsOf(rsvpResponse.data.data),
       rsvpStats: rsvpStatsResponse.data.data,
+      invitationAnalytics,
       gifts: recordsOf(giftResponse.data.data),
       favorContacts: favorResponse.data.data || [],
       entitlements: entitlementResponse.data.data,
@@ -358,6 +419,17 @@ function moneyTotal(rows: Record<string, unknown>[]) {
 
 function sumAmount(rows: Record<string, unknown>[], field: string) {
   return rows.reduce((total, item) => total + Number(item[field] || 0), 0);
+}
+
+function fallbackRate(numerator: number, denominator: number) {
+  if (denominator <= 0) {
+    return 0;
+  }
+  return Math.round((numerator * 10000) / denominator) / 100;
+}
+
+function rateWidth(rate: number) {
+  return `${Math.max(4, Math.min(100, Number(rate || 0)))}%`;
 }
 
 function goPaymentOrder(orderNo: unknown) {
@@ -488,6 +560,26 @@ onMounted(async () => {
 
           <el-tabs v-model="detailActiveTab">
             <el-tab-pane label="概览" name="overview">
+              <section class="funnel-panel">
+                <div class="section-title">
+                  <div>
+                    <h3>请柬转化漏斗</h3>
+                    <p>访问、回执、随礼、设备选择按同一条宴席链路汇总。</p>
+                  </div>
+                  <el-button size="small" @click="goRelated('/invitations')">查看请柬分析</el-button>
+                </div>
+                <div class="funnel-list">
+                  <article v-for="step in invitationFunnelSteps" :key="step.key" class="funnel-step">
+                    <div class="funnel-head">
+                      <span>{{ step.title }}</span>
+                      <strong>{{ step.value }}</strong>
+                    </div>
+                    <div class="funnel-track"><i :style="{ width: rateWidth(step.rate) }"></i></div>
+                    <p>{{ step.hint }}，访问转化率 {{ step.rate }}%</p>
+                  </article>
+                </div>
+              </section>
+
               <section class="workbench-grid">
                 <article v-for="item in workbenchChecks" :key="item.key" class="workbench-card" :class="{ risk: item.status === 'RISK', todo: item.status === 'TODO' }">
                   <div>
@@ -858,6 +950,85 @@ h1 {
   font-size: 13px;
 }
 
+.funnel-panel {
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.section-title h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.section-title p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.funnel-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.funnel-step {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff, #f8fafc);
+}
+
+.funnel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.funnel-head span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.funnel-head strong {
+  color: #111827;
+  font-size: 22px;
+}
+
+.funnel-track {
+  height: 8px;
+  margin: 10px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.funnel-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #14b8a6);
+}
+
+.funnel-step p {
+  min-height: 32px;
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
 .workbench-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -967,7 +1138,8 @@ h1 {
   }
 
   .metrics,
-  .overview-grid {
+  .overview-grid,
+  .funnel-list {
     grid-template-columns: 1fr;
   }
 }

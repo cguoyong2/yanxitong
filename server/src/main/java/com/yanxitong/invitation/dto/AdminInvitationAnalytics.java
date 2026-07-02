@@ -12,12 +12,16 @@ public record AdminInvitationAnalytics(
         long rsvpGuestCount,
         long giftCount,
         BigDecimal giftAmount,
+        long deviceOrderCount,
+        long paidDeviceOrderCount,
         double rsvpConversionRate,
         double giftConversionRate,
+        double deviceConversionRate,
         List<TrendPoint> visitTrend,
         List<BreakdownItem> sourceBreakdown,
         List<BreakdownItem> shareChannelBreakdown,
         List<BreakdownItem> rsvpBreakdown,
+        List<BreakdownItem> deviceBreakdown,
         List<RecentVisit> recentVisits
 ) {
     public record TrendPoint(String date, long count) {

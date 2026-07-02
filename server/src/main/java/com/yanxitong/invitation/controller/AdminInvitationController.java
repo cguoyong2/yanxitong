@@ -5,6 +5,8 @@ import com.yanxitong.banquet.entity.Banquet;
 import com.yanxitong.banquet.mapper.BanquetMapper;
 import com.yanxitong.common.ApiResponse;
 import com.yanxitong.common.PageResult;
+import com.yanxitong.device.entity.DeviceOrder;
+import com.yanxitong.device.mapper.DeviceOrderMapper;
 import com.yanxitong.gift.entity.GiftRecord;
 import com.yanxitong.gift.mapper.GiftRecordMapper;
 import com.yanxitong.invitation.InvitationService;
@@ -46,6 +48,7 @@ public class AdminInvitationController {
     private final InvitationShareMapper invitationShareMapper;
     private final RsvpRecordMapper rsvpRecordMapper;
     private final GiftRecordMapper giftRecordMapper;
+    private final DeviceOrderMapper deviceOrderMapper;
     private final InvitationService invitationService;
 
     public AdminInvitationController(
@@ -56,6 +59,7 @@ public class AdminInvitationController {
             InvitationShareMapper invitationShareMapper,
             RsvpRecordMapper rsvpRecordMapper,
             GiftRecordMapper giftRecordMapper,
+            DeviceOrderMapper deviceOrderMapper,
             InvitationService invitationService
     ) {
         this.invitationMapper = invitationMapper;
@@ -65,6 +69,7 @@ public class AdminInvitationController {
         this.invitationShareMapper = invitationShareMapper;
         this.rsvpRecordMapper = rsvpRecordMapper;
         this.giftRecordMapper = giftRecordMapper;
+        this.deviceOrderMapper = deviceOrderMapper;
         this.invitationService = invitationService;
     }
 
@@ -108,6 +113,11 @@ public class AdminInvitationController {
                 : giftRecordMapper.selectList(new QueryWrapper<GiftRecord>()
                         .eq("banquet_id", invitation.banquetId)
                         .orderByDesc("received_at"));
+        List<DeviceOrder> deviceOrders = invitation.banquetId == null
+                ? List.of()
+                : deviceOrderMapper.selectList(new QueryWrapper<DeviceOrder>()
+                        .eq("banquet_id", invitation.banquetId)
+                        .orderByDesc("created_at"));
         List<InvitationShare> shares = invitationShareMapper.selectList(new QueryWrapper<InvitationShare>()
                 .eq("invitation_id", invitation.id)
                 .orderByDesc("created_at"));
@@ -123,6 +133,9 @@ public class AdminInvitationController {
         BigDecimal giftAmount = gifts.stream()
                 .map(row -> row.amount == null ? BigDecimal.ZERO : row.amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long paidDeviceOrderCount = deviceOrders.stream()
+                .filter(row -> "PAID".equals(row.payStatus))
+                .count();
         return ApiResponse.ok(new AdminInvitationAnalytics(
                 invitation.id,
                 invitation.banquetId,
@@ -132,12 +145,16 @@ public class AdminInvitationController {
                 rsvpGuestCount,
                 gifts.size(),
                 giftAmount,
+                deviceOrders.size(),
+                paidDeviceOrderCount,
                 rate(rsvps.size(), visitCount),
                 rate(gifts.size(), visitCount),
+                rate(deviceOrders.size(), visitCount),
                 visitTrend(visits),
                 sourceBreakdown(visits),
                 shareChannelBreakdown(shares),
                 rsvpBreakdown(rsvps),
+                deviceBreakdown(deviceOrders),
                 recentVisits(visits)
         ));
     }
@@ -220,6 +237,10 @@ public class AdminInvitationController {
 
     private List<AdminInvitationAnalytics.BreakdownItem> rsvpBreakdown(List<RsvpRecord> rsvps) {
         return countBy(rsvps, row -> row.attendanceStatus == null || row.attendanceStatus.isBlank() ? "UNKNOWN" : row.attendanceStatus);
+    }
+
+    private List<AdminInvitationAnalytics.BreakdownItem> deviceBreakdown(List<DeviceOrder> orders) {
+        return countBy(orders, row -> row.deviceType == null || row.deviceType.isBlank() ? "UNKNOWN" : row.deviceType);
     }
 
     private <T> List<AdminInvitationAnalytics.BreakdownItem> countBy(List<T> rows, Function<T, String> classifier) {
