@@ -23,6 +23,7 @@ const routes = [
   { path: '/theme-copywriting', name: 'theme-copywriting', text: '文案' },
   { path: '/plans', name: 'plans', text: '版本' },
   { path: '/templates', name: 'templates', text: '模板' },
+  { path: '/invitations', name: 'invitations', text: '请柬管理' },
   { path: '/devices', name: 'devices', text: '设备' },
   { path: banquetId ? `/banquets?banquetId=${encodeURIComponent(banquetId)}` : '/banquets', name: 'banquets', text: '宴席' },
   { path: '/business', name: 'business', text: '宴席核对总览' },

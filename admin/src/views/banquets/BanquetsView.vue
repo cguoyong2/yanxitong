@@ -513,6 +513,7 @@ onMounted(async () => {
                   <p>分享码：{{ detail.invitation?.shareSlug || '-' }}</p>
                   <p>公开页：{{ inviteUrl() || '-' }}</p>
                   <el-button size="small" @click="copyInvite">复制公开页路径</el-button>
+                  <el-button size="small" @click="goRelated('/invitations')">请柬管理</el-button>
                 </div>
                 <div class="panel">
                   <h3>版本权益</h3>

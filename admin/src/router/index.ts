@@ -13,6 +13,7 @@ export const router = createRouter({
     { path: '/theme-copywriting', component: () => import('../views/theme-copywriting/ThemeCopywritingView.vue') },
     { path: '/plans', component: () => import('../views/plans/PlansView.vue') },
     { path: '/templates', component: () => import('../views/templates/TemplatesView.vue') },
+    { path: '/invitations', component: () => import('../views/invitations/InvitationsView.vue') },
     { path: '/devices', component: () => import('../views/devices/DevicesView.vue') },
     { path: '/orders', component: () => import('../views/orders/OrdersView.vue') },
     { path: '/payments', component: () => import('../views/payments/PaymentsView.vue') },

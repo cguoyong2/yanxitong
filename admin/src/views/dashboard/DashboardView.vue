@@ -97,6 +97,7 @@ const items = [
   { path: '/theme-copywriting', title: '主题文案', desc: '页面文案与云喇叭播报文案' },
   { path: '/plans', title: '版本权益', desc: '版本价格、单位、权益和排序' },
   { path: '/templates', title: '模板管理', desc: '模板类型、封面、价格类型和上下架' },
+  { path: '/invitations', title: '请柬管理', desc: '请柬实例、模板引用、分享路径和访问数据' },
   { path: '/devices', title: '设备配置', desc: '云喇叭和确认屏价格、单位、交付方式' },
   { path: '/banquets', title: '宴席管理', desc: '宴席列表、主题编码和公开请柬入口' },
   { path: '/business', title: '业务数据', desc: 'RSVP、礼金记录和人情账本管理' },
