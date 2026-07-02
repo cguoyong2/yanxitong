@@ -92,6 +92,7 @@ interface BanquetAggregate {
 }
 
 type DetailTab = 'overview' | 'rsvp' | 'gifts' | 'favor' | 'devices' | 'payments' | 'broadcast' | 'logs';
+type FunnelKey = 'visit' | 'rsvp' | 'gift' | 'device';
 
 const rows = ref<Banquet[]>([]);
 const route = useRoute();
@@ -140,32 +141,36 @@ const invitationFunnelSteps = computed(() => {
   const deviceCount = analytics?.deviceOrderCount ?? aggregate.value.deviceOrders.length;
   return [
     {
-      key: 'visit',
+      key: 'visit' as const,
       title: '访问请柬',
       value: visitCount,
       rate: visitCount > 0 ? 100 : 0,
-      hint: `独立 IP ${analytics?.uniqueIpCount || 0}`
+      hint: `独立 IP ${analytics?.uniqueIpCount || 0}`,
+      actionText: '查看请柬分析'
     },
     {
-      key: 'rsvp',
+      key: 'rsvp' as const,
       title: '提交回执',
       value: rsvpCount,
       rate: analytics?.rsvpConversionRate || fallbackRate(rsvpCount, visitCount),
-      hint: `赴宴人数 ${analytics?.rsvpGuestCount ?? aggregate.value.rsvpStats?.totalGuests ?? 0}`
+      hint: `赴宴人数 ${analytics?.rsvpGuestCount ?? aggregate.value.rsvpStats?.totalGuests ?? 0}`,
+      actionText: '查看 RSVP 明细'
     },
     {
-      key: 'gift',
+      key: 'gift' as const,
       title: '完成随礼',
       value: giftCount,
       rate: analytics?.giftConversionRate || fallbackRate(giftCount, visitCount),
-      hint: `礼金 ${formatMoney(analytics?.giftAmount ?? giftTotal.value)}`
+      hint: `礼金 ${formatMoney(analytics?.giftAmount ?? giftTotal.value)}`,
+      actionText: '查看礼金明细'
     },
     {
-      key: 'device',
+      key: 'device' as const,
       title: '选择设备',
       value: deviceCount,
       rate: analytics?.deviceConversionRate || fallbackRate(deviceCount, visitCount),
-      hint: `已支付 ${analytics?.paidDeviceOrderCount ?? paidDeviceOrders.value}`
+      hint: `已支付 ${analytics?.paidDeviceOrderCount ?? paidDeviceOrders.value}`,
+      actionText: '查看设备订单'
     }
   ];
 });
@@ -405,6 +410,14 @@ async function openBusinessTab(tab: 'gifts' | 'rsvp' | 'favor') {
   await router.push({ path: '/business', query: { banquetId: id, tab } });
 }
 
+async function openFunnelDrilldown(key: FunnelKey) {
+  if (key === 'visit') {
+    await goRelated('/invitations');
+    return;
+  }
+  detailActiveTab.value = key === 'rsvp' ? 'rsvp' : key === 'gift' ? 'gifts' : 'devices';
+}
+
 async function refreshDetail() {
   const banquet = detail.value?.banquet;
   if (!banquet) {
@@ -569,13 +582,22 @@ onMounted(async () => {
                   <el-button size="small" @click="goRelated('/invitations')">查看请柬分析</el-button>
                 </div>
                 <div class="funnel-list">
-                  <article v-for="step in invitationFunnelSteps" :key="step.key" class="funnel-step">
+                  <article
+                    v-for="step in invitationFunnelSteps"
+                    :key="step.key"
+                    class="funnel-step clickable"
+                    role="button"
+                    tabindex="0"
+                    @click="openFunnelDrilldown(step.key)"
+                    @keyup.enter="openFunnelDrilldown(step.key)"
+                  >
                     <div class="funnel-head">
                       <span>{{ step.title }}</span>
                       <strong>{{ step.value }}</strong>
                     </div>
                     <div class="funnel-track"><i :style="{ width: rateWidth(step.rate) }"></i></div>
                     <p>{{ step.hint }}，访问转化率 {{ step.rate }}%</p>
+                    <em>{{ step.actionText }}</em>
                   </article>
                 </div>
               </section>
@@ -990,6 +1012,19 @@ h1 {
   background: linear-gradient(180deg, #fff, #f8fafc);
 }
 
+.funnel-step.clickable {
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.funnel-step.clickable:hover,
+.funnel-step.clickable:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 8px 22px rgba(20, 184, 166, 0.14);
+  outline: none;
+  transform: translateY(-1px);
+}
+
 .funnel-head {
   display: flex;
   justify-content: space-between;
@@ -1027,6 +1062,15 @@ h1 {
   margin: 0;
   color: #64748b;
   font-size: 12px;
+}
+
+.funnel-step em {
+  display: block;
+  margin-top: 8px;
+  color: #0f766e;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
 }
 
 .workbench-grid {

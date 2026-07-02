@@ -135,13 +135,23 @@
             <small>访问、回执、随礼、设备选择按同一条链路归因</small>
           </div>
           <div class="funnel-list">
-            <article v-for="step in invitationFunnelSteps(analytics)" :key="step.key" class="funnel-step">
+            <article
+              v-for="step in invitationFunnelSteps(analytics)"
+              :key="step.key"
+              class="funnel-step clickable"
+              :class="{ active: analyticsDrilldown === step.key }"
+              role="button"
+              tabindex="0"
+              @click="openFunnelDrilldown(step.key)"
+              @keyup.enter="openFunnelDrilldown(step.key)"
+            >
               <div class="funnel-head">
                 <span>{{ step.title }}</span>
                 <strong>{{ step.value }}</strong>
               </div>
               <div class="funnel-track"><i :style="{ width: rateWidth(step.rate) }"></i></div>
               <p>{{ step.hint }}，访问转化率 {{ step.rate }}%</p>
+              <em>{{ step.actionText }}</em>
             </article>
           </div>
         </section>
@@ -204,7 +214,7 @@
           </article>
         </section>
 
-        <section class="detail-card">
+        <section ref="visitDetailRef" class="detail-card" :class="{ highlighted: analyticsDrilldown === 'visit' }">
           <h3>最近访问</h3>
           <el-table :data="analytics.recentVisits" border stripe empty-text="暂无访问">
             <el-table-column label="时间" min-width="170">
@@ -303,6 +313,8 @@ interface InvitationAnalytics {
   recentVisits: { visitedAt: string; ipAddress?: string; source: string; userAgent?: string }[];
 }
 
+type FunnelKey = 'visit' | 'rsvp' | 'gift' | 'device';
+
 const route = useRoute();
 const router = useRouter();
 const rows = ref<AdminInvitationSummary[]>([]);
@@ -314,6 +326,8 @@ const analyticsVisible = ref(false);
 const editVisible = ref(false);
 const selected = ref<AdminInvitationSummary | null>(null);
 const analytics = ref<InvitationAnalytics | null>(null);
+const analyticsDrilldown = ref<FunnelKey>('visit');
+const visitDetailRef = ref<HTMLElement | null>(null);
 const filters = reactive({
   banquetId: String(route.query.banquetId || ''),
   templateId: String(route.query.templateId || ''),
@@ -381,6 +395,7 @@ async function openAnalytics(row: AdminInvitationSummary) {
   selected.value = row;
   const response = await http.get<ApiResponse<InvitationAnalytics>>(`/admin/invitations/${row.invitation.id}/analytics`);
   analytics.value = response.data.data;
+  analyticsDrilldown.value = 'visit';
   analyticsVisible.value = true;
 }
 
@@ -430,11 +445,11 @@ function copyShare(path: string) {
   ElMessage.success('公开路径已复制');
 }
 
-async function goBanquet(banquetId?: number) {
+async function goBanquet(banquetId?: number, focus = 'overview') {
   if (!banquetId) {
     return;
   }
-  await router.push({ path: '/banquets', query: { banquetId, focus: 'overview' } });
+  await router.push({ path: '/banquets', query: { banquetId, focus } });
 }
 
 async function goTemplates() {
@@ -466,34 +481,51 @@ function rateWidth(rate: number) {
 function invitationFunnelSteps(data: InvitationAnalytics) {
   return [
     {
-      key: 'visit',
+      key: 'visit' as const,
       title: '访问请柬',
       value: data.visitCount,
       rate: data.visitCount > 0 ? 100 : 0,
-      hint: `独立 IP ${data.uniqueIpCount}`
+      hint: `独立 IP ${data.uniqueIpCount}`,
+      actionText: '查看最近访问'
     },
     {
-      key: 'rsvp',
+      key: 'rsvp' as const,
       title: '提交回执',
       value: data.rsvpCount,
       rate: data.rsvpConversionRate,
-      hint: `赴宴人数 ${data.rsvpGuestCount}`
+      hint: `赴宴人数 ${data.rsvpGuestCount}`,
+      actionText: '进入 RSVP 明细'
     },
     {
-      key: 'gift',
+      key: 'gift' as const,
       title: '完成随礼',
       value: data.giftCount,
       rate: data.giftConversionRate,
-      hint: `礼金合计 ${formatMoney(data.giftAmount)}`
+      hint: `礼金合计 ${formatMoney(data.giftAmount)}`,
+      actionText: '进入礼金明细'
     },
     {
-      key: 'device',
+      key: 'device' as const,
       title: '选择设备',
       value: data.deviceOrderCount,
       rate: data.deviceConversionRate,
-      hint: `已支付设备订单 ${data.paidDeviceOrderCount}`
+      hint: `已支付设备订单 ${data.paidDeviceOrderCount}`,
+      actionText: '进入设备订单'
     }
   ];
+}
+
+async function openFunnelDrilldown(key: FunnelKey) {
+  analyticsDrilldown.value = key;
+  if (key === 'visit') {
+    requestAnimationFrame(() => {
+      visitDetailRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return;
+  }
+  const banquetId = selected.value?.banquet?.id || analytics.value?.banquetId;
+  const focus = key === 'rsvp' ? 'rsvp' : key === 'gift' ? 'gifts' : 'devices';
+  await goBanquet(Number(banquetId), focus);
 }
 
 onMounted(async () => {
@@ -623,6 +655,20 @@ small {
   background: linear-gradient(180deg, #fff, #f8fafc);
 }
 
+.funnel-step.clickable {
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.funnel-step.clickable:hover,
+.funnel-step.clickable:focus,
+.funnel-step.active {
+  border-color: #f97316;
+  box-shadow: 0 8px 22px rgba(249, 115, 22, 0.14);
+  outline: none;
+  transform: translateY(-1px);
+}
+
 .funnel-head {
   display: flex;
   justify-content: space-between;
@@ -660,6 +706,20 @@ small {
   margin: 0;
   color: #64748b;
   font-size: 12px;
+}
+
+.funnel-step em {
+  display: block;
+  margin-top: 8px;
+  color: #c2410c;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.detail-card.highlighted {
+  border-color: #fdba74;
+  box-shadow: 0 8px 22px rgba(249, 115, 22, 0.12);
 }
 
 .trend-list {
