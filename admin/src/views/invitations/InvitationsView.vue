@@ -85,6 +85,7 @@
       <el-table-column label="操作" width="260" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+          <el-button link type="primary" @click="openAnalytics(row)">数据</el-button>
           <el-button link type="primary" @click="openEdit(row)">编辑字段</el-button>
           <el-button link type="primary" @click="copyShare(row.shareUrl)">复制路径</el-button>
           <el-button link type="primary" @click="goBanquet(row.banquet?.id)">宴席工作台</el-button>
@@ -122,6 +123,72 @@
               <dd>{{ value || '-' }}</dd>
             </div>
           </dl>
+        </section>
+      </template>
+    </el-drawer>
+
+    <el-drawer v-model="analyticsVisible" title="请柬访问与转化" size="720px">
+      <template v-if="analytics">
+        <section class="analytics-grid">
+          <article class="metric">
+            <span>访问次数</span>
+            <strong>{{ analytics.visitCount }}</strong>
+            <small>独立 IP {{ analytics.uniqueIpCount }}</small>
+          </article>
+          <article class="metric">
+            <span>回执转化</span>
+            <strong>{{ analytics.rsvpConversionRate }}%</strong>
+            <small>{{ analytics.rsvpCount }} 条 / {{ analytics.rsvpGuestCount }} 人</small>
+          </article>
+          <article class="metric">
+            <span>随礼转化</span>
+            <strong>{{ analytics.giftConversionRate }}%</strong>
+            <small>{{ analytics.giftCount }} 笔 / {{ formatMoney(analytics.giftAmount) }}</small>
+          </article>
+        </section>
+
+        <section class="detail-card">
+          <h3>访问趋势</h3>
+          <div class="trend-list">
+            <div v-for="item in analytics.visitTrend" :key="item.date" class="trend-row">
+              <span>{{ item.date }}</span>
+              <div><i :style="{ width: trendWidth(item.count) }"></i></div>
+              <strong>{{ item.count }}</strong>
+            </div>
+            <p v-if="analytics.visitTrend.length === 0">暂无访问趋势。</p>
+          </div>
+        </section>
+
+        <section class="analytics-columns">
+          <article class="detail-card">
+            <h3>访问来源</h3>
+            <p v-for="item in analytics.sourceBreakdown" :key="item.label">{{ displayLabel(item.label) }}：{{ item.count }}</p>
+            <p v-if="analytics.sourceBreakdown.length === 0">暂无来源数据。</p>
+          </article>
+          <article class="detail-card">
+            <h3>分享渠道</h3>
+            <p v-for="item in analytics.shareChannelBreakdown" :key="item.label">{{ displayLabel(item.label) }}：{{ item.count }}</p>
+            <p v-if="analytics.shareChannelBreakdown.length === 0">暂无分享记录。</p>
+          </article>
+          <article class="detail-card">
+            <h3>回执分布</h3>
+            <p v-for="item in analytics.rsvpBreakdown" :key="item.label">{{ displayLabel(item.label) }}：{{ item.count }}</p>
+            <p v-if="analytics.rsvpBreakdown.length === 0">暂无回执记录。</p>
+          </article>
+        </section>
+
+        <section class="detail-card">
+          <h3>最近访问</h3>
+          <el-table :data="analytics.recentVisits" border stripe empty-text="暂无访问">
+            <el-table-column label="时间" min-width="170">
+              <template #default="{ row }">{{ formatDateTime(row.visitedAt) }}</template>
+            </el-table-column>
+            <el-table-column prop="ipAddress" label="IP" min-width="130" />
+            <el-table-column label="来源" width="140">
+              <template #default="{ row }">{{ displayLabel(row.source) }}</template>
+            </el-table-column>
+            <el-table-column prop="userAgent" label="User-Agent" min-width="260" show-overflow-tooltip />
+          </el-table>
         </section>
       </template>
     </el-drawer>
@@ -167,7 +234,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { http, recordsOf, type ApiResponse, type PageResult } from '../../api/client';
-import { displayLabel, formatDateTime, tagType } from '../../utils/display';
+import { displayLabel, formatDateTime, formatMoney, tagType } from '../../utils/display';
 
 interface AdminInvitationSummary {
   invitation: Record<string, any>;
@@ -187,6 +254,24 @@ interface InvitationTemplate {
   templateCode: string;
 }
 
+interface InvitationAnalytics {
+  invitationId: number;
+  banquetId?: number;
+  visitCount: number;
+  uniqueIpCount: number;
+  rsvpCount: number;
+  rsvpGuestCount: number;
+  giftCount: number;
+  giftAmount: number;
+  rsvpConversionRate: number;
+  giftConversionRate: number;
+  visitTrend: { date: string; count: number }[];
+  sourceBreakdown: { label: string; count: number }[];
+  shareChannelBreakdown: { label: string; count: number }[];
+  rsvpBreakdown: { label: string; count: number }[];
+  recentVisits: { visitedAt: string; ipAddress?: string; source: string; userAgent?: string }[];
+}
+
 const route = useRoute();
 const router = useRouter();
 const rows = ref<AdminInvitationSummary[]>([]);
@@ -194,8 +279,10 @@ const templates = ref<InvitationTemplate[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const detailVisible = ref(false);
+const analyticsVisible = ref(false);
 const editVisible = ref(false);
 const selected = ref<AdminInvitationSummary | null>(null);
+const analytics = ref<InvitationAnalytics | null>(null);
 const filters = reactive({
   banquetId: String(route.query.banquetId || ''),
   templateId: String(route.query.templateId || ''),
@@ -257,6 +344,13 @@ function resetFilters() {
 function openDetail(row: AdminInvitationSummary) {
   selected.value = row;
   detailVisible.value = true;
+}
+
+async function openAnalytics(row: AdminInvitationSummary) {
+  selected.value = row;
+  const response = await http.get<ApiResponse<InvitationAnalytics>>(`/admin/invitations/${row.invitation.id}/analytics`);
+  analytics.value = response.data.data;
+  analyticsVisible.value = true;
 }
 
 function openEdit(row: AdminInvitationSummary) {
@@ -327,6 +421,11 @@ function basicFieldLabel(key: string) {
     showDeviceEntry: '设备入口'
   };
   return labels[key] || key;
+}
+
+function trendWidth(count: number) {
+  const max = Math.max(1, ...(analytics.value?.visitTrend || []).map((item) => item.count));
+  return `${Math.max(6, Math.round((count / max) * 100))}%`;
 }
 
 onMounted(async () => {
@@ -405,6 +504,19 @@ small {
   font-size: 20px;
 }
 
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.analytics-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .detail-card {
   margin-bottom: 14px;
   padding: 14px;
@@ -416,6 +528,41 @@ small {
 .detail-card h2,
 .detail-card h3 {
   margin: 0 0 10px;
+}
+
+.trend-list {
+  display: grid;
+  gap: 10px;
+}
+
+.trend-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 50px;
+  gap: 10px;
+  align-items: center;
+}
+
+.trend-row span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.trend-row div {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.trend-row i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #60a5fa);
+}
+
+.trend-row strong {
+  text-align: right;
 }
 
 dl {
@@ -450,6 +597,11 @@ dd {
   .filters .el-input,
   .filters .el-select {
     width: 100%;
+  }
+
+  .analytics-grid,
+  .analytics-columns {
+    grid-template-columns: 1fr;
   }
 }
 </style>

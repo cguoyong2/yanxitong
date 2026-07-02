@@ -5,17 +5,31 @@ import com.yanxitong.banquet.entity.Banquet;
 import com.yanxitong.banquet.mapper.BanquetMapper;
 import com.yanxitong.common.ApiResponse;
 import com.yanxitong.common.PageResult;
+import com.yanxitong.gift.entity.GiftRecord;
+import com.yanxitong.gift.mapper.GiftRecordMapper;
 import com.yanxitong.invitation.InvitationService;
+import com.yanxitong.invitation.dto.AdminInvitationAnalytics;
 import com.yanxitong.invitation.dto.AdminInvitationSummary;
 import com.yanxitong.invitation.entity.Invitation;
+import com.yanxitong.invitation.entity.InvitationShare;
 import com.yanxitong.invitation.entity.InvitationVisitLog;
 import com.yanxitong.invitation.mapper.InvitationMapper;
+import com.yanxitong.invitation.mapper.InvitationShareMapper;
 import com.yanxitong.invitation.mapper.InvitationVisitLogMapper;
+import com.yanxitong.rsvp.entity.RsvpRecord;
+import com.yanxitong.rsvp.mapper.RsvpRecordMapper;
 import com.yanxitong.template.entity.InvitationTemplate;
 import com.yanxitong.template.mapper.InvitationTemplateMapper;
 import com.yanxitong.tenant.TenantContext;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +43,9 @@ public class AdminInvitationController {
     private final BanquetMapper banquetMapper;
     private final InvitationTemplateMapper invitationTemplateMapper;
     private final InvitationVisitLogMapper invitationVisitLogMapper;
+    private final InvitationShareMapper invitationShareMapper;
+    private final RsvpRecordMapper rsvpRecordMapper;
+    private final GiftRecordMapper giftRecordMapper;
     private final InvitationService invitationService;
 
     public AdminInvitationController(
@@ -36,12 +53,18 @@ public class AdminInvitationController {
             BanquetMapper banquetMapper,
             InvitationTemplateMapper invitationTemplateMapper,
             InvitationVisitLogMapper invitationVisitLogMapper,
+            InvitationShareMapper invitationShareMapper,
+            RsvpRecordMapper rsvpRecordMapper,
+            GiftRecordMapper giftRecordMapper,
             InvitationService invitationService
     ) {
         this.invitationMapper = invitationMapper;
         this.banquetMapper = banquetMapper;
         this.invitationTemplateMapper = invitationTemplateMapper;
         this.invitationVisitLogMapper = invitationVisitLogMapper;
+        this.invitationShareMapper = invitationShareMapper;
+        this.rsvpRecordMapper = rsvpRecordMapper;
+        this.giftRecordMapper = giftRecordMapper;
         this.invitationService = invitationService;
     }
 
@@ -69,6 +92,54 @@ public class AdminInvitationController {
     public ApiResponse<AdminInvitationSummary> detail(@PathVariable Long id) {
         Invitation invitation = invitationService.requireById(id);
         return ApiResponse.ok(summary(invitation));
+    }
+
+    @GetMapping("/{id}/analytics")
+    public ApiResponse<AdminInvitationAnalytics> analytics(@PathVariable Long id) {
+        Invitation invitation = invitationService.requireById(id);
+        List<InvitationVisitLog> visits = invitationVisitLogMapper.selectList(new QueryWrapper<InvitationVisitLog>()
+                .eq("invitation_id", invitation.id)
+                .orderByDesc("visited_at"));
+        List<RsvpRecord> rsvps = rsvpRecordMapper.selectList(new QueryWrapper<RsvpRecord>()
+                .eq("invitation_id", invitation.id)
+                .orderByDesc("created_at"));
+        List<GiftRecord> gifts = invitation.banquetId == null
+                ? List.of()
+                : giftRecordMapper.selectList(new QueryWrapper<GiftRecord>()
+                        .eq("banquet_id", invitation.banquetId)
+                        .orderByDesc("received_at"));
+        List<InvitationShare> shares = invitationShareMapper.selectList(new QueryWrapper<InvitationShare>()
+                .eq("invitation_id", invitation.id)
+                .orderByDesc("created_at"));
+
+        long visitCount = visits.size();
+        long uniqueIpCount = visits.stream()
+                .map(log -> log.ipAddress)
+                .filter(Objects::nonNull)
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .count();
+        long rsvpGuestCount = rsvps.stream().mapToLong(row -> row.guestCount == null ? 0 : row.guestCount).sum();
+        BigDecimal giftAmount = gifts.stream()
+                .map(row -> row.amount == null ? BigDecimal.ZERO : row.amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return ApiResponse.ok(new AdminInvitationAnalytics(
+                invitation.id,
+                invitation.banquetId,
+                visitCount,
+                uniqueIpCount,
+                rsvps.size(),
+                rsvpGuestCount,
+                gifts.size(),
+                giftAmount,
+                rate(rsvps.size(), visitCount),
+                rate(gifts.size(), visitCount),
+                visitTrend(visits),
+                sourceBreakdown(visits),
+                shareChannelBreakdown(shares),
+                rsvpBreakdown(rsvps),
+                recentVisits(visits)
+        ));
     }
 
     private QueryWrapper<Invitation> query(Long banquetId, Long templateId, String status, String keyword) {
@@ -119,5 +190,71 @@ public class AdminInvitationController {
                 templateAvailable,
                 templateAvailable ? "" : "原请柬模板已下架，公开页将使用基础样式"
         );
+    }
+
+    private double rate(long numerator, long denominator) {
+        if (denominator <= 0) {
+            return 0;
+        }
+        return Math.round((numerator * 10000.0 / denominator)) / 100.0;
+    }
+
+    private List<AdminInvitationAnalytics.TrendPoint> visitTrend(List<InvitationVisitLog> visits) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+        Map<String, Long> grouped = visits.stream()
+                .filter(log -> log.visitedAt != null)
+                .collect(Collectors.groupingBy(log -> log.visitedAt.toLocalDate().format(formatter), Collectors.counting()));
+        return grouped.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> new AdminInvitationAnalytics.TrendPoint(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    private List<AdminInvitationAnalytics.BreakdownItem> sourceBreakdown(List<InvitationVisitLog> visits) {
+        return countBy(visits, log -> sourceOf(log.userAgent));
+    }
+
+    private List<AdminInvitationAnalytics.BreakdownItem> shareChannelBreakdown(List<InvitationShare> shares) {
+        return countBy(shares, share -> share.shareChannel == null || share.shareChannel.isBlank() ? "UNKNOWN" : share.shareChannel);
+    }
+
+    private List<AdminInvitationAnalytics.BreakdownItem> rsvpBreakdown(List<RsvpRecord> rsvps) {
+        return countBy(rsvps, row -> row.attendanceStatus == null || row.attendanceStatus.isBlank() ? "UNKNOWN" : row.attendanceStatus);
+    }
+
+    private <T> List<AdminInvitationAnalytics.BreakdownItem> countBy(List<T> rows, Function<T, String> classifier) {
+        return rows.stream()
+                .collect(Collectors.groupingBy(classifier, Collectors.counting()))
+                .entrySet()
+                .stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder()).thenComparing(Map.Entry.comparingByKey()))
+                .map(entry -> new AdminInvitationAnalytics.BreakdownItem(entry.getKey(), entry.getValue()))
+                .toList();
+    }
+
+    private List<AdminInvitationAnalytics.RecentVisit> recentVisits(List<InvitationVisitLog> visits) {
+        return visits.stream()
+                .limit(20)
+                .map(log -> new AdminInvitationAnalytics.RecentVisit(
+                        log.visitedAt == null ? "" : log.visitedAt.toString(),
+                        log.ipAddress,
+                        sourceOf(log.userAgent),
+                        log.userAgent
+                ))
+                .toList();
+    }
+
+    private String sourceOf(String userAgent) {
+        if (userAgent == null || userAgent.isBlank()) {
+            return "UNKNOWN";
+        }
+        String value = userAgent.toLowerCase();
+        if (value.contains("micromessenger")) {
+            return "WECHAT";
+        }
+        if (value.contains("iphone") || value.contains("android") || value.contains("mobile")) {
+            return "MOBILE_BROWSER";
+        }
+        return "DESKTOP_BROWSER";
     }
 }
