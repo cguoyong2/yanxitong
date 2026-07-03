@@ -13,6 +13,20 @@
       title="导出超过配置上限会被拒绝；上限由配置中心 export.max_rows 维护。"
     />
 
+    <section v-if="contextBanquetId" class="context-panel">
+      <div>
+        <span>当前钻取宴席</span>
+        <strong>{{ contextBanquetTitle }}</strong>
+        <p>下方礼金、回执和人情账本已按该宴席过滤；当前页签：{{ tabLabel(activeTab) }}。</p>
+      </div>
+      <div class="context-actions">
+        <el-button @click="goAuditBanquet">返回宴席工作台</el-button>
+        <el-button @click="goAuditPayments">查看支付</el-button>
+        <el-button @click="goAuditOperationLogs">查看日志</el-button>
+        <el-button @click="clearContext">清除筛选</el-button>
+      </div>
+    </section>
+
     <section class="audit-panel">
       <div class="audit-head">
         <div>
@@ -348,7 +362,7 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { http, recordsOf, type ApiResponse, type PageResult } from '../../api/client';
 import { displayLabel, formatDateTime, formatMoney, tagType } from '../../utils/display';
@@ -514,9 +528,24 @@ const auditRows = computed(() => [
 const auditStatusText = computed(() => auditRows.value.every((row) => row.ok) ? '闭环完整' : '存在待补');
 const auditStatusHint = computed(() => auditRows.value.every((row) => row.ok) ? '该宴席关键数据均可追踪' : '建议查看下方明细或操作日志补齐数据');
 const auditStatusClass = computed(() => auditRows.value.every((row) => row.ok) ? 'positive' : 'negative');
+const contextBanquetId = computed(() => auditBanquetId.value || giftFilters.banquetId || rsvpFilters.banquetId || favorExportBanquetId.value);
+const contextBanquet = computed(() => banquetOptions.value.find((item) => String(item.id) === String(contextBanquetId.value)));
+const contextBanquetTitle = computed(() => {
+  const banquet = contextBanquet.value;
+  return banquet ? `${banquet.id} · ${banquet.name}` : `宴席 ID ${contextBanquetId.value}`;
+});
 
 function tabFromQuery(value: unknown): BusinessTab {
   return value === 'rsvp' || value === 'favor' ? value : 'gifts';
+}
+
+function tabLabel(tab: BusinessTab) {
+  const labels: Record<BusinessTab, string> = {
+    gifts: '礼金记录',
+    rsvp: '回执 RSVP',
+    favor: '人情账本'
+  };
+  return labels[tab];
 }
 
 function query(params: Record<string, string>) {
@@ -534,6 +563,9 @@ async function loadGifts() {
   try {
     const response = await http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/gifts${query({ ...giftFilters, pageSize: '100' })}`);
     gifts.value = recordsOf(response.data.data);
+    if (activeTab.value === 'gifts') {
+      syncBusinessQuery('gifts');
+    }
   } finally {
     loading.gifts = false;
   }
@@ -544,6 +576,9 @@ async function loadRsvp() {
   try {
     const response = await http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/rsvp${query({ ...rsvpFilters, pageSize: '100' })}`);
     rsvpRows.value = recordsOf(response.data.data);
+    if (activeTab.value === 'rsvp') {
+      syncBusinessQuery('rsvp');
+    }
   } finally {
     loading.rsvp = false;
   }
@@ -565,6 +600,9 @@ async function loadFavorContacts() {
       banquetId: favorExportBanquetId.value
     })}`);
     favorContacts.value = response.data.data || [];
+    if (activeTab.value === 'favor') {
+      syncBusinessQuery('favor');
+    }
   } finally {
     loading.favor = false;
   }
@@ -648,38 +686,41 @@ async function handleAuditRow(key: AuditRowKey) {
 }
 
 async function goAuditBanquet() {
-  if (!auditBanquetId.value) {
+  const banquetId = contextBanquetId.value;
+  if (!banquetId) {
     return;
   }
-  await router.push({ path: '/banquets', query: { banquetId: auditBanquetId.value, focus: 'overview' } });
+  await router.push({ path: '/banquets', query: { banquetId, focus: 'overview' } });
 }
 
 async function goAuditOperationLogs() {
-  if (!auditBanquetId.value) {
+  const banquetId = contextBanquetId.value;
+  if (!banquetId) {
     return;
   }
   await router.push({
     path: '/operation-logs',
-    query: { targetType: 'banquet', targetId: auditBanquetId.value }
+    query: { targetType: 'banquet', targetId: banquetId }
   });
 }
 
 async function goAuditPayments() {
-  if (!auditBanquetId.value) {
+  const banquetId = contextBanquetId.value;
+  if (!banquetId) {
     return;
   }
-  await router.push({ path: '/payments', query: { banquetId: auditBanquetId.value } });
+  await router.push({ path: '/payments', query: { banquetId } });
 }
 
 function resetGiftFilters() {
-  giftFilters.banquetId = String(route.query.banquetId || '');
+  giftFilters.banquetId = auditBanquetId.value;
   giftFilters.source = '';
   giftFilters.keyword = '';
   loadGifts();
 }
 
 function resetRsvpFilters() {
-  rsvpFilters.banquetId = String(route.query.banquetId || '');
+  rsvpFilters.banquetId = auditBanquetId.value;
   rsvpFilters.status = '';
   rsvpFilters.keyword = '';
   rsvpStats.value = null;
@@ -688,8 +729,30 @@ function resetRsvpFilters() {
 
 function resetFavorFilters() {
   favorKeyword.value = '';
-  favorExportBanquetId.value = String(route.query.banquetId || '');
+  favorExportBanquetId.value = auditBanquetId.value;
   loadFavorContacts();
+}
+
+function syncBusinessQuery(tab: BusinessTab) {
+  const banquetId = tab === 'gifts'
+    ? giftFilters.banquetId
+    : tab === 'rsvp'
+      ? rsvpFilters.banquetId
+      : favorExportBanquetId.value;
+  const nextQuery: Record<string, string> = { tab };
+  if (banquetId) {
+    nextQuery.banquetId = banquetId;
+  }
+  void router.replace({ path: '/business', query: nextQuery });
+}
+
+async function clearContext() {
+  auditBanquetId.value = '';
+  giftFilters.banquetId = '';
+  rsvpFilters.banquetId = '';
+  favorExportBanquetId.value = '';
+  await Promise.all([loadGifts(), loadRsvp(), loadFavorContacts()]);
+  void router.replace({ path: '/business', query: { tab: activeTab.value } });
 }
 
 async function downloadExport(kind: 'gifts' | 'rsvp' | 'favor', format: 'csv' | 'xlsx', banquetId: string) {
@@ -822,7 +885,7 @@ async function openFavorDetail(contactId: number) {
 }
 
 async function goBanquet(banquetId: number) {
-  await router.push({ path: '/banquets', query: { banquetId } });
+  await router.push({ path: '/banquets', query: { banquetId, focus: 'overview' } });
 }
 
 function toNumber(value: unknown): number {
@@ -856,6 +919,10 @@ function balanceClass(value: unknown) {
 }
 
 onMounted(loadAll);
+
+watch(activeTab, (tab) => {
+  syncBusinessQuery(tab);
+});
 </script>
 
 <style scoped>
@@ -874,6 +941,43 @@ header {
 
 .export-notice {
   margin-bottom: 14px;
+}
+
+.context-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.context-panel span {
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.context-panel strong {
+  display: block;
+  margin-top: 4px;
+  color: #111827;
+  font-size: 18px;
+}
+
+.context-panel p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+.context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .audit-panel {
@@ -1016,10 +1120,15 @@ h1 {
     width: 100%;
   }
 
+  .context-panel,
   .audit-head,
   .audit-actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .context-actions {
+    justify-content: flex-start;
   }
 }
 </style>

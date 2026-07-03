@@ -4,6 +4,18 @@
       <h1>订单管理</h1>
       <el-button @click="load">刷新</el-button>
     </header>
+    <section v-if="filters.banquetId" class="context-panel">
+      <div>
+        <span>当前钻取宴席</span>
+        <strong>{{ contextBanquetTitle }}</strong>
+        <p>版本订单和设备订单已按该宴席过滤；当前页签：{{ activeOrderTab === 'devices' ? '设备订单' : '版本订单' }}。</p>
+      </div>
+      <div class="context-actions">
+        <el-button @click="goBanquet(Number(filters.banquetId))">返回宴席工作台</el-button>
+        <el-button @click="goOperationLog('banquet', Number(filters.banquetId))">查看日志</el-button>
+        <el-button @click="clearContext">清除筛选</el-button>
+      </div>
+    </section>
     <section class="filters">
       <el-input v-model="filters.banquetId" clearable placeholder="宴席 ID" />
       <el-select v-model="filters.payStatus" clearable placeholder="支付状态">
@@ -14,8 +26,8 @@
       <el-button type="primary" @click="applyFilters">查询</el-button>
       <el-button @click="resetFilters">重置</el-button>
     </section>
-    <el-tabs>
-      <el-tab-pane label="版本订单">
+    <el-tabs v-model="activeOrderTab">
+      <el-tab-pane label="版本订单" name="plans">
         <section class="metric-grid">
           <article class="metric">
             <span>版本订单</span>
@@ -58,7 +70,7 @@
           </el-table-column>
         </el-table>
       </el-tab-pane>
-      <el-tab-pane label="设备订单">
+      <el-tab-pane label="设备订单" name="devices">
         <section class="metric-grid">
           <article class="metric">
             <span>设备订单</span>
@@ -119,7 +131,7 @@
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { http, loadRuntimeFeatures, recordsOf, type ApiResponse, type PageResult, type RuntimeFeatures } from '../../api/client';
 import { displayLabel, formatDateTime, formatMoney, tagType } from '../../utils/display';
@@ -130,10 +142,12 @@ const loading = ref(false);
 const planOrders = ref<Record<string, unknown>[]>([]);
 const deviceOrders = ref<Record<string, unknown>[]>([]);
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
+const activeOrderTab = ref(route.query.tab === 'devices' ? 'devices' : 'plans');
+const banquetOptions = ref<{ id: number; name: string }[]>([]);
 const filters = ref({
   banquetId: String(route.query.banquetId || ''),
-  payStatus: '',
-  keyword: ''
+  payStatus: String(route.query.payStatus || ''),
+  keyword: String(route.query.keyword || '')
 });
 const displayedPlanOrders = computed(() => filterOrders(planOrders.value));
 const displayedDeviceOrders = computed(() => filterOrders(deviceOrders.value));
@@ -142,6 +156,8 @@ const deviceSummary = computed(() => ({
   ...summarizeOrders(displayedDeviceOrders.value, 'price'),
   fulfillment: displayedDeviceOrders.value.filter((item) => ['DELIVERING', 'DELIVERED'].includes(String(item.orderStatus))).length
 }));
+const contextBanquet = computed(() => banquetOptions.value.find((item) => String(item.id) === String(filters.value.banquetId)));
+const contextBanquetTitle = computed(() => contextBanquet.value ? `${contextBanquet.value.id} · ${contextBanquet.value.name}` : `宴席 ID ${filters.value.banquetId}`);
 
 function filterOrders(rows: Record<string, unknown>[]) {
   return rows.filter((item) => {
@@ -169,6 +185,7 @@ function summarizeOrders(rows: Record<string, unknown>[], amountField: string) {
 
 function applyFilters() {
   filters.value = { ...filters.value };
+  syncOrderQuery();
 }
 
 function resetFilters() {
@@ -177,17 +194,20 @@ function resetFilters() {
     payStatus: '',
     keyword: ''
   };
+  syncOrderQuery();
 }
 
 async function load() {
   loading.value = true;
   try {
-    const [runtimeFeatures, plans, devices] = await Promise.all([
+    const [runtimeFeatures, banquets, plans, devices] = await Promise.all([
       loadRuntimeFeatures(),
+      http.get<ApiResponse<{ id: number; name: string }[]>>('/admin/banquets'),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/orders/plans?pageSize=100'),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/orders/devices?pageSize=100')
     ]);
     features.value = runtimeFeatures;
+    banquetOptions.value = banquets.data.data || [];
     planOrders.value = recordsOf(plans.data.data);
     deviceOrders.value = recordsOf(devices.data.data);
   } finally {
@@ -214,14 +234,41 @@ async function updateDeviceStatus(orderNo: string, orderStatus: string) {
 }
 
 async function goBanquet(banquetId: number) {
-  await router.push({ path: '/banquets', query: { banquetId } });
+  await router.push({ path: '/banquets', query: { banquetId, focus: 'overview' } });
 }
 
 async function goOperationLog(targetType: string, targetId: number) {
   await router.push({ path: '/operation-logs', query: { targetType, targetId } });
 }
 
+function syncOrderQuery() {
+  const nextQuery: Record<string, string> = { tab: activeOrderTab.value };
+  if (filters.value.banquetId) {
+    nextQuery.banquetId = filters.value.banquetId;
+  }
+  if (filters.value.payStatus) {
+    nextQuery.payStatus = filters.value.payStatus;
+  }
+  if (filters.value.keyword) {
+    nextQuery.keyword = filters.value.keyword;
+  }
+  void router.replace({ path: '/orders', query: nextQuery });
+}
+
+function clearContext() {
+  filters.value = {
+    banquetId: '',
+    payStatus: '',
+    keyword: ''
+  };
+  syncOrderQuery();
+}
+
 onMounted(load);
+
+watch(activeOrderTab, () => {
+  syncOrderQuery();
+});
 </script>
 
 <style scoped>
@@ -241,6 +288,43 @@ header {
 h1 {
   margin: 0;
   font-size: 20px;
+}
+
+.context-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background: #f0fdf4;
+}
+
+.context-panel span {
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.context-panel strong {
+  display: block;
+  margin-top: 4px;
+  color: #111827;
+  font-size: 18px;
+}
+
+.context-panel p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+.context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .filters {
@@ -288,8 +372,14 @@ h1 {
 }
 
 @media (max-width: 860px) {
+  .context-panel,
   .filters {
     grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .context-actions {
+    justify-content: flex-start;
   }
 
   .filters .el-input,
