@@ -5,8 +5,22 @@
       <el-button @click="load">刷新</el-button>
     </header>
 
-    <el-tabs>
-      <el-tab-pane label="支付配置">
+    <section v-if="orderFilters.banquetId" class="context-panel">
+      <div>
+        <span>当前钻取宴席</span>
+        <strong>{{ contextBanquetTitle }}</strong>
+        <p>支付订单和相关回调已按该宴席过滤；当前页签：{{ activeTab === 'callbacks' ? '回调与异常' : activeTab === 'orders' ? '支付订单' : '支付配置' }}。</p>
+      </div>
+      <div class="context-actions">
+        <el-button @click="goBanquet(Number(orderFilters.banquetId))">返回宴席工作台</el-button>
+        <el-button @click="goBusiness">业务数据</el-button>
+        <el-button @click="goOperationLog('banquet', Number(orderFilters.banquetId))">查看日志</el-button>
+        <el-button @click="clearContext">清除筛选</el-button>
+      </div>
+    </section>
+
+    <el-tabs v-model="activeTab">
+      <el-tab-pane label="支付配置" name="config">
         <section class="launch-gate-grid">
           <article class="launch-gate" :class="{ danger: systemBlockerCount > 0, warning: systemBlockerCount === 0 && systemWarningCount > 0 }">
             <span>系统安全阻塞</span>
@@ -155,8 +169,9 @@
         </section>
       </el-tab-pane>
 
-      <el-tab-pane label="支付订单">
+      <el-tab-pane label="支付订单" name="orders">
         <section class="filters">
+          <el-input v-model="orderFilters.banquetId" clearable placeholder="宴席 ID" @change="load" />
           <el-input v-model="orderFilters.orderNo" clearable placeholder="订单号" @change="load" />
           <el-select v-model="orderFilters.payStatus" clearable placeholder="支付状态" @change="load">
             <el-option label="未支付" value="UNPAID" />
@@ -238,8 +253,9 @@
         </el-table>
       </el-tab-pane>
 
-      <el-tab-pane label="回调与异常">
+      <el-tab-pane label="回调与异常" name="callbacks">
         <section class="filters">
+          <el-input v-model="orderFilters.banquetId" clearable placeholder="宴席 ID" @change="load" />
           <el-select v-model="processStatus" clearable placeholder="处理状态" @change="load">
             <el-option label="失败" value="FAILED" />
             <el-option label="成功" value="SUCCESS" />
@@ -368,7 +384,7 @@
 
 <script setup lang="ts">
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { http, recordsOf, type ApiResponse, type PageResult } from '../../api/client';
 import { displayLabel, formatDateTime, formatMoney, tagType } from '../../utils/display';
@@ -378,24 +394,28 @@ const router = useRouter();
 const loading = ref(false);
 const orders = ref<Record<string, unknown>[]>([]);
 const callbacks = ref<Record<string, unknown>[]>([]);
+const banquetOptions = ref<{ id: number; name: string }[]>([]);
 const providers = ref<Record<string, any>[]>([]);
 const launchReadiness = ref<Record<string, any> | null>(null);
 const securityReadiness = ref<Record<string, any> | null>(null);
+const activeTab = ref(route.query.tab === 'callbacks' ? 'callbacks' : route.query.tab === 'config' ? 'config' : 'orders');
 const processStatus = ref(String(route.query.processStatus || ''));
 const verifyStatus = ref(String(route.query.verifyStatus || ''));
 const callbackOrderNo = ref(String(route.query.orderNo || ''));
 const callbackDrawerVisible = ref(false);
 const selectedCallback = ref<Record<string, unknown> | null>(null);
 const orderFilters = ref({
+  banquetId: String(route.query.banquetId || ''),
   orderNo: String(route.query.orderNo || ''),
-  payStatus: '',
-  scene: '',
-  entrySource: ''
+  payStatus: String(route.query.payStatus || ''),
+  scene: String(route.query.scene || ''),
+  entrySource: String(route.query.entrySource || '')
 });
-const routeBanquetId = computed(() => Number(route.query.banquetId));
+const contextBanquet = computed(() => banquetOptions.value.find((item) => String(item.id) === String(orderFilters.value.banquetId)));
+const contextBanquetTitle = computed(() => contextBanquet.value ? `${contextBanquet.value.id} · ${contextBanquet.value.name}` : `宴席 ID ${orderFilters.value.banquetId}`);
 const displayedOrders = computed(() => {
   return orders.value.filter((item) => {
-    if (Number.isInteger(routeBanquetId.value) && Number(item.banquetId) !== routeBanquetId.value) {
+    if (orderFilters.value.banquetId && Number(item.banquetId) !== Number(orderFilters.value.banquetId)) {
       return false;
     }
     if (orderFilters.value.orderNo && !String(item.orderNo || '').includes(orderFilters.value.orderNo)) {
@@ -410,7 +430,7 @@ const displayedOrders = computed(() => {
 const displayedCallbacks = computed(() => {
   const orderNos = new Set(displayedOrders.value.map((item) => String(item.orderNo)));
   return callbacks.value.filter((item) => {
-    if (Number.isInteger(routeBanquetId.value) && !orderNos.has(String(item.orderNo))) {
+    if (orderFilters.value.banquetId && !orderNos.has(String(item.orderNo))) {
       return false;
     }
     if (callbackOrderNo.value && !String(item.orderNo || '').includes(callbackOrderNo.value)) {
@@ -457,18 +477,21 @@ async function load() {
     orderQuery.set('pageSize', '100');
     const suffix = callbackQuery.toString() ? `?${callbackQuery}` : '';
     const orderSuffix = orderQuery.toString() ? `?${orderQuery}` : '';
-    const [providerResponse, readinessResponse, securityResponse, orderResponse, callbackResponse] = await Promise.all([
+    const [providerResponse, readinessResponse, securityResponse, banquetResponse, orderResponse, callbackResponse] = await Promise.all([
       http.get<ApiResponse<Record<string, unknown>[]>>('/admin/payments/providers'),
       http.get<ApiResponse<Record<string, unknown>>>('/admin/payments/launch-readiness'),
       http.get<ApiResponse<Record<string, unknown>>>('/health/readiness'),
+      http.get<ApiResponse<{ id: number; name: string }[]>>('/admin/banquets'),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/payments/orders${orderSuffix}`),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/payments/callbacks${suffix}`)
     ]);
     providers.value = providerResponse.data.data || [];
     launchReadiness.value = readinessResponse.data.data || null;
     securityReadiness.value = securityResponse.data.data || null;
+    banquetOptions.value = banquetResponse.data.data || [];
     orders.value = recordsOf(orderResponse.data.data);
     callbacks.value = recordsOf(callbackResponse.data.data);
+    syncPaymentQuery();
   } finally {
     loading.value = false;
   }
@@ -535,15 +558,17 @@ async function manualSettle(row: Record<string, unknown>) {
 }
 
 function showFailures() {
+  activeTab.value = 'callbacks';
   processStatus.value = 'FAILED';
   verifyStatus.value = '';
-  void router.replace({ path: '/payments', query: { ...route.query, processStatus: 'FAILED', verifyStatus: undefined } });
+  syncPaymentQuery();
   void load();
 }
 
 function resetOrderFilters() {
   orderFilters.value = {
-    orderNo: String(route.query.orderNo || ''),
+    banquetId: orderFilters.value.banquetId,
+    orderNo: '',
     payStatus: '',
     scene: '',
     entrySource: ''
@@ -554,8 +579,8 @@ function resetOrderFilters() {
 function resetCallbackFilters() {
   processStatus.value = '';
   verifyStatus.value = '';
-  callbackOrderNo.value = String(route.query.orderNo || '');
-  void router.replace({ path: '/payments', query: { ...route.query, processStatus: undefined, verifyStatus: undefined } });
+  callbackOrderNo.value = '';
+  syncPaymentQuery();
   void load();
 }
 
@@ -565,15 +590,17 @@ function openCallback(row: Record<string, unknown>) {
 }
 
 function focusOrder(orderNo: string) {
+  activeTab.value = 'orders';
   orderFilters.value = {
     ...orderFilters.value,
     orderNo
   };
   callbackOrderNo.value = orderNo;
+  syncPaymentQuery();
 }
 
 async function goBanquet(banquetId: number) {
-  await router.push({ path: '/banquets', query: { banquetId } });
+  await router.push({ path: '/banquets', query: { banquetId, focus: 'overview' } });
 }
 
 async function goOperationLog(targetType: string, targetId: number) {
@@ -582,6 +609,51 @@ async function goOperationLog(targetType: string, targetId: number) {
 
 async function goBroadcast() {
   await router.push({ path: '/broadcast-logs' });
+}
+
+async function goBusiness() {
+  if (!orderFilters.value.banquetId) {
+    return;
+  }
+  await router.push({ path: '/business', query: { banquetId: orderFilters.value.banquetId, tab: 'gifts' } });
+}
+
+function syncPaymentQuery() {
+  const nextQuery: Record<string, string> = { tab: activeTab.value };
+  if (orderFilters.value.banquetId) {
+    nextQuery.banquetId = orderFilters.value.banquetId;
+  }
+  if (orderFilters.value.orderNo) {
+    nextQuery.orderNo = orderFilters.value.orderNo;
+  }
+  if (orderFilters.value.payStatus) {
+    nextQuery.payStatus = orderFilters.value.payStatus;
+  }
+  if (orderFilters.value.scene) {
+    nextQuery.scene = orderFilters.value.scene;
+  }
+  if (orderFilters.value.entrySource) {
+    nextQuery.entrySource = orderFilters.value.entrySource;
+  }
+  if (processStatus.value) {
+    nextQuery.processStatus = processStatus.value;
+  }
+  if (verifyStatus.value) {
+    nextQuery.verifyStatus = verifyStatus.value;
+  }
+  void router.replace({ path: '/payments', query: nextQuery });
+}
+
+function clearContext() {
+  orderFilters.value = {
+    banquetId: '',
+    orderNo: '',
+    payStatus: '',
+    scene: '',
+    entrySource: ''
+  };
+  callbackOrderNo.value = '';
+  syncPaymentQuery();
 }
 
 function callbackAdvice(row: Record<string, unknown>) {
@@ -622,6 +694,10 @@ function callbackAdvice(row: Record<string, unknown>) {
 }
 
 onMounted(load);
+
+watch(activeTab, () => {
+  syncPaymentQuery();
+});
 </script>
 
 <style scoped>
@@ -641,6 +717,43 @@ header {
 h1 {
   margin: 0;
   font-size: 20px;
+}
+
+.context-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff7f7;
+}
+
+.context-panel span {
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.context-panel strong {
+  display: block;
+  margin-top: 4px;
+  color: #111827;
+  font-size: 18px;
+}
+
+.context-panel p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+.context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .filters {
@@ -973,8 +1086,14 @@ h1 {
 }
 
 @media (max-width: 860px) {
+  .context-panel,
   .filters {
     grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .context-actions {
+    justify-content: flex-start;
   }
 
   .filters .el-input,
