@@ -8,6 +8,21 @@
       <el-button :loading="loading" @click="load">刷新</el-button>
     </header>
 
+    <section v-if="filters.banquetId" class="context-panel">
+      <div>
+        <span>当前钻取宴席</span>
+        <strong>{{ contextBanquetTitle }}</strong>
+        <p>请柬实例、模板引用、分享路径和访问转化已按该宴席过滤。</p>
+      </div>
+      <div class="context-actions">
+        <el-button @click="goBanquet(Number(filters.banquetId))">返回宴席工作台</el-button>
+        <el-button @click="goBusiness('rsvp')">回执明细</el-button>
+        <el-button @click="goPayments">支付排障</el-button>
+        <el-button @click="goOperationLog('banquet', Number(filters.banquetId))">查看日志</el-button>
+        <el-button @click="clearContext">清除筛选</el-button>
+      </div>
+    </section>
+
     <section class="filters">
       <el-input v-model="filters.banquetId" clearable placeholder="宴席 ID" />
       <el-select v-model="filters.templateId" clearable filterable placeholder="模板">
@@ -319,6 +334,7 @@ const route = useRoute();
 const router = useRouter();
 const rows = ref<AdminInvitationSummary[]>([]);
 const templates = ref<InvitationTemplate[]>([]);
+const banquetOptions = ref<{ id: number; name: string }[]>([]);
 const loading = ref(false);
 const saving = ref(false);
 const detailVisible = ref(false);
@@ -350,10 +366,17 @@ const editForm = reactive({
 const visitTotal = computed(() => rows.value.reduce((total, item) => total + Number(item.visitCount || 0), 0));
 const availableTemplateCount = computed(() => rows.value.filter((item) => item.templateAvailable).length);
 const unavailableTemplateCount = computed(() => rows.value.length - availableTemplateCount.value);
+const contextBanquet = computed(() => banquetOptions.value.find((item) => String(item.id) === String(filters.banquetId)));
+const contextBanquetTitle = computed(() => contextBanquet.value ? `${contextBanquet.value.id} · ${contextBanquet.value.name}` : `宴席 ID ${filters.banquetId}`);
 
 async function loadTemplates() {
   const response = await http.get<ApiResponse<InvitationTemplate[]>>('/admin/invitation-templates');
   templates.value = response.data.data || [];
+}
+
+async function loadBanquets() {
+  const response = await http.get<ApiResponse<{ id: number; name: string }[]>>('/admin/banquets');
+  banquetOptions.value = response.data.data || [];
 }
 
 async function load() {
@@ -379,6 +402,14 @@ async function load() {
 }
 
 function resetFilters() {
+  filters.banquetId = filters.banquetId || String(route.query.banquetId || '');
+  filters.templateId = '';
+  filters.status = '';
+  filters.keyword = '';
+  void load();
+}
+
+function clearContext() {
   filters.banquetId = '';
   filters.templateId = '';
   filters.status = '';
@@ -456,6 +487,24 @@ async function goTemplates() {
   await router.push('/templates');
 }
 
+async function goBusiness(tab: string) {
+  if (!filters.banquetId) {
+    return;
+  }
+  await router.push({ path: '/business', query: { banquetId: filters.banquetId, tab } });
+}
+
+async function goPayments() {
+  if (!filters.banquetId) {
+    return;
+  }
+  await router.push({ path: '/payments', query: { banquetId: filters.banquetId, tab: 'orders' } });
+}
+
+async function goOperationLog(targetType: string, targetId: number) {
+  await router.push({ path: '/operation-logs', query: { targetType, targetId } });
+}
+
 function basicFieldLabel(key: string) {
   const labels: Record<string, string> = {
     hostName: '主办人',
@@ -529,7 +578,7 @@ async function openFunnelDrilldown(key: FunnelKey) {
 }
 
 onMounted(async () => {
-  await Promise.all([loadTemplates(), load()]);
+  await Promise.all([loadTemplates(), loadBanquets(), load()]);
 });
 </script>
 
@@ -563,6 +612,44 @@ p {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.context-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.context-panel span {
+  display: block;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.context-panel strong {
+  display: block;
+  margin-top: 4px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.context-panel p {
+  margin: 4px 0 0;
+  color: #475569;
+}
+
+.context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .filters .el-input,
@@ -781,7 +868,9 @@ dd {
 
 @media (max-width: 860px) {
   header,
-  .filters {
+  .filters,
+  .context-panel,
+  .context-actions {
     display: grid;
     grid-template-columns: 1fr;
   }

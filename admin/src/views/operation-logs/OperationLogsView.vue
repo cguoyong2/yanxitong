@@ -8,6 +8,21 @@
       <el-button @click="load">刷新</el-button>
     </header>
 
+    <section v-if="hasContext" class="context-panel">
+      <div>
+        <span>当前排查对象</span>
+        <strong>{{ contextTitle }}</strong>
+        <p>操作日志已按该对象过滤，可从这里反查业务、支付、播报和宴席工作台。</p>
+      </div>
+      <div class="context-actions">
+        <el-button v-if="isBanquetContext" @click="goBanquet(Number(filters.targetId))">返回宴席工作台</el-button>
+        <el-button v-if="isBanquetContext" @click="goBusiness">业务数据</el-button>
+        <el-button v-if="isBanquetContext" @click="goPayments">支付排障</el-button>
+        <el-button @click="goBroadcastByContext">播报日志</el-button>
+        <el-button @click="clearContext">清除筛选</el-button>
+      </div>
+    </section>
+
     <section class="filters">
       <el-select v-model="filters.module" clearable placeholder="模块">
         <el-option v-for="item in modules" :key="item" :label="displayLabel(item)" :value="item" />
@@ -60,9 +75,10 @@
       <el-table-column label="时间" min-width="170">
         <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
       </el-table-column>
-      <el-table-column label="排查" width="150" fixed="right">
+      <el-table-column label="排查" width="190" fixed="right">
         <template #default="{ row }">
           <el-button v-if="row.targetType === 'banquet'" link type="primary" @click="goBanquet(row.targetId)">宴席视图</el-button>
+          <el-button v-if="row.targetType === 'banquet'" link type="primary" @click="goBusiness(row.targetId)">业务</el-button>
           <el-button v-if="row.module === 'GIFT' || row.module === 'PAYMENT'" link type="primary" @click="goBroadcast(row)">播报</el-button>
         </template>
       </el-table-column>
@@ -105,6 +121,23 @@ const filters = reactive({
 const moduleCount = computed(() => new Set(rows.value.map((row) => row.module)).size);
 const systemCount = computed(() => rows.value.filter((row) => row.operatorType === 'SYSTEM').length);
 const adminCount = computed(() => rows.value.filter((row) => row.operatorType === 'ADMIN').length);
+const hasContext = computed(() => Boolean(filters.targetType || filters.targetId || filters.module || filters.action));
+const isBanquetContext = computed(() => filters.targetType === 'banquet' && Boolean(filters.targetId));
+const contextTitle = computed(() => {
+  if (filters.targetType && filters.targetId) {
+    return `${displayLabel(filters.targetType)} ${filters.targetId}`;
+  }
+  if (filters.targetType) {
+    return displayLabel(filters.targetType);
+  }
+  if (filters.module) {
+    return displayLabel(filters.module);
+  }
+  if (filters.action) {
+    return `动作：${filters.action}`;
+  }
+  return '全部日志';
+});
 
 async function load() {
   loading.value = true;
@@ -119,6 +152,7 @@ async function load() {
     const suffix = params.toString() ? `?${params}` : '';
     const response = await http.get<ApiResponse<OperationLog[] | PageResult<OperationLog>>>(`/admin/operation-logs${suffix}`);
     rows.value = recordsOf(response.data.data);
+    syncQuery();
   } finally {
     loading.value = false;
   }
@@ -130,7 +164,26 @@ function resetFilters() {
   filters.targetType = '';
   filters.targetId = '';
   filters.keyword = '';
-  load();
+  void load();
+}
+
+function clearContext() {
+  filters.module = '';
+  filters.action = '';
+  filters.targetType = '';
+  filters.targetId = '';
+  filters.keyword = '';
+  void load();
+}
+
+function syncQuery() {
+  const query: Record<string, string> = {};
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) {
+      query[key] = value;
+    }
+  });
+  void router.replace({ path: '/operation-logs', query });
 }
 
 function humanizeText(value?: string) {
@@ -144,7 +197,34 @@ async function goBanquet(targetId?: number) {
   if (!targetId) {
     return;
   }
-  await router.push({ path: '/banquets', query: { banquetId: targetId } });
+  await router.push({ path: '/banquets', query: { banquetId: targetId, focus: 'overview' } });
+}
+
+async function goBusiness(targetId?: number) {
+  const banquetId = targetId || Number(filters.targetId);
+  if (!banquetId) {
+    return;
+  }
+  await router.push({ path: '/business', query: { banquetId, tab: 'gifts' } });
+}
+
+async function goPayments() {
+  if (!isBanquetContext.value) {
+    return;
+  }
+  await router.push({ path: '/payments', query: { banquetId: filters.targetId, tab: 'orders' } });
+}
+
+async function goBroadcastByContext() {
+  if (filters.targetType === 'gift_record' && filters.targetId) {
+    await router.push({ path: '/broadcast-logs', query: { giftRecordId: filters.targetId } });
+    return;
+  }
+  if (isBanquetContext.value) {
+    await router.push({ path: '/broadcast-logs', query: { banquetId: filters.targetId } });
+    return;
+  }
+  await router.push({ path: '/broadcast-logs' });
 }
 
 async function goBroadcast(row: OperationLog) {
@@ -197,6 +277,44 @@ p {
   margin-bottom: 14px;
 }
 
+.context-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #ddd6fe;
+  border-radius: 8px;
+  background: #f5f3ff;
+}
+
+.context-panel span {
+  display: block;
+  color: #6d28d9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.context-panel strong {
+  display: block;
+  margin-top: 4px;
+  color: #111827;
+  font-size: 16px;
+}
+
+.context-panel p {
+  margin: 4px 0 0;
+  color: #475569;
+}
+
+.context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .filters .el-input,
 .filters .el-select {
   width: 160px;
@@ -231,7 +349,10 @@ p {
 }
 
 @media (max-width: 860px) {
-  .filters {
+  .filters,
+  .context-panel,
+  .context-actions {
+    display: grid;
     grid-template-columns: 1fr;
   }
 
