@@ -45,8 +45,8 @@
           <text class="row-icon">▣</text>
           <text class="row-label">宴席时间</text>
           <view class="datetime-field">
-            <view class="selected-inline" :class="{ placeholder: !form.banquetTime }" @tap="openTimePanel">
-              {{ form.banquetTime ? banquetTimeDisplay : '请选择宴席日期和时间' }}
+            <view class="selected-inline" :class="{ placeholder: !banquetTimeDisplay }" @tap="openTimePanel">
+              {{ banquetTimeDisplay || '请选择宴席日期和时间' }}
             </view>
             <picker mode="date" :value="selectedDate" :start="dateStart" :end="dateEnd" @change="onDateChange">
               <view class="datetime-picker-cell">
@@ -69,9 +69,15 @@
           <text class="row-icon">⌖</text>
           <text class="row-label">宴席地点</text>
           <view class="location-field">
-            <view class="selected-inline location-summary" :class="{ placeholder: !form.location }" @tap.stop="openLocationPanel">
-              {{ form.location || '请选择或输入酒店、宴会厅、地址' }}
-            </view>
+            <input
+              v-model="form.location"
+              class="location-input-inline"
+              placeholder="请输入酒店、宴会厅或详细地址"
+              confirm-type="done"
+              @tap.stop
+              @confirm="normalizeLocation"
+              @blur="normalizeLocation"
+            />
             <button class="map-button" @tap.stop="chooseBanquetLocation">地图选点</button>
             <button class="map-button secondary" @tap.stop="openLocationPanel">手动填写</button>
           </view>
@@ -289,7 +295,6 @@ const submitting = ref(false);
 const customGiftSuccess = ref('');
 const selectedDate = ref('');
 const selectedTime = ref('');
-const locationInputFocused = ref(false);
 const showTimePanel = ref(false);
 const showLocationPanel = ref(false);
 const manualTime = reactive({
@@ -354,44 +359,34 @@ function defaultBanquetName() {
 
 function fillSampleData() {
   form.name = defaultBanquetName();
-  selectedDate.value = '2026-10-01';
-  selectedTime.value = '18:00';
-  syncBanquetTime();
+  commitDateTime('2026-10-01', '18:00');
   form.location = '体验宴会厅';
   displayForm.hostName = '宴席通用户';
   displayForm.phone = '13800000000';
 }
 
-function syncBanquetTime() {
-  form.banquetTime = selectedDate.value && selectedTime.value ? `${selectedDate.value}T${selectedTime.value}:00` : '';
+function commitDateTime(date: string, time: string) {
+  selectedDate.value = date;
+  selectedTime.value = time;
+  form.banquetTime = date && time ? `${date}T${time}:00` : '';
 }
 
 function onDateChange(event: { detail: { value: string } }) {
-  selectedDate.value = String(event.detail.value || '');
-  syncBanquetTime();
-  if (!selectedTime.value) {
-    selectedTime.value = '18:00';
-    syncBanquetTime();
-  }
+  const date = String(event.detail.value || '');
+  const time = selectedTime.value || '18:00';
+  commitDateTime(date, time);
   uni.showToast({ title: '日期已填入', icon: 'success' });
 }
 
 function onTimeChange(event: { detail: { value: string } }) {
-  selectedTime.value = String(event.detail.value || '');
-  syncBanquetTime();
-  if (!selectedDate.value) {
-    selectedDate.value = formatDateInput(new Date());
-    syncBanquetTime();
-  }
+  const time = String(event.detail.value || '');
+  const date = selectedDate.value || formatDateInput(new Date());
+  commitDateTime(date, time);
   uni.showToast({ title: '时间已填入', icon: 'success' });
 }
 
 function fillDefaultTime() {
-  if (!selectedDate.value) {
-    selectedDate.value = formatDateInput(new Date());
-  }
-  selectedTime.value = '18:00';
-  syncBanquetTime();
+  commitDateTime(selectedDate.value || formatDateInput(new Date()), '18:00');
   uni.showToast({ title: '已填入默认时间', icon: 'none' });
 }
 
@@ -406,9 +401,7 @@ function closeTimePanel() {
 }
 
 function applyQuickTime(item: { label: string; date: string; time: string }) {
-  selectedDate.value = item.date;
-  selectedTime.value = item.time;
-  syncBanquetTime();
+  commitDateTime(item.date, item.time);
   showTimePanel.value = false;
   uni.showToast({ title: '时间已填入', icon: 'success' });
 }
@@ -419,8 +412,7 @@ function applyModalDate(date: string) {
   if (!manualTime.time) {
     manualTime.time = selectedTime.value || '18:00';
   }
-  selectedTime.value = manualTime.time;
-  syncBanquetTime();
+  commitDateTime(date, manualTime.time);
 }
 
 function applyModalTime(time: string) {
@@ -429,8 +421,7 @@ function applyModalTime(time: string) {
   if (!manualTime.date) {
     manualTime.date = selectedDate.value || formatDateInput(new Date());
   }
-  selectedDate.value = manualTime.date;
-  syncBanquetTime();
+  commitDateTime(manualTime.date, time);
 }
 
 function applyManualDateTime() {
@@ -449,9 +440,7 @@ function applyManualDateTime() {
     uni.showToast({ title: '请填写有效日期时间', icon: 'none' });
     return;
   }
-  selectedDate.value = date;
-  selectedTime.value = time;
-  syncBanquetTime();
+  commitDateTime(date, time);
   showTimePanel.value = false;
   uni.showToast({ title: '时间已填入', icon: 'success' });
 }
@@ -476,7 +465,6 @@ function validatePhone(showToast = false) {
 }
 
 async function chooseBanquetLocation() {
-  locationInputFocused.value = false;
   uni.showLoading({ title: '打开地图' });
   try {
     const result = await callChooseLocation();
@@ -496,7 +484,11 @@ async function chooseBanquetLocation() {
 }
 
 function focusLocationInput() {
-  locationInputFocused.value = true;
+  normalizeLocation();
+}
+
+function normalizeLocation() {
+  form.location = form.location.trim();
 }
 
 function openLocationPanel() {
@@ -578,7 +570,7 @@ function callChooseLocation() {
 function applyChosenLocation(result: UniApp.ChooseLocationSuccess) {
   const name = result.name || '';
   const address = result.address || '';
-  form.location = name && address ? `${name} ${address}` : name || address || form.location;
+  form.location = (name && address ? `${name} ${address}` : name || address || form.location).trim();
   if (form.location) {
     uni.showToast({ title: '地点已填入', icon: 'success' });
   }
@@ -681,8 +673,20 @@ async function submit() {
     uni.showToast({ title: '正在创建宴席', icon: 'none' });
     return;
   }
+  form.name = form.name.trim();
   if (!form.name || !form.eventTypeCode) {
     uni.showToast({ title: '请填写宴席名称和类型', icon: 'none' });
+    return;
+  }
+  normalizeLocation();
+  if (!selectedDate.value || !selectedTime.value || !form.banquetTime) {
+    uni.showToast({ title: '请选择宴席日期和时间', icon: 'none' });
+    openTimePanel();
+    return;
+  }
+  if (!form.location) {
+    uni.showToast({ title: '请填写宴席地点', icon: 'none' });
+    openLocationPanel();
     return;
   }
   if (!validatePhone(true)) {
@@ -695,7 +699,8 @@ async function submit() {
       method: 'POST',
       data: {
         ...form,
-        banquetTime: form.banquetTime || undefined,
+        banquetTime: form.banquetTime,
+        location: form.location,
         customCopywriting: customGiftSuccess.value
           ? JSON.stringify({ gift_success: customGiftSuccess.value, gift_success_speaker_text: customGiftSuccess.value })
           : undefined
@@ -1040,6 +1045,20 @@ onMounted(() => {
 
 .location-summary {
   min-height: 68rpx;
+}
+
+.location-input-inline {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 68rpx;
+  padding: 8rpx 18rpx;
+  border: 1rpx solid #efe1d5;
+  border-radius: 16rpx;
+  background: #fffdf9;
+  color: #171923;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .datetime-picker-cell {
