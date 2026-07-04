@@ -103,6 +103,17 @@
         <view class="map-tip-row">
           <text>可手动输入，也可点“地图选点”搜索酒店、宴会厅或地址。</text>
         </view>
+        <view class="form-row">
+          <text class="row-icon">家</text>
+          <text class="row-label">账本归属</text>
+          <picker :range="bookOptions" range-key="label" :value="bookIndex" @change="onBookScopeChange($event)">
+            <view class="book-picker">
+              <text>{{ bookOptions[bookIndex]?.label || '个人账本' }}</text>
+              <text class="book-desc">{{ bookOptions[bookIndex]?.desc || '默认写入我的人情账本' }}</text>
+            </view>
+          </picker>
+          <text class="row-arrow">›</text>
+        </view>
       </view>
 
       <view class="section-card">
@@ -285,6 +296,13 @@ interface InvitationTemplate {
   };
 }
 
+interface FamilyBookSummary {
+  book: {
+    id: number;
+    bookName: string;
+  };
+}
+
 interface TypeDesign {
   mark: string;
   bg: string;
@@ -323,6 +341,8 @@ const manualTime = reactive({
   time: ''
 });
 const manualLocation = ref('');
+const familyBooks = ref<FamilyBookSummary[]>([]);
+const bookIndex = ref(0);
 const displayForm = reactive({
   hostName: '',
   phone: ''
@@ -334,7 +354,9 @@ const form = reactive({
   banquetClock: '',
   banquetTime: '',
   location: '',
-  templateId: undefined as number | undefined
+  templateId: undefined as number | undefined,
+  favorBookScope: 'PERSONAL',
+  favorFamilyBookId: undefined as number | undefined
 });
 const initialEventTypeCode = ref('');
 const initialTemplateId = ref<number>();
@@ -373,6 +395,15 @@ const filteredTemplates = computed(() => {
   return (rows.length ? rows : templates.value).slice(0, 8);
 });
 const locationSuggestions = ['幸福大酒店宴会厅', '体验宴会厅', '福泽园宴会厅A厅', '清风园礼仪厅'];
+const bookOptions = computed(() => [
+  { label: '个人账本', desc: '默认写入我的人情账本', scope: 'PERSONAL', familyBookId: undefined as number | undefined },
+  ...familyBooks.value.map((item) => ({
+    label: item.book.bookName,
+    desc: '写入家庭人情簿，家人可共同查看',
+    scope: 'FAMILY',
+    familyBookId: item.book.id
+  }))
+]);
 
 function defaultBanquetName() {
   const now = new Date();
@@ -386,6 +417,13 @@ function fillSampleData() {
   form.location = '体验宴会厅';
   displayForm.hostName = '宴席通用户';
   displayForm.phone = '13800000000';
+}
+
+function onBookScopeChange(event: { detail: { value: number | string } }) {
+  bookIndex.value = Number(event.detail.value || 0);
+  const selected = bookOptions.value[bookIndex.value] || bookOptions.value[0];
+  form.favorBookScope = selected.scope;
+  form.favorFamilyBookId = selected.familyBookId;
 }
 
 function commitDateTime(date: string, time: string) {
@@ -711,6 +749,11 @@ async function loadEventTypes() {
   }
 }
 
+async function loadFamilyBooks() {
+  familyBooks.value = await request<FamilyBookSummary[]>('/favor/family-books').catch(() => []);
+  onBookScopeChange({ detail: { value: bookIndex.value } });
+}
+
 async function submit() {
   if (submitting.value) {
     uni.showToast({ title: '正在创建宴席', icon: 'none' });
@@ -747,6 +790,8 @@ async function submit() {
         templateId: form.templateId,
         banquetTime: form.banquetTime,
         location: form.location,
+        favorBookScope: form.favorBookScope,
+        favorFamilyBookId: form.favorFamilyBookId,
         customCopywriting: customGiftSuccess.value
           ? JSON.stringify({ gift_success: customGiftSuccess.value, gift_success_speaker_text: customGiftSuccess.value })
           : undefined
@@ -803,6 +848,7 @@ onMounted(() => {
   initialEventTypeCode.value = current.options?.eventTypeCode || '';
   initialTemplateId.value = current.options?.templateId ? Number(current.options.templateId) : undefined;
   loadEventTypes();
+  loadFamilyBooks();
 });
 </script>
 
@@ -1053,6 +1099,23 @@ onMounted(() => {
 
 .picker-row picker {
   min-width: 0;
+}
+
+.book-picker {
+  display: grid;
+  gap: 4rpx;
+  min-width: 0;
+  padding: 14rpx 0;
+  color: #171923;
+  font-size: 26rpx;
+  font-weight: 800;
+}
+
+.book-desc {
+  color: #8a7f77;
+  font-size: 22rpx;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .datetime-field,

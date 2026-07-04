@@ -56,6 +56,8 @@ public class BanquetService {
         banquet.banquetTime = request.banquetTime;
         banquet.location = request.location;
         banquet.customCopywriting = request.customCopywriting;
+        banquet.favorBookScope = "FAMILY".equals(request.favorBookScope) && request.favorFamilyBookId != null ? "FAMILY" : "PERSONAL";
+        banquet.favorFamilyBookId = "FAMILY".equals(banquet.favorBookScope) ? request.favorFamilyBookId : null;
         banquet.status = "DRAFT";
         banquetMapper.insert(banquet);
 

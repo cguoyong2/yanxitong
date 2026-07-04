@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public class FavorManualEntryRequest {
+public class FamilyFavorManualEntryRequest {
     @NotBlank
     public String contactName;
     public String phone;
@@ -18,6 +18,6 @@ public class FavorManualEntryRequest {
     public BigDecimal amount;
     public LocalDateTime occurredAt;
     public String note;
-    public String bookScope;
-    public Long familyBookId;
+    public Long familyMemberId;
+    public Long operatorMemberId;
 }

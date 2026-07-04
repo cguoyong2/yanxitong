@@ -4,26 +4,17 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@TableName("favor_entry")
-public class FavorEntry {
+@TableName("favor_family_book")
+public class FavorFamilyBook {
     @TableId(type = IdType.AUTO)
     public Long id;
     public Long tenantId;
-    public Long contactId;
-    public Long banquetId;
-    public Long giftRecordId;
-    public String direction;
-    public String sourceType;
-    public String bookScope;
-    public Long bookId;
-    public Long familyMemberId;
-    public Long operatorMemberId;
-    public BigDecimal amount;
-    public LocalDateTime occurredAt;
-    public String note;
+    public Long creatorUserId;
+    public String bookName;
+    public String description;
+    public String status;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
     @TableLogic

@@ -1,6 +1,8 @@
 package com.yanxitong.favor;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.yanxitong.banquet.entity.Banquet;
+import com.yanxitong.banquet.mapper.BanquetMapper;
 import com.yanxitong.favor.dto.FavorContactSummary;
 import com.yanxitong.favor.dto.FavorDetailResult;
 import com.yanxitong.favor.dto.FavorManualEntryRequest;
@@ -21,15 +23,18 @@ import org.springframework.stereotype.Service;
 public class FavorService {
     private final FavorContactMapper favorContactMapper;
     private final FavorEntryMapper favorEntryMapper;
+    private final BanquetMapper banquetMapper;
     private final OperationLogService operationLogService;
 
     public FavorService(
             FavorContactMapper favorContactMapper,
             FavorEntryMapper favorEntryMapper,
+            BanquetMapper banquetMapper,
             OperationLogService operationLogService
     ) {
         this.favorContactMapper = favorContactMapper;
         this.favorEntryMapper = favorEntryMapper;
+        this.banquetMapper = banquetMapper;
         this.operationLogService = operationLogService;
     }
 
@@ -42,6 +47,7 @@ public class FavorService {
         entry.giftRecordId = giftRecord.id;
         entry.direction = "RECEIVED";
         entry.sourceType = giftRecord.giftSource;
+        applyBookScope(entry, giftRecord.banquetId);
         entry.amount = giftRecord.amount;
         entry.occurredAt = giftRecord.receivedAt;
         entry.note = giftRecord.blessing;
@@ -60,12 +66,26 @@ public class FavorService {
         entry.banquetId = request.banquetId;
         entry.direction = request.direction;
         entry.sourceType = "MANUAL";
+        entry.bookScope = request.bookScope == null || request.bookScope.isBlank() ? "PERSONAL" : request.bookScope;
+        entry.bookId = "FAMILY".equals(entry.bookScope) ? request.familyBookId : null;
         entry.amount = request.amount;
         entry.occurredAt = request.occurredAt == null ? LocalDateTime.now() : request.occurredAt;
         entry.note = request.note;
         favorEntryMapper.insert(entry);
         operationLogService.record(OperationModule.FAVOR, "MANUAL_ENTRY", "favor_entry", entry.id, "manual favor entry");
         return entry;
+    }
+
+    private void applyBookScope(FavorEntry entry, Long banquetId) {
+        entry.bookScope = "PERSONAL";
+        if (banquetId == null) {
+            return;
+        }
+        Banquet banquet = banquetMapper.selectById(banquetId);
+        if (banquet != null && "FAMILY".equals(banquet.favorBookScope) && banquet.favorFamilyBookId != null) {
+            entry.bookScope = "FAMILY";
+            entry.bookId = banquet.favorFamilyBookId;
+        }
     }
 
     public List<FavorContactSummary> contacts(String keyword) {

@@ -19,10 +19,11 @@ public class Banquet {
     public LocalDateTime banquetTime;
     public String location;
     public String customCopywriting;
+    public String favorBookScope;
+    public Long favorFamilyBookId;
     public String status;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
     @TableLogic
     public Integer deleted;
 }
-

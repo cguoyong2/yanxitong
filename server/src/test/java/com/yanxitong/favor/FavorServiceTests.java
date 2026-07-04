@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.yanxitong.banquet.mapper.BanquetMapper;
 import com.yanxitong.favor.dto.FavorContactSummary;
 import com.yanxitong.favor.entity.FavorContact;
 import com.yanxitong.favor.entity.FavorEntry;
@@ -30,7 +31,7 @@ class FavorServiceTests {
                 entry(200L, "RECEIVED", "500.00"),
                 entry(100L, "GIVEN", "120.00")
         ));
-        FavorService service = new FavorService(contactMapper, entryMapper, mock(OperationLogService.class));
+        FavorService service = new FavorService(contactMapper, entryMapper, mock(BanquetMapper.class), mock(OperationLogService.class));
 
         List<FavorContactSummary> summaries = service.contacts(null, 100L);
 
@@ -50,7 +51,7 @@ class FavorServiceTests {
         FavorEntryMapper entryMapper = mock(FavorEntryMapper.class);
         when(contactMapper.selectList(any(Wrapper.class))).thenReturn(List.of(contact));
         when(entryMapper.selectList(any(Wrapper.class))).thenReturn(List.of(entry(200L, "RECEIVED", "500.00")));
-        FavorService service = new FavorService(contactMapper, entryMapper, mock(OperationLogService.class));
+        FavorService service = new FavorService(contactMapper, entryMapper, mock(BanquetMapper.class), mock(OperationLogService.class));
 
         List<FavorContactSummary> summaries = service.contacts(null, 100L);
 

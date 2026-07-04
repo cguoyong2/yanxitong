@@ -12,5 +12,6 @@ public class CreateBanquetRequest {
     public String location;
     public String customCopywriting;
     public Long templateId;
+    public String favorBookScope;
+    public Long favorFamilyBookId;
 }
-
