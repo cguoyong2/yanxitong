@@ -171,7 +171,7 @@ import { computed, onMounted, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
 import { EVENT_THEMES, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
-import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
+import { OPEN_LATEST_INVITATION_KEY, readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
 
 interface Banquet {
   id: number;
@@ -335,6 +335,9 @@ function openLatestOfflineGift() {
 }
 
 function openInvitationTab() {
+  if (latestBanquetId.value) {
+    uni.setStorageSync(OPEN_LATEST_INVITATION_KEY, '1');
+  }
   uni.switchTab({ url: '/pages/invitation/index/index' });
 }
 

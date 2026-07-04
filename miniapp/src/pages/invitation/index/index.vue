@@ -174,7 +174,7 @@ import { computed, onMounted, ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { request } from '../../../api/client';
 import { EVENT_THEMES, eventThemeFor, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
-import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
+import { OPEN_LATEST_INVITATION_KEY, readLastBanquetContext, writeLastBanquetContext } from '../../../utils/banquet';
 
 interface Banquet {
   id: number;
@@ -387,13 +387,29 @@ async function loadMyInvitation() {
   };
 }
 
+function consumeOpenLatestInvitationIntent() {
+  const intent = uni.getStorageSync(OPEN_LATEST_INVITATION_KEY);
+  if (!intent || !myInvitation.value?.shareSlug) {
+    return;
+  }
+  uni.removeStorageSync(OPEN_LATEST_INVITATION_KEY);
+  openMyInvitation();
+}
+
+async function refreshMyInvitation(consumeIntent = false) {
+  await loadMyInvitation();
+  if (consumeIntent) {
+    consumeOpenLatestInvitationIntent();
+  }
+}
+
 onMounted(() => {
-  loadMyInvitation();
+  refreshMyInvitation(true);
   loadTemplates();
 });
 onShow(() => {
   activeType.value = readActiveEventType();
-  loadMyInvitation();
+  refreshMyInvitation(true);
 });
 </script>
 

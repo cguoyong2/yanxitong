@@ -196,10 +196,13 @@
         </view>
       </view>
 
-      <view id="manual-form" class="record-panel">
+      <view id="manual-form" class="record-panel" :class="{ focused: manualFocused }">
         <view class="section-head">
           <text class="section-title">手动记账</text>
           <text class="mode-badge">{{ directions[directionIndex].label }}</text>
+        </view>
+        <view v-if="manualFocused" class="manual-focus-tip">
+          当前已切换为{{ directions[directionIndex].label }}，请填写对象和金额后添加记录。
         </view>
         <view v-if="lastManualText" class="manual-success" @tap="setCompareFromLastManual">
           <text>{{ lastManualText }}</text>
@@ -255,6 +258,7 @@ const showAllContacts = ref(false);
 const lastManualName = ref('');
 const lastManualText = ref('');
 const activeType = ref(readActiveEventType());
+const manualFocused = ref(false);
 const manual = reactive({ contactName: '', amount: 0, direction: 'RECEIVED', note: '' });
 const activeTheme = computed(() => eventThemeFor(activeType.value));
 const manualNotePlaceholder = computed(() => activeTheme.value.code === 'MEMORIAL' ? '备注，例如：亲友追思心意' : `备注，例如：朋友${activeTheme.value.name}往来`);
@@ -289,7 +293,11 @@ function setManualDirection(direction: string) {
     directionIndex.value = index;
     manual.direction = direction;
   }
+  manualFocused.value = true;
   setTimeout(() => uni.pageScrollTo({ selector: '#manual-form', duration: 260 }), 30);
+  setTimeout(() => {
+    manualFocused.value = false;
+  }, 3600);
   uni.showToast({ title: direction === 'GIVEN' ? '已切换为记送出' : '已切换为记收到', icon: 'none' });
 }
 
@@ -1331,6 +1339,14 @@ button::after {
 
 .record-panel {
   display: block;
+  border: 2rpx solid transparent;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.record-panel.focused {
+  border-color: var(--accent);
+  box-shadow: 0 14rpx 34rpx var(--accent-shadow);
+  transform: translateY(-2rpx);
 }
 
 .mode-badge {
@@ -1347,6 +1363,18 @@ button::after {
   display: grid;
   gap: 14rpx;
   margin-top: 18rpx;
+}
+
+.manual-focus-tip {
+  margin-top: 18rpx;
+  padding: 14rpx 18rpx;
+  border: 1rpx solid rgba(230, 0, 18, 0.18);
+  border-radius: 14rpx;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 1.45;
 }
 
 .manual-success {

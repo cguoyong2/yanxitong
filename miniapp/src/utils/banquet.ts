@@ -23,6 +23,7 @@ export interface BanquetContext {
 }
 
 export const LAST_BANQUET_CONTEXT_KEY = 'yanxitong-last-banquet-context';
+export const OPEN_LATEST_INVITATION_KEY = 'yanxitong-open-latest-invitation';
 
 export function readLastBanquetContext(): BanquetContext | undefined {
   const raw = uni.getStorageSync(LAST_BANQUET_CONTEXT_KEY);
