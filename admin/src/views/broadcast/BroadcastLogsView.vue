@@ -5,6 +5,21 @@
       <el-button @click="load">刷新</el-button>
     </header>
 
+    <section v-if="filters.banquetId" class="context-panel">
+      <div>
+        <span>当前钻取宴席</span>
+        <strong>{{ contextBanquetTitle }}</strong>
+        <p>云喇叭与确认屏日志已按该宴席过滤；离线或失败时可继续查看设备订单、支付与操作日志。</p>
+      </div>
+      <div class="context-actions">
+        <el-button @click="goBanquet(Number(filters.banquetId))">返回宴席工作台</el-button>
+        <el-button @click="goDeviceOrders">设备订单</el-button>
+        <el-button @click="goPayments">支付排障</el-button>
+        <el-button @click="goOperationLog('banquet', Number(filters.banquetId))">查看日志</el-button>
+        <el-button @click="clearContext">清除筛选</el-button>
+      </div>
+    </section>
+
     <section class="filters">
       <el-input v-model="filters.banquetId" clearable placeholder="宴席 ID" />
       <el-input v-model="filters.giftRecordId" clearable placeholder="礼金 ID" />
@@ -60,9 +75,10 @@
       <el-table-column label="创建时间" min-width="170">
         <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="110" fixed="right">
+      <el-table-column label="操作" width="170" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="goBanquet(row.banquetId)">宴席视图</el-button>
+          <el-button link type="primary" @click="goOperationLog('broadcast_log', row.id)">日志</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -88,6 +104,7 @@ interface BroadcastLog {
 
 const loading = ref(false);
 const rows = ref<BroadcastLog[]>([]);
+const banquetOptions = ref<{ id: number; name: string }[]>([]);
 const route = useRoute();
 const router = useRouter();
 const filters = reactive({
@@ -100,6 +117,8 @@ const filters = reactive({
 const cloudSpeakerCount = computed(() => rows.value.filter((row) => row.deviceType === 'CLOUD_SPEAKER').length);
 const pushedCount = computed(() => rows.value.filter((row) => row.deviceType === 'CONFIRM_SCREEN' && row.status === 'PUSHED').length);
 const offlineCount = computed(() => rows.value.filter((row) => row.deviceType === 'CONFIRM_SCREEN' && row.status === 'OFFLINE').length);
+const contextBanquet = computed(() => banquetOptions.value.find((item) => String(item.id) === String(filters.banquetId)));
+const contextBanquetTitle = computed(() => contextBanquet.value ? `${contextBanquet.value.id} · ${contextBanquet.value.name}` : `宴席 ID ${filters.banquetId}`);
 
 async function load() {
   loading.value = true;
@@ -122,24 +141,76 @@ async function load() {
     }
     params.set('pageSize', '100');
     const suffix = params.toString() ? `?${params.toString()}` : '';
-    const response = await http.get<ApiResponse<BroadcastLog[] | PageResult<BroadcastLog>>>(`/admin/broadcast-logs${suffix}`);
-    rows.value = recordsOf(response.data.data);
+    const [banquetResponse, logResponse] = await Promise.all([
+      http.get<ApiResponse<{ id: number; name: string }[]>>('/admin/banquets'),
+      http.get<ApiResponse<BroadcastLog[] | PageResult<BroadcastLog>>>(`/admin/broadcast-logs${suffix}`)
+    ]);
+    banquetOptions.value = banquetResponse.data.data || [];
+    rows.value = recordsOf(logResponse.data.data);
+    syncQuery();
   } finally {
     loading.value = false;
   }
 }
 
 function resetFilters() {
-  filters.banquetId = String(route.query.banquetId || '');
-  filters.giftRecordId = String(route.query.giftRecordId || '');
+  filters.banquetId = filters.banquetId || String(route.query.banquetId || '');
+  filters.giftRecordId = '';
   filters.deviceType = '';
   filters.eventType = '';
   filters.status = '';
   load();
 }
 
+function syncQuery() {
+  const query: Record<string, string> = {};
+  if (filters.banquetId) {
+    query.banquetId = filters.banquetId;
+  }
+  if (filters.giftRecordId) {
+    query.giftRecordId = filters.giftRecordId;
+  }
+  if (filters.deviceType) {
+    query.deviceType = filters.deviceType;
+  }
+  if (filters.eventType) {
+    query.eventType = filters.eventType;
+  }
+  if (filters.status) {
+    query.status = filters.status;
+  }
+  void router.replace({ path: '/broadcast-logs', query });
+}
+
+function clearContext() {
+  filters.banquetId = '';
+  filters.giftRecordId = '';
+  filters.deviceType = '';
+  filters.eventType = '';
+  filters.status = '';
+  void load();
+}
+
 async function goBanquet(banquetId: number) {
-  await router.push({ path: '/banquets', query: { banquetId } });
+  await router.push({ path: '/banquets', query: { banquetId, focus: 'overview' } });
+}
+
+async function goDeviceOrders() {
+  if (!filters.banquetId) {
+    return;
+  }
+  await router.push({ path: '/orders', query: { banquetId: filters.banquetId, tab: 'devices' } });
+}
+
+async function goPayments() {
+  if (!filters.banquetId) {
+    return;
+  }
+  await router.push({ path: '/payments', query: { banquetId: filters.banquetId, tab: 'orders' } });
+}
+
+async function goOperationLog(targetType: string, targetId: number) {
+  await router.push({ path: '/operation-logs', query: { targetType, targetId } });
 }
 
 onMounted(load);
@@ -162,6 +233,43 @@ header {
 h1 {
   margin: 0;
   font-size: 20px;
+}
+
+.context-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+}
+
+.context-panel span {
+  color: #c2410c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.context-panel strong {
+  display: block;
+  margin-top: 4px;
+  color: #111827;
+  font-size: 18px;
+}
+
+.context-panel p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+.context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .filters {
@@ -209,8 +317,14 @@ h1 {
 }
 
 @media (max-width: 760px) {
+  .context-panel,
   .filters {
     grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .context-actions {
+    justify-content: flex-start;
   }
 
   .filters .el-input,
