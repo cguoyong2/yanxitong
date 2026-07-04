@@ -48,14 +48,30 @@
             <view class="selected-inline" :class="{ placeholder: !banquetTimeDisplay }" @tap="openTimePanel">
               {{ banquetTimeDisplay || '请选择宴席日期和时间' }}
             </view>
-            <picker mode="date" :value="selectedDate" :start="dateStart" :end="dateEnd" @change="onDateChange">
+            <input
+              :value="form.banquetDate"
+              class="datetime-text-input"
+              placeholder="YYYY-MM-DD"
+              confirm-type="done"
+              @input="onDateInput"
+              @blur="commitDateTime(form.banquetDate, form.banquetClock)"
+            />
+            <input
+              :value="form.banquetClock"
+              class="datetime-text-input time"
+              placeholder="HH:mm"
+              confirm-type="done"
+              @input="onTimeInput"
+              @blur="commitDateTime(form.banquetDate, form.banquetClock)"
+            />
+            <picker mode="date" :value="form.banquetDate" :start="dateStart" :end="dateEnd" @change="onDateChange">
               <view class="datetime-picker-cell">
-                <text class="datetime-display" :class="{ placeholder: !selectedDate }">{{ selectedDate || '选择日期' }}</text>
+                <text class="datetime-display" :class="{ placeholder: !form.banquetDate }">选择日期</text>
               </view>
             </picker>
-            <picker mode="time" :value="selectedTime" @change="onTimeChange">
+            <picker mode="time" :value="form.banquetClock" @change="onTimeChange">
               <view class="datetime-picker-cell time">
-                <text class="datetime-display" :class="{ placeholder: !selectedTime }">{{ selectedTime || '选择时间' }}</text>
+                <text class="datetime-display" :class="{ placeholder: !form.banquetClock }">选择时间</text>
               </view>
             </picker>
             <view class="picker-button" @tap="fillDefaultTime">默认18:00</view>
@@ -70,11 +86,12 @@
           <text class="row-label">宴席地点</text>
           <view class="location-field">
             <input
-              v-model="form.location"
+              :value="form.location"
               class="location-input-inline"
               placeholder="请输入酒店、宴会厅或详细地址"
               confirm-type="done"
               @tap.stop
+              @input="onLocationInput"
               @confirm="normalizeLocation"
               @blur="normalizeLocation"
             />
@@ -293,8 +310,6 @@ const templates = ref<InvitationTemplate[]>([]);
 const selectedIndex = ref(0);
 const submitting = ref(false);
 const customGiftSuccess = ref('');
-const selectedDate = ref('');
-const selectedTime = ref('');
 const showTimePanel = ref(false);
 const showLocationPanel = ref(false);
 const manualTime = reactive({
@@ -309,6 +324,8 @@ const displayForm = reactive({
 const form = reactive({
   name: '',
   eventTypeCode: '',
+  banquetDate: '',
+  banquetClock: '',
   banquetTime: '',
   location: '',
   templateId: undefined as number | undefined
@@ -340,10 +357,10 @@ const quickTimeOptions = computed(() => {
 const dateQuickOptions = computed(() => quickTimeOptions.value.map((item) => ({ label: item.label.replace(/晚宴|中午/g, ''), date: item.date })));
 const timeQuickOptions = ['10:00', '11:28', '12:00', '17:30', '18:00', '18:30', '19:00'];
 const banquetTimeDisplay = computed(() => {
-  if (!selectedDate.value && !selectedTime.value) {
+  if (!form.banquetDate && !form.banquetClock) {
     return '';
   }
-  return `${selectedDate.value || '请选择日期'} ${selectedTime.value || '请选择时间'}`;
+  return `${form.banquetDate || '请选择日期'} ${form.banquetClock || '请选择时间'}`;
 });
 const filteredTemplates = computed(() => {
   const rows = templates.value.filter((item) => matchesEventType(item, form.eventTypeCode));
@@ -366,33 +383,41 @@ function fillSampleData() {
 }
 
 function commitDateTime(date: string, time: string) {
-  selectedDate.value = date;
-  selectedTime.value = time;
-  form.banquetTime = date && time ? `${date}T${time}:00` : '';
+  form.banquetDate = String(date || '').trim();
+  form.banquetClock = String(time || '').trim();
+  form.banquetTime = form.banquetDate && form.banquetClock ? `${form.banquetDate}T${form.banquetClock}:00` : '';
+}
+
+function onDateInput(event: { detail: { value: string } }) {
+  commitDateTime(String(event.detail.value || ''), form.banquetClock);
+}
+
+function onTimeInput(event: { detail: { value: string } }) {
+  commitDateTime(form.banquetDate, String(event.detail.value || ''));
 }
 
 function onDateChange(event: { detail: { value: string } }) {
   const date = String(event.detail.value || '');
-  const time = selectedTime.value || '18:00';
+  const time = form.banquetClock || '18:00';
   commitDateTime(date, time);
   uni.showToast({ title: '日期已填入', icon: 'success' });
 }
 
 function onTimeChange(event: { detail: { value: string } }) {
   const time = String(event.detail.value || '');
-  const date = selectedDate.value || formatDateInput(new Date());
+  const date = form.banquetDate || formatDateInput(new Date());
   commitDateTime(date, time);
   uni.showToast({ title: '时间已填入', icon: 'success' });
 }
 
 function fillDefaultTime() {
-  commitDateTime(selectedDate.value || formatDateInput(new Date()), '18:00');
+  commitDateTime(form.banquetDate || formatDateInput(new Date()), '18:00');
   uni.showToast({ title: '已填入默认时间', icon: 'none' });
 }
 
 function openTimePanel() {
-  manualTime.date = selectedDate.value || formatDateInput(new Date());
-  manualTime.time = selectedTime.value || '18:00';
+  manualTime.date = form.banquetDate || formatDateInput(new Date());
+  manualTime.time = form.banquetClock || '18:00';
   showTimePanel.value = true;
 }
 
@@ -408,18 +433,16 @@ function applyQuickTime(item: { label: string; date: string; time: string }) {
 
 function applyModalDate(date: string) {
   manualTime.date = date;
-  selectedDate.value = date;
   if (!manualTime.time) {
-    manualTime.time = selectedTime.value || '18:00';
+    manualTime.time = form.banquetClock || '18:00';
   }
   commitDateTime(date, manualTime.time);
 }
 
 function applyModalTime(time: string) {
   manualTime.time = time;
-  selectedTime.value = time;
   if (!manualTime.date) {
-    manualTime.date = selectedDate.value || formatDateInput(new Date());
+    manualTime.date = form.banquetDate || formatDateInput(new Date());
   }
   commitDateTime(manualTime.date, time);
 }
@@ -485,6 +508,10 @@ async function chooseBanquetLocation() {
 
 function focusLocationInput() {
   normalizeLocation();
+}
+
+function onLocationInput(event: { detail: { value: string } }) {
+  form.location = String(event.detail.value || '');
 }
 
 function normalizeLocation() {
@@ -679,7 +706,8 @@ async function submit() {
     return;
   }
   normalizeLocation();
-  if (!selectedDate.value || !selectedTime.value || !form.banquetTime) {
+  commitDateTime(form.banquetDate, form.banquetClock);
+  if (!form.banquetDate || !form.banquetClock || !form.banquetTime) {
     uni.showToast({ title: '请选择宴席日期和时间', icon: 'none' });
     openTimePanel();
     return;
@@ -698,7 +726,9 @@ async function submit() {
     const result = await request<{ banquet: { id: number; name?: string; eventTypeCode?: string; themeCode?: string; banquetTime?: string; location?: string }; invitation?: { id: number; shareSlug?: string } }>('/banquets', {
       method: 'POST',
       data: {
-        ...form,
+        name: form.name,
+        eventTypeCode: form.eventTypeCode,
+        templateId: form.templateId,
         banquetTime: form.banquetTime,
         location: form.location,
         customCopywriting: customGiftSuccess.value
@@ -1074,6 +1104,23 @@ onMounted(() => {
 
 .datetime-picker-cell.time {
   min-width: 132rpx;
+}
+
+.datetime-text-input {
+  box-sizing: border-box;
+  width: 188rpx;
+  height: 58rpx;
+  padding: 0 16rpx;
+  border: 1rpx solid #efe1d5;
+  border-radius: 999rpx;
+  background: #fffdf9;
+  color: #171923;
+  font-size: 25rpx;
+  font-weight: 800;
+}
+
+.datetime-text-input.time {
+  width: 138rpx;
 }
 
 .datetime-display {
