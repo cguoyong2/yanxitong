@@ -15,7 +15,8 @@
       }
     },
     "requiredPrivateInfos": [
-      "chooseLocation"
+      "chooseLocation",
+      "getLocation"
     ],
     "usingComponents": true
   }

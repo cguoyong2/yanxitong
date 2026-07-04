@@ -53,7 +53,7 @@
               class="datetime-text-input"
               placeholder="YYYY-MM-DD"
               confirm-type="done"
-              @input="onDateInput"
+              @input="onDateInput($event)"
               @blur="commitDateTime(form.banquetDate, form.banquetClock)"
             />
             <input
@@ -61,21 +61,21 @@
               class="datetime-text-input time"
               placeholder="HH:mm"
               confirm-type="done"
-              @input="onTimeInput"
+              @input="onTimeInput($event)"
               @blur="commitDateTime(form.banquetDate, form.banquetClock)"
             />
-            <picker mode="date" :value="form.banquetDate" :start="dateStart" :end="dateEnd" @change="onDateChange">
+            <picker mode="date" :value="form.banquetDate" :start="dateStart" :end="dateEnd" @change="onDateChange($event)">
               <view class="datetime-picker-cell">
-                <text class="datetime-display" :class="{ placeholder: !form.banquetDate }">选择日期</text>
+                <text class="datetime-display" :class="{ placeholder: !form.banquetDate }">{{ form.banquetDate || '选择日期' }}</text>
               </view>
             </picker>
-            <picker mode="time" :value="form.banquetClock" @change="onTimeChange">
+            <picker mode="time" :value="form.banquetClock" @change="onTimeChange($event)">
               <view class="datetime-picker-cell time">
-                <text class="datetime-display" :class="{ placeholder: !form.banquetClock }">选择时间</text>
+                <text class="datetime-display" :class="{ placeholder: !form.banquetClock }">{{ form.banquetClock || '选择时间' }}</text>
               </view>
             </picker>
-            <view class="picker-button" @tap="fillDefaultTime">默认18:00</view>
-            <view class="picker-button strong" @tap="openTimePanel">手动填写</view>
+            <view class="picker-button" @tap="fillDefaultTime()">默认18:00</view>
+            <view class="picker-button strong" @tap="openTimePanel()">手动填写</view>
           </view>
         </view>
         <view v-if="banquetTimeDisplay" class="selected-time-row">
@@ -91,14 +91,14 @@
               placeholder="请输入酒店、宴会厅或详细地址"
               confirm-type="done"
               @tap.stop
-              @input="onLocationInput"
-              @confirm="normalizeLocation"
-              @blur="normalizeLocation"
+              @input="onLocationInput($event)"
+              @confirm="normalizeLocation()"
+              @blur="normalizeLocation()"
             />
-            <button class="map-button" @tap.stop="chooseBanquetLocation">地图选点</button>
-            <button class="map-button secondary" @tap.stop="openLocationPanel">手动填写</button>
+            <button class="map-button" @tap.stop="chooseBanquetLocation()">地图选点</button>
+            <button class="map-button secondary" @tap.stop="openLocationPanel()">手动填写</button>
           </view>
-          <text class="row-arrow" @tap.stop="chooseBanquetLocation">›</text>
+          <text class="row-arrow" @tap.stop="chooseBanquetLocation()">›</text>
         </view>
         <view class="map-tip-row">
           <text>可手动输入，也可点“地图选点”搜索酒店、宴会厅或地址。</text>
@@ -295,6 +295,12 @@ interface TypeDesign {
   greeting: string;
 }
 
+type ValueEvent = {
+  detail?: { value?: unknown };
+  target?: { value?: unknown };
+  currentTarget?: { dataset?: Record<string, unknown> };
+};
+
 const typeDesigns: Record<string, TypeDesign> = {
   WEDDING: { mark: '囍', bg: 'linear-gradient(135deg, #e60012, #c40005)', tone: 'tone-wedding', title: '创建婚宴', desc: '轻松办好每一场婚宴', tags: ['红金礼序', '喜庆体面'], greeting: '诚邀您拨冗赴宴，共同见证我们的幸福时刻' },
   BIRTHDAY: { mark: '寿', bg: 'linear-gradient(135deg, #fff7eb, #ffffff)', tone: 'tone-birthday', title: '创建寿宴', desc: '福寿安康，亲友同贺', tags: ['寿礼安排', '亲友祝寿'], greeting: '诚邀您拨冗赴宴，共祝福寿安康' },
@@ -388,23 +394,36 @@ function commitDateTime(date: string, time: string) {
   form.banquetTime = form.banquetDate && form.banquetClock ? `${form.banquetDate}T${form.banquetClock}:00` : '';
 }
 
-function onDateInput(event: { detail: { value: string } }) {
-  commitDateTime(String(event.detail.value || ''), form.banquetClock);
+function readEventValue(event: ValueEvent) {
+  const value = event?.detail?.value ?? event?.target?.value ?? event?.currentTarget?.dataset?.value ?? '';
+  return String(value || '').trim();
 }
 
-function onTimeInput(event: { detail: { value: string } }) {
-  commitDateTime(form.banquetDate, String(event.detail.value || ''));
+function onDateInput(event: ValueEvent) {
+  commitDateTime(readEventValue(event), form.banquetClock);
 }
 
-function onDateChange(event: { detail: { value: string } }) {
-  const date = String(event.detail.value || '');
+function onTimeInput(event: ValueEvent) {
+  commitDateTime(form.banquetDate, readEventValue(event));
+}
+
+function onDateChange(event: ValueEvent) {
+  const date = readEventValue(event);
+  if (!date) {
+    uni.showToast({ title: '请选择日期', icon: 'none' });
+    return;
+  }
   const time = form.banquetClock || '18:00';
   commitDateTime(date, time);
   uni.showToast({ title: '日期已填入', icon: 'success' });
 }
 
-function onTimeChange(event: { detail: { value: string } }) {
-  const time = String(event.detail.value || '');
+function onTimeChange(event: ValueEvent) {
+  const time = readEventValue(event);
+  if (!time) {
+    uni.showToast({ title: '请选择时间', icon: 'none' });
+    return;
+  }
   const date = form.banquetDate || formatDateInput(new Date());
   commitDateTime(date, time);
   uni.showToast({ title: '时间已填入', icon: 'success' });
@@ -490,6 +509,7 @@ function validatePhone(showToast = false) {
 async function chooseBanquetLocation() {
   uni.showLoading({ title: '打开地图' });
   try {
+    await requestLocationBeforeChoose();
     const result = await callChooseLocation();
     applyChosenLocation(result);
   } catch (error) {
@@ -500,18 +520,34 @@ async function chooseBanquetLocation() {
     }
     manualLocation.value = form.location;
     showLocationPanel.value = true;
-    uni.showToast({ title: '地图未打开，请手动填写地点', icon: 'none' });
+    uni.showToast({ title: shortLocationError(message), icon: 'none' });
   } finally {
     uni.hideLoading();
   }
+}
+
+function requestLocationBeforeChoose() {
+  return new Promise<void>((resolve, reject) => {
+    const wxApi = typeof wx !== 'undefined' ? wx : undefined;
+    const getLocation = wxApi?.getLocation || uni.getLocation;
+    if (!getLocation) {
+      resolve();
+      return;
+    }
+    getLocation({
+      type: 'gcj02',
+      success: () => resolve(),
+      fail: (error) => reject(error)
+    });
+  });
 }
 
 function focusLocationInput() {
   normalizeLocation();
 }
 
-function onLocationInput(event: { detail: { value: string } }) {
-  form.location = String(event.detail.value || '');
+function onLocationInput(event: ValueEvent) {
+  form.location = readEventValue(event);
 }
 
 function normalizeLocation() {
@@ -550,48 +586,28 @@ async function chooseLocationFromPanel() {
   }
 }
 
-function ensureLocationPermission() {
-  return new Promise<boolean>((resolve) => {
-    uni.getSetting({
-      success: (setting) => {
-        if (setting.authSetting?.['scope.userLocation'] === false) {
-          showLocationSettingTip();
-          resolve(false);
-          return;
-        }
-        uni.authorize({
-          scope: 'scope.userLocation',
-          success: () => resolve(true),
-          fail: () => {
-            showLocationSettingTip();
-            resolve(false);
-          }
-        });
-      },
-      fail: () => resolve(true)
-    });
-  });
-}
-
 function callChooseLocation() {
   return new Promise<UniApp.ChooseLocationSuccess>((resolve, reject) => {
     const wxApi = typeof wx !== 'undefined' ? wx : undefined;
     if (wxApi?.chooseLocation) {
-      wxApi.chooseLocation({
-        success: resolve,
-        fail: (error) => {
-          const message = String(error?.errMsg || '');
-          if (/auth|authorize|permission|denied/i.test(message)) {
-            reject(error);
-            return;
-          }
-          uni.chooseLocation({ success: resolve, fail: () => reject(error) });
-        }
-      });
+      wxApi.chooseLocation({ success: resolve, fail: reject });
       return;
     }
     uni.chooseLocation({ success: resolve, fail: reject });
   });
+}
+
+function shortLocationError(message: string) {
+  if (!message) {
+    return '地图未打开，请手动填写地点';
+  }
+  if (/cancel/i.test(message)) {
+    return '已取消地图选点';
+  }
+  if (/requiredPrivateInfos/i.test(message)) {
+    return '地图权限配置未生效，请重新预览';
+  }
+  return '地图未打开，请手动填写地点';
 }
 
 function applyChosenLocation(result: UniApp.ChooseLocationSuccess) {
