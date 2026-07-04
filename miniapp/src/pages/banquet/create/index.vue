@@ -45,41 +45,20 @@
           <text class="row-icon">▣</text>
           <text class="row-label">宴席时间</text>
           <view class="datetime-field">
-            <view class="selected-inline" :class="{ placeholder: !banquetTimeDisplay }" @tap="openTimePanel">
-              {{ banquetTimeDisplay || '请选择宴席日期和时间' }}
+            <view class="datetime-main" :class="{ placeholder: !banquetTimeDisplay }" @tap="openTimePanel()">
+              <text>{{ compactBanquetTimeDisplay || '请选择日期和时间' }}</text>
             </view>
-            <input
-              :value="form.banquetDate"
-              class="datetime-text-input"
-              placeholder="YYYY-MM-DD"
-              confirm-type="done"
-              @input="onDateInput($event)"
-              @blur="commitDateTime(form.banquetDate, form.banquetClock)"
-            />
-            <input
-              :value="form.banquetClock"
-              class="datetime-text-input time"
-              placeholder="HH:mm"
-              confirm-type="done"
-              @input="onTimeInput($event)"
-              @blur="commitDateTime(form.banquetDate, form.banquetClock)"
-            />
-            <picker mode="date" :value="form.banquetDate" :start="dateStart" :end="dateEnd" @change="onDateChange($event)">
-              <view class="datetime-picker-cell">
-                <text class="datetime-display" :class="{ placeholder: !form.banquetDate }">{{ form.banquetDate || '选择日期' }}</text>
-              </view>
-            </picker>
-            <picker mode="time" :value="form.banquetClock" @change="onTimeChange($event)">
-              <view class="datetime-picker-cell time">
-                <text class="datetime-display" :class="{ placeholder: !form.banquetClock }">{{ form.banquetClock || '选择时间' }}</text>
-              </view>
-            </picker>
-            <view class="picker-button" @tap="fillDefaultTime()">默认18:00</view>
-            <view class="picker-button strong" @tap="openTimePanel()">手动填写</view>
+            <view class="datetime-actions">
+              <picker mode="date" :value="form.banquetDate" :start="dateStart" :end="dateEnd" @change="onDateChange($event)">
+                <view class="picker-button ghost">选日期</view>
+              </picker>
+              <picker mode="time" :value="form.banquetClock" @change="onTimeChange($event)">
+                <view class="picker-button ghost">选时间</view>
+              </picker>
+              <view class="picker-button" @tap="fillDefaultTime()">18:00</view>
+              <view class="picker-button strong" @tap="openTimePanel()">手填</view>
+            </view>
           </view>
-        </view>
-        <view v-if="banquetTimeDisplay" class="selected-time-row">
-          <text>已选择：{{ banquetTimeDisplay }}</text>
         </view>
         <view class="form-row location-row" @tap="focusLocationInput">
           <text class="row-icon">⌖</text>
@@ -389,6 +368,15 @@ const banquetTimeDisplay = computed(() => {
     return '';
   }
   return `${form.banquetDate || '请选择日期'} ${form.banquetClock || '请选择时间'}`;
+});
+const compactBanquetTimeDisplay = computed(() => {
+  if (!form.banquetDate && !form.banquetClock) {
+    return '';
+  }
+  if (form.banquetDate && form.banquetClock) {
+    return `${form.banquetDate} ${form.banquetClock}`;
+  }
+  return form.banquetDate || form.banquetClock;
 });
 const filteredTemplates = computed(() => {
   const rows = templates.value.filter((item) => matchesEventType(item, form.eventTypeCode));
@@ -1132,22 +1120,24 @@ onMounted(() => {
   width: 100%;
 }
 
-.selected-inline {
+.datetime-main {
   width: 100%;
-  min-height: 56rpx;
-  padding: 8rpx 18rpx;
+  min-height: 66rpx;
+  padding: 0 20rpx;
   border: 1rpx solid #efe1d5;
   border-radius: 16rpx;
   background: #fffdf9;
   color: #171923;
-  font-size: 26rpx;
-  font-weight: 800;
-  line-height: 1.45;
+  font-size: 28rpx;
+  font-weight: 900;
+  line-height: 66rpx;
   box-sizing: border-box;
-  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.selected-inline.placeholder {
+.datetime-main.placeholder {
   color: #9aa0aa;
   font-weight: 600;
 }
@@ -1170,61 +1160,13 @@ onMounted(() => {
   line-height: 1.45;
 }
 
-.datetime-picker-cell {
-  min-width: 156rpx;
-  height: 58rpx;
-  padding: 0 16rpx;
-  border: 1rpx solid #efe1d5;
-  border-radius: 999rpx;
-  background: var(--accent-soft);
-  line-height: 58rpx;
-  box-sizing: border-box;
-}
-
-.datetime-picker-cell.time {
-  min-width: 132rpx;
-}
-
-.datetime-text-input {
-  box-sizing: border-box;
-  width: 188rpx;
-  height: 58rpx;
-  padding: 0 16rpx;
-  border: 1rpx solid #efe1d5;
-  border-radius: 999rpx;
-  background: #fffdf9;
-  color: #171923;
-  font-size: 25rpx;
-  font-weight: 800;
-}
-
-.datetime-text-input.time {
-  width: 138rpx;
-}
-
-.datetime-display {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: #171923;
-  font-size: 26rpx;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.datetime-display.placeholder {
-  color: #9aa0aa;
-  font-weight: 600;
-}
-
 .datetime-actions {
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
   gap: 10rpx;
 }
 
-.selected-time-row,
 .map-tip-row {
   padding: 0 28rpx 20rpx 144rpx;
   border-bottom: 1rpx solid #efe6df;
@@ -1242,7 +1184,7 @@ onMounted(() => {
 .map-button {
   overflow: hidden;
   height: 58rpx;
-  padding: 0 16rpx;
+  padding: 0 18rpx;
   border: 1rpx solid #efe1d5;
   border-radius: 999rpx;
   background: var(--accent-soft);
@@ -1250,6 +1192,11 @@ onMounted(() => {
   font-size: 25rpx;
   font-weight: 700;
   line-height: 58rpx;
+}
+
+.picker-button.ghost {
+  background: #fffdf9;
+  color: #a65a28;
 }
 
 .picker-button.strong,
