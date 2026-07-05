@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.yanxitong.banquet.mapper.BanquetMapper;
 import com.yanxitong.device.ConfirmScreenEventPublisher;
 import com.yanxitong.favor.FavorService;
+import com.yanxitong.gift.dto.OfflineGiftRequest;
 import com.yanxitong.gift.entity.BroadcastLog;
 import com.yanxitong.gift.entity.GiftRecord;
 import com.yanxitong.gift.mapper.BroadcastLogMapper;
@@ -22,6 +23,7 @@ import com.yanxitong.payment.mapper.PaymentOrderMapper;
 import com.yanxitong.theme.ThemeResolutionService;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 class GiftServiceTests {
     @Test
@@ -42,6 +44,25 @@ class GiftServiceTests {
         verify(giftRecordMapper, never()).insert(any(GiftRecord.class));
         verify(favorService, never()).recordReceivedGift(any());
         verify(broadcastLogMapper, never()).insert(any(BroadcastLog.class));
+    }
+
+    @Test
+    void offlineGiftNormalizesGuestAndBlessingBeforeLedgerSync() {
+        GiftRecordMapper giftRecordMapper = mock(GiftRecordMapper.class);
+        BroadcastLogMapper broadcastLogMapper = mock(BroadcastLogMapper.class);
+        FavorService favorService = mock(FavorService.class);
+        GiftService service = service(giftRecordMapper, broadcastLogMapper, favorService);
+
+        GiftRecord result = service.offlineGift(offlineRequest(" 现金来宾 ", " 现金备注 "));
+
+        ArgumentCaptor<GiftRecord> captor = ArgumentCaptor.forClass(GiftRecord.class);
+        verify(giftRecordMapper).insert(captor.capture());
+        GiftRecord inserted = captor.getValue();
+        assertEquals("现金来宾", inserted.guestName);
+        assertEquals("现金备注", inserted.blessing);
+        assertEquals("现金来宾", result.guestName);
+        assertEquals("现金备注", result.blessing);
+        verify(favorService).recordReceivedGift(inserted);
     }
 
     private GiftService service(
@@ -71,5 +92,14 @@ class GiftServiceTests {
         order.payerName = "张三";
         order.amount = new BigDecimal("88.00");
         return order;
+    }
+
+    private OfflineGiftRequest offlineRequest(String guestName, String blessing) {
+        OfflineGiftRequest request = new OfflineGiftRequest();
+        request.banquetId = 100L;
+        request.guestName = guestName;
+        request.amount = new BigDecimal("88.00");
+        request.blessing = blessing;
+        return request;
     }
 }

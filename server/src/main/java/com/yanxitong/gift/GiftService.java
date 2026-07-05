@@ -101,6 +101,7 @@ public class GiftService {
 
     @Transactional
     public GiftRecord offlineGift(OfflineGiftRequest request) {
+        normalize(request);
         GiftRecord giftRecord = createGiftRecord(request.banquetId, null, "CASH", request.guestName, request.amount, request.blessing);
         operationLogService.record(OperationModule.GIFT, "OFFLINE_GIFT", "gift_record", giftRecord.id, "offline cash gift");
         return giftRecord;
@@ -184,6 +185,19 @@ public class GiftService {
         ));
         createConfirmScreenLog(giftRecord, speakerText, pushedSessions);
         return giftRecord;
+    }
+
+    private void normalize(OfflineGiftRequest request) {
+        request.guestName = trimToNull(request.guestName);
+        request.blessing = trimToNull(request.blessing);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String createBroadcastLog(GiftRecord giftRecord) {

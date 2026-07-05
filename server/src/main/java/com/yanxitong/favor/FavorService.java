@@ -56,6 +56,7 @@ public class FavorService {
     }
 
     public FavorEntry manualEntry(FavorManualEntryRequest request) {
+        normalize(request);
         if (!"RECEIVED".equals(request.direction) && !"GIVEN".equals(request.direction)) {
             throw new IllegalArgumentException("Unsupported favor direction");
         }
@@ -128,6 +129,7 @@ public class FavorService {
     }
 
     public FavorDetailResult compareByName(String contactName) {
+        contactName = trimToNull(contactName);
         FavorContact contact = favorContactMapper.selectOne(new QueryWrapper<FavorContact>()
                 .eq("contact_name", contactName)
                 .last("LIMIT 1"));
@@ -138,6 +140,8 @@ public class FavorService {
     }
 
     private FavorContact findOrCreateContact(String contactName, String phone) {
+        contactName = trimToNull(contactName);
+        phone = trimToNull(phone);
         QueryWrapper<FavorContact> query = new QueryWrapper<FavorContact>()
                 .eq("contact_name", contactName)
                 .last("LIMIT 1");
@@ -155,6 +159,22 @@ public class FavorService {
         created.phone = phone;
         favorContactMapper.insert(created);
         return created;
+    }
+
+    private void normalize(FavorManualEntryRequest request) {
+        request.contactName = trimToNull(request.contactName);
+        request.phone = trimToNull(request.phone);
+        request.direction = trimToNull(request.direction);
+        request.note = trimToNull(request.note);
+        request.bookScope = trimToNull(request.bookScope);
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private List<FavorEntry> entries(Long contactId) {
