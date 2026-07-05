@@ -10,10 +10,15 @@ export interface RuntimeFeatures {
   mockPaymentEnabled: boolean;
 }
 
-export function request<T>(url: string, options: UniApp.RequestOptions = {}): Promise<T> {
+type RequestOptions = UniApp.RequestOptions & {
+  silent?: boolean;
+};
+
+export function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
   return new Promise((resolve, reject) => {
+    const { silent, ...requestOptions } = options;
     uni.request({
-      ...options,
+      ...requestOptions,
       url: `${API_BASE_URL}${url}`,
       success: (response) => {
         const body = response.data as ApiResponse<T>;
@@ -22,11 +27,15 @@ export function request<T>(url: string, options: UniApp.RequestOptions = {}): Pr
           return;
         }
         const message = body?.message || 'request failed';
-        uni.showToast({ title: message, icon: 'none' });
+        if (!silent) {
+          uni.showToast({ title: message, icon: 'none' });
+        }
         reject(new Error(message));
       },
       fail: (error) => {
-        uni.showToast({ title: '网络请求失败', icon: 'none' });
+        if (!silent) {
+          uni.showToast({ title: '网络请求失败', icon: 'none' });
+        }
         reject(error);
       }
     });

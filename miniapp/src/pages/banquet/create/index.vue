@@ -738,7 +738,7 @@ async function loadEventTypes() {
 }
 
 async function loadFamilyBooks() {
-  familyBooks.value = await request<FamilyBookSummary[]>('/favor/family-books').catch(() => []);
+  familyBooks.value = await request<FamilyBookSummary[]>('/favor/family-books', { silent: true }).catch(() => []);
   onBookScopeChange({ detail: { value: bookIndex.value } });
 }
 
