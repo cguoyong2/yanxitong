@@ -75,8 +75,8 @@
       <text class="section-title">分享路径</text>
       <text class="share-url">{{ shareUrl }}</text>
       <view class="share-actions">
-        <button class="ghost-button" @tap="previewInvite">预览请柬</button>
-        <button class="ghost-button" @tap="copyShareUrl">复制路径</button>
+        <view class="ghost-button tap-button" @tap.stop="previewInvite">预览请柬</view>
+        <view class="ghost-button tap-button" @tap.stop="copyShareUrl">复制路径</view>
       </view>
     </view>
 
@@ -87,9 +87,9 @@
 
     <view class="footer-safe"></view>
     <view class="sticky-submit">
-      <button class="ghost-button compact" @tap="returnBanquetDetail">返回管理台</button>
-      <button class="ghost-button compact" @tap="saveAndPreview">保存预览</button>
-      <button class="primary-button" :loading="submitting" @tap="submit">保存请柬</button>
+      <view class="ghost-button compact tap-button" @tap.stop="returnBanquetDetail">返回管理台</view>
+      <view class="ghost-button compact tap-button" :class="{ disabled: submitting }" @tap.stop="saveAndPreview">保存预览</view>
+      <view class="primary-button tap-button" :class="{ disabled: submitting }" @tap.stop="submit">保存请柬</view>
     </view>
   </view>
 </template>
@@ -237,6 +237,10 @@ function applyDefaultSchedule() {
 }
 
 async function saveAndPreview() {
+  if (submitting.value) {
+    uni.showToast({ title: '正在保存', icon: 'none' });
+    return;
+  }
   const saved = await submit();
   if (saved) {
     previewInvite();
@@ -244,6 +248,10 @@ async function saveAndPreview() {
 }
 
 function copyShareUrl() {
+  if (!shareUrl.value) {
+    uni.showToast({ title: '暂无分享路径', icon: 'none' });
+    return;
+  }
   uni.setClipboardData({
     data: shareUrl.value,
     success: () => uni.showToast({ title: '已复制', icon: 'success' })
@@ -261,6 +269,7 @@ function previewInvite() {
 function returnBanquetDetail() {
   const targetId = banquetId.value || String(readLastBanquetContext()?.id || '');
   if (!targetId) {
+    uni.showToast({ title: '返回上一页', icon: 'none' });
     uni.navigateBack();
     return;
   }
@@ -585,6 +594,7 @@ onMounted(async () => {
 }
 
 .ghost-button {
+  box-sizing: border-box;
   height: 78rpx;
   margin: 0;
   border: 1rpx solid #ead8ca;
@@ -594,6 +604,16 @@ onMounted(async () => {
   font-size: 27rpx;
   font-weight: 900;
   line-height: 78rpx;
+  text-align: center;
+}
+
+.tap-button {
+  cursor: pointer;
+}
+
+.tap-button.disabled {
+  opacity: 0.58;
+  pointer-events: none;
 }
 
 .footer-safe {
@@ -627,6 +647,7 @@ onMounted(async () => {
 }
 
 .primary-button {
+  box-sizing: border-box;
   height: 92rpx;
   margin: 0;
   border-radius: 18rpx;
@@ -635,6 +656,7 @@ onMounted(async () => {
   font-size: 30rpx;
   font-weight: 900;
   line-height: 92rpx;
+  text-align: center;
 }
 
 .primary-button::after,
