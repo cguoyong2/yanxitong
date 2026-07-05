@@ -14,6 +14,15 @@ const banquetId = process.env.BANQUET_ID || '';
 const runId = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 const artifactsDir = process.env.ARTIFACTS_DIR || path.join(os.tmpdir(), `yanxitong-admin-smoke-${runId}`);
 const captureScreenshots = process.env.CAPTURE_SUCCESS_SCREENSHOTS !== '0';
+const repoRoot = path.resolve(new URL('../..', import.meta.url).pathname);
+
+const sourceAssertions = [
+  ['admin/src/views/orders/OrdersView.vue', 'deviceStatus', 'orders page can filter device fulfillment status'],
+  ['admin/src/views/orders/OrdersView.vue', 'planOrderNextStep', 'plan orders show operational next step'],
+  ['admin/src/views/orders/OrdersView.vue', 'deviceOrderNextStep', 'device orders show operational next step'],
+  ['admin/src/views/orders/OrdersView.vue', "updateDeviceStatus(row.orderNo as string, 'CONFIRMED')", 'paid device orders can be confirmed by admin'],
+  ['admin/src/views/orders/OrdersView.vue', '设备订单已更新为', 'device status update has clear admin feedback']
+];
 
 const routes = [
   { path: '/dashboard', name: 'dashboard', text: '配置中心' },
@@ -126,7 +135,27 @@ function assertPage(route, snapshot, consoleErrors, requestFailures) {
   return failures;
 }
 
+function assertSourceExperience() {
+  const failures = [];
+  for (const [file, text, reason] of sourceAssertions) {
+    const fullPath = path.join(repoRoot, file);
+    const source = fs.readFileSync(fullPath, 'utf8');
+    if (!source.includes(text)) {
+      failures.push(`${file}: missing "${text}" (${reason})`);
+    }
+  }
+  if (failures.length > 0) {
+    throw new Error(`Admin source smoke failed:\n${failures.join('\n')}`);
+  }
+}
+
 async function main() {
+  assertSourceExperience();
+  if (process.env.ADMIN_SOURCE_ONLY === '1') {
+    console.log(`Admin source smoke passed. Assertions: ${sourceAssertions.length}.`);
+    return;
+  }
+
   const executablePath = chromeExecutablePath();
   if (!executablePath) {
     throw new Error('Chrome executable not found. Set CHROME_PATH to a Chrome/Chromium executable.');

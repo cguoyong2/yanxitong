@@ -22,6 +22,13 @@
         <el-option label="未支付" value="UNPAID" />
         <el-option label="已支付" value="PAID" />
       </el-select>
+      <el-select v-model="filters.deviceStatus" clearable placeholder="设备状态">
+        <el-option label="已创建" value="CREATED" />
+        <el-option label="已确认" value="CONFIRMED" />
+        <el-option label="配送中" value="DELIVERING" />
+        <el-option label="已交付" value="DELIVERED" />
+        <el-option label="已取消" value="CANCELLED" />
+      </el-select>
       <el-input v-model="filters.keyword" clearable placeholder="订单号" />
       <el-button type="primary" @click="applyFilters">查询</el-button>
       <el-button @click="resetFilters">重置</el-button>
@@ -57,6 +64,9 @@
           <el-table-column prop="priceUnit" label="单位" width="100" />
           <el-table-column label="支付状态" width="120">
             <template #default="{ row }"><el-tag :type="tagType(row.payStatus)">{{ displayLabel(row.payStatus) }}</el-tag></template>
+          </el-table-column>
+          <el-table-column label="下一步" min-width="220">
+            <template #default="{ row }">{{ planOrderNextStep(row) }}</template>
           </el-table-column>
           <el-table-column label="创建时间" min-width="170">
             <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
@@ -113,9 +123,13 @@
           <el-table-column label="订单状态" width="120">
             <template #default="{ row }"><el-tag :type="tagType(row.orderStatus)">{{ displayLabel(row.orderStatus) }}</el-tag></template>
           </el-table-column>
-          <el-table-column label="操作" width="310" fixed="right">
+          <el-table-column label="下一步" min-width="250">
+            <template #default="{ row }">{{ deviceOrderNextStep(row) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="360" fixed="right">
             <template #default="{ row }">
               <el-button v-if="features.mockPaymentEnabled && row.payStatus !== 'PAID'" link type="primary" @click="mockDevicePay(row.orderNo as string)">模拟支付</el-button>
+              <el-button v-if="row.payStatus === 'PAID' && row.orderStatus === 'CREATED'" link type="primary" @click="updateDeviceStatus(row.orderNo as string, 'CONFIRMED')">确认</el-button>
               <el-button v-if="row.payStatus === 'PAID' && row.orderStatus !== 'DELIVERING' && row.orderStatus !== 'DELIVERED'" link type="primary" @click="updateDeviceStatus(row.orderNo as string, 'DELIVERING')">配送中</el-button>
               <el-button v-if="row.payStatus === 'PAID' && row.orderStatus !== 'DELIVERED'" link type="success" @click="updateDeviceStatus(row.orderNo as string, 'DELIVERED')">已交付</el-button>
               <el-button v-if="row.orderStatus !== 'CANCELLED' && row.orderStatus !== 'DELIVERED'" link type="danger" @click="updateDeviceStatus(row.orderNo as string, 'CANCELLED')">取消</el-button>
@@ -147,6 +161,7 @@ const banquetOptions = ref<{ id: number; name: string }[]>([]);
 const filters = ref({
   banquetId: String(route.query.banquetId || ''),
   payStatus: String(route.query.payStatus || ''),
+  deviceStatus: String(route.query.deviceStatus || ''),
   keyword: String(route.query.keyword || '')
 });
 const displayedPlanOrders = computed(() => filterOrders(planOrders.value));
@@ -165,6 +180,9 @@ function filterOrders(rows: Record<string, unknown>[]) {
       return false;
     }
     if (filters.value.payStatus && item.payStatus !== filters.value.payStatus) {
+      return false;
+    }
+    if (filters.value.deviceStatus && item.orderStatus !== undefined && item.orderStatus !== filters.value.deviceStatus) {
       return false;
     }
     if (filters.value.keyword && !String(item.orderNo || '').includes(filters.value.keyword)) {
@@ -192,6 +210,7 @@ function resetFilters() {
   filters.value = {
     banquetId: String(route.query.banquetId || ''),
     payStatus: '',
+    deviceStatus: '',
     keyword: ''
   };
   syncOrderQuery();
@@ -229,8 +248,42 @@ async function mockDevicePay(orderNo: string) {
 
 async function updateDeviceStatus(orderNo: string, orderStatus: string) {
   await http.post(`/admin/orders/devices/${orderNo}/status`, { orderStatus });
-  ElMessage.success('设备订单状态已更新');
+  ElMessage.success(`设备订单已更新为${displayLabel(orderStatus)}`);
   await load();
+}
+
+function planOrderNextStep(row: Record<string, unknown>) {
+  if (row.payStatus === 'PAID') {
+    return '权益已生效，可回到宴席视图继续请柬、回执、收礼或设备选择。';
+  }
+  if (features.value.mockPaymentEnabled) {
+    return '待支付，体验环境可模拟支付；正式支付上线后由支付回调激活权益。';
+  }
+  return '待支付，等待真实支付完成或后台支付异常处理。';
+}
+
+function deviceOrderNextStep(row: Record<string, unknown>) {
+  if (row.payStatus !== 'PAID') {
+    return features.value.mockPaymentEnabled
+      ? '待支付，体验环境可模拟支付后进入交付处理。'
+      : '待支付，真实支付完成后再安排确认和交付。';
+  }
+  if (row.orderStatus === 'CREATED') {
+    return '已支付，待运营确认租用时间、交付方式和现场联系人。';
+  }
+  if (row.orderStatus === 'CONFIRMED') {
+    return '已确认，下一步安排配送或现场交付。';
+  }
+  if (row.orderStatus === 'DELIVERING') {
+    return '配送中，等待设备送达后标记已交付。';
+  }
+  if (row.orderStatus === 'DELIVERED') {
+    return '已交付，宴席现场可使用确认屏或云喇叭。';
+  }
+  if (row.orderStatus === 'CANCELLED') {
+    return '订单已取消，保留日志用于后续追溯。';
+  }
+  return '待运营继续处理。';
 }
 
 async function goBanquet(banquetId: number) {
@@ -249,6 +302,9 @@ function syncOrderQuery() {
   if (filters.value.payStatus) {
     nextQuery.payStatus = filters.value.payStatus;
   }
+  if (filters.value.deviceStatus) {
+    nextQuery.deviceStatus = filters.value.deviceStatus;
+  }
   if (filters.value.keyword) {
     nextQuery.keyword = filters.value.keyword;
   }
@@ -259,6 +315,7 @@ function clearContext() {
   filters.value = {
     banquetId: '',
     payStatus: '',
+    deviceStatus: '',
     keyword: ''
   };
   syncOrderQuery();
