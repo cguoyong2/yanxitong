@@ -93,7 +93,6 @@ const requiredTexts = [
   ['miniapp/src/pages/banquet/create/index.vue', 'validatePhone(true)', 'create page validates contact phone before submit'],
   ['miniapp/src/pages/banquet/create/index.vue', 'mode="date"', 'create page supports native date picker'],
   ['miniapp/src/pages/banquet/create/index.vue', 'mode="time"', 'create page supports native time picker'],
-  ['miniapp/src/pages/banquet/create/index.vue', 'fillDefaultTime', 'create page has default time fallback'],
   ['miniapp/src/pages/banquet/create/index.vue', 'openTimePanel', 'create page has manual time fallback panel'],
   ['miniapp/src/pages/banquet/create/index.vue', 'dateQuickOptions', 'create page has tappable date choices when native picker is unavailable'],
   ['miniapp/src/pages/banquet/create/index.vue', 'timeQuickOptions', 'create page has tappable time choices when native picker is unavailable'],
@@ -327,6 +326,12 @@ const requiredTexts = [
 for (const [file, text, reason] of requiredTexts) {
   requireText(file, text, reason);
 }
+
+forbidPattern(
+  'miniapp/src/pages/banquet/create/index.vue',
+  /@tap="fillDefaultTime\(\)"|function\s+fillDefaultTime/,
+  'create page must not show or apply a default banquet time before user selection'
+);
 
 for (const file of [
   'miniapp/src/pages/home/index/index.vue',

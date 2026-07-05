@@ -55,7 +55,6 @@
               <picker mode="time" :value="form.banquetClock" @change="onTimeChange($event)">
                 <view class="picker-button ghost">选时间</view>
               </picker>
-              <view class="picker-button" @tap="fillDefaultTime()">18:00</view>
               <view class="picker-button strong" @tap="openTimePanel()">手填</view>
             </view>
           </view>
@@ -439,8 +438,7 @@ function onDateChange(event: ValueEvent) {
     uni.showToast({ title: '请选择日期', icon: 'none' });
     return;
   }
-  const time = form.banquetClock || '18:00';
-  commitDateTime(date, time);
+  commitDateTime(date, form.banquetClock);
   uni.showToast({ title: '日期已填入', icon: 'success' });
 }
 
@@ -450,19 +448,13 @@ function onTimeChange(event: ValueEvent) {
     uni.showToast({ title: '请选择时间', icon: 'none' });
     return;
   }
-  const date = form.banquetDate || formatDateInput(new Date());
-  commitDateTime(date, time);
+  commitDateTime(form.banquetDate, time);
   uni.showToast({ title: '时间已填入', icon: 'success' });
 }
 
-function fillDefaultTime() {
-  commitDateTime(form.banquetDate || formatDateInput(new Date()), '18:00');
-  uni.showToast({ title: '已填入默认时间', icon: 'none' });
-}
-
 function openTimePanel() {
-  manualTime.date = form.banquetDate || formatDateInput(new Date());
-  manualTime.time = form.banquetClock || '18:00';
+  manualTime.date = form.banquetDate;
+  manualTime.time = form.banquetClock;
   showTimePanel.value = true;
 }
 
@@ -478,17 +470,11 @@ function applyQuickTime(item: { label: string; date: string; time: string }) {
 
 function applyModalDate(date: string) {
   manualTime.date = date;
-  if (!manualTime.time) {
-    manualTime.time = form.banquetClock || '18:00';
-  }
   commitDateTime(date, manualTime.time);
 }
 
 function applyModalTime(time: string) {
   manualTime.time = time;
-  if (!manualTime.date) {
-    manualTime.date = form.banquetDate || formatDateInput(new Date());
-  }
   commitDateTime(manualTime.date, time);
 }
 
