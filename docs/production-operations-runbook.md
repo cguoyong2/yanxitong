@@ -39,6 +39,61 @@ Current boundary:
 REQUIRE_READINESS_READY=1 bash deploy/scripts/release-readiness.sh
 ```
 
+## Fixed Acceptance Commands
+
+Use these three command groups so launch and operations checks stay repeatable.
+
+### Before Deployment
+
+Run from the repository root before uploading a release:
+
+```bash
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+This performs the local code/build gate and writes `.artifacts/production-acceptance/<run-id>/summary.json`.
+
+### After Deployment
+
+Run after the public domain, backend and admin frontend are reachable:
+
+```bash
+ADMIN_PASSWORD='<admin-password>' \
+BASE_URL=https://yxt.yqej.cn \
+SKIP_REMOTE_CHECKS=0 \
+RUN_PRODUCTION_API=1 \
+RUN_PRODUCTION_BROWSER=1 \
+RUN_OPS_CHECK=1 \
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+Before real WeChat payment launch, keep `REQUIRE_READINESS_READY=0`; readiness may be `BLOCKED` because provider credentials are intentionally incomplete.
+
+For formal real-money launch:
+
+```bash
+ADMIN_PASSWORD='<admin-password>' \
+BASE_URL=https://yxt.yqej.cn \
+SKIP_REMOTE_CHECKS=0 \
+REQUIRE_READINESS_READY=1 \
+RUN_PRODUCTION_API=1 \
+RUN_PRODUCTION_BROWSER=1 \
+RUN_OPS_CHECK=1 \
+RUN_SECURITY_CHECK=1 \
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+### Daily / Manual Patrol
+
+Run manually or through the installed cron helper:
+
+```bash
+BASE_URL=https://yxt.yqej.cn bash deploy/scripts/production-ops-check.sh
+ssh root@115.29.229.188 '/opt/apps/yanxitong/ops/run-ops-check-cron.sh'
+```
+
+Review the generated summary/logs before starting or resuming pilot traffic.
+
 ## Public Entry Security
 
 Before pilot traffic:

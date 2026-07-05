@@ -123,6 +123,14 @@ For broader local confidence:
 bash deploy/scripts/local-acceptance.sh
 ```
 
+Preferred pre-deploy gate:
+
+```bash
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+This creates one summary under `.artifacts/production-acceptance/<run-id>/summary.json` and runs the local build/test checks without requiring production credentials by default.
+
 ## Deploy A New Release
 
 Use a timestamped release directory. Example:
@@ -241,6 +249,34 @@ ADMIN_PASSWORD='<admin-password>' BASE_URL=https://yxt.yqej.cn SHARE_SLUG='<shar
 
 The production API acceptance script intentionally does not call mock-success endpoints.
 
+Preferred post-deploy gate:
+
+```bash
+ADMIN_PASSWORD='<admin-password>' \
+BASE_URL=https://yxt.yqej.cn \
+SKIP_REMOTE_CHECKS=0 \
+RUN_PRODUCTION_API=1 \
+RUN_PRODUCTION_BROWSER=1 \
+RUN_OPS_CHECK=1 \
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+Before real payment launch, leave `REQUIRE_READINESS_READY=0`; readiness `BLOCKED` is acceptable when the only remaining blocker is incomplete WeChat provider configuration.
+
+Formal real-money launch gate:
+
+```bash
+ADMIN_PASSWORD='<admin-password>' \
+BASE_URL=https://yxt.yqej.cn \
+SKIP_REMOTE_CHECKS=0 \
+REQUIRE_READINESS_READY=1 \
+RUN_PRODUCTION_API=1 \
+RUN_PRODUCTION_BROWSER=1 \
+RUN_OPS_CHECK=1 \
+RUN_SECURITY_CHECK=1 \
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
 ## Operations Check
 
 Run the minimal production operations check after deployments and before manual acceptance:
@@ -260,6 +296,13 @@ This checks:
 - latest database backup age and checksum
 - recent backend `ERROR`/`Exception` lines
 - recent Nginx 5xx responses
+
+Daily/manual patrol command:
+
+```bash
+BASE_URL=https://yxt.yqej.cn bash deploy/scripts/production-ops-check.sh
+ssh root@115.29.229.188 '/opt/apps/yanxitong/ops/run-ops-check-cron.sh'
+```
 
 Current pre-payment-launch behavior:
 

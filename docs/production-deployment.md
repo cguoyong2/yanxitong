@@ -76,6 +76,28 @@ BASE_URL=https://<public-domain> ENV_FILE=deploy/.env.production bash deploy/scr
 
 This checks environment variables, mock payment gates, frontend build artifacts, `/api/health` and `/api/health/readiness`.
 
+For the standard launch gate, prefer the unified acceptance suite from the repository root:
+
+```bash
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+Before real WeChat payment is enabled, the default suite keeps remote production checks opt-in and allows readiness to remain blocked by payment-provider configuration.
+
+When the deployment is reachable and the admin password is available, run the production-facing suite:
+
+```bash
+ADMIN_PASSWORD='<admin-password>' \
+BASE_URL=https://<public-domain> \
+SKIP_REMOTE_CHECKS=0 \
+RUN_PRODUCTION_API=1 \
+RUN_PRODUCTION_BROWSER=1 \
+RUN_OPS_CHECK=1 \
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+For formal real-money launch, add `REQUIRE_READINESS_READY=1` after WeChat service-provider credentials and callback verification are complete.
+
 ## Start
 
 Example Compose startup:
@@ -108,6 +130,25 @@ Run:
 curl -fsS https://<public-domain>/api/health
 curl -fsS https://<public-domain>/api/health/readiness
 BASE_URL=https://<public-domain> ENV_FILE=deploy/.env.production bash deploy/scripts/production-preflight.sh
+```
+
+Recommended fixed commands:
+
+```bash
+# Before deployment: local code/build gate.
+bash deploy/scripts/production-acceptance-suite.sh
+
+# After deployment: production API/browser/ops gate.
+ADMIN_PASSWORD='<admin-password>' \
+BASE_URL=https://<public-domain> \
+SKIP_REMOTE_CHECKS=0 \
+RUN_PRODUCTION_API=1 \
+RUN_PRODUCTION_BROWSER=1 \
+RUN_OPS_CHECK=1 \
+bash deploy/scripts/production-acceptance-suite.sh
+
+# Daily/manual operations check.
+BASE_URL=https://<public-domain> bash deploy/scripts/production-ops-check.sh
 ```
 
 For local product acceptance, continue using:
