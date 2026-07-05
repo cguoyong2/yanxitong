@@ -26,6 +26,7 @@
         <text class="card-title">待支付订单</text>
         <text class="order-no">{{ pendingOrder.orderNo }}</text>
         <text class="card-desc">金额：{{ formatMoney(pendingOrder.amount) }} / {{ pendingOrder.priceUnit }}</text>
+        <text class="card-desc">{{ pendingOrderTip }}</text>
       </view>
       <button v-if="features.mockPaymentEnabled" class="small-button primary" :loading="paying" @tap="mockPay(pendingOrder.orderNo)">模拟支付</button>
       <text v-else class="pending-text">等待真实支付回调</text>
@@ -43,9 +44,11 @@
           <text class="order-title">{{ order.orderNo }}</text>
           <text v-if="isHighlightedOrder(order.orderNo)" class="order-highlight">当前查看的订单</text>
           <text class="order-meta">{{ formatTime(order.createdAt) }} · {{ orderStatusLabel(order.payStatus) }}</text>
+          <text class="order-next">{{ planOrderTip(order) }}</text>
         </view>
         <view class="order-side">
           <text class="order-price">{{ formatMoney(order.amount) }}</text>
+          <text class="status-tag" :class="{ paid: order.payStatus === 'PAID' }">{{ orderStatusLabel(order.payStatus) }}</text>
           <button
             v-if="features.mockPaymentEnabled && order.payStatus !== 'PAID'"
             class="small-button pay"
@@ -54,6 +57,14 @@
           >
             模拟支付
           </button>
+          <button
+            v-else-if="order.payStatus === 'PAID' && hasDeviceRight"
+            class="small-button pay"
+            @tap="openDevice()"
+          >
+            去选设备
+          </button>
+          <text v-else-if="order.payStatus !== 'PAID'" class="wait-pay">等待支付</text>
         </view>
       </view>
     </view>
@@ -151,6 +162,14 @@ const entitlements = reactive<Entitlements>({
 const hasDeviceRight = computed(() => Boolean(entitlements.rightValues.DEVICE_RENTAL));
 const hasExportRight = computed(() => Boolean(entitlements.rightValues.EXCEL_EXPORT));
 const localOrderKey = computed(() => banquetId.value ? `plan-order:${banquetId.value}` : '');
+const pendingOrderTip = computed(() => {
+  if (!pendingOrder.value) {
+    return '';
+  }
+  return features.value.mockPaymentEnabled
+    ? '体验环境可点“模拟支付”立即开通权益。'
+    : '正式微信支付未启用前，请等待支付回调或后台处理。';
+});
 
 async function load() {
   const [runtimeFeatures, planList] = await Promise.all([
@@ -284,6 +303,30 @@ function orderStatusLabel(value: string) {
     REFUNDED: '已退款'
   };
   return labels[value] || value;
+}
+
+function planOrderTip(order: PlanOrder) {
+  if (order.payStatus === 'PAID') {
+    if (hasDeviceRight.value) {
+      return '已支付，版本权益已生效，可继续选择确认屏或云喇叭。';
+    }
+    return '已支付，当前版本权益已生效，可返回宴席管理台继续办席。';
+  }
+  if (features.value.mockPaymentEnabled) {
+    return '待支付，体验环境可模拟支付完成开通。';
+  }
+  return '待支付，真实支付上线后会从这里继续完成付款。';
+}
+
+function openDevice() {
+  if (!banquetId.value) {
+    requireBanquetToast();
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/device/select/index?banquetId=${banquetId.value}`,
+    fail: () => uni.showToast({ title: '设备页面打开失败', icon: 'none' })
+  });
 }
 
 function isRecommended(plan: Plan) {
@@ -520,6 +563,21 @@ onMounted(async () => {
   font-size: 24rpx;
 }
 
+.status-tag {
+  padding: 7rpx 12rpx;
+  border-radius: 999rpx;
+  background: #fff7ed;
+  color: #b45309;
+  font-size: 21rpx;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.status-tag.paid {
+  background: #ecfdf3;
+  color: #138a45;
+}
+
 .right-tags {
   display: grid;
   gap: 10rpx;
@@ -638,6 +696,15 @@ onMounted(async () => {
   font-size: 23rpx;
 }
 
+.order-next {
+  display: block;
+  max-width: 400rpx;
+  margin-top: 8rpx;
+  color: #6f6259;
+  font-size: 22rpx;
+  line-height: 1.4;
+}
+
 .order-highlight {
   display: inline-block;
   margin-top: 8rpx;
@@ -671,6 +738,12 @@ onMounted(async () => {
   color: var(--accent);
   font-size: 22rpx;
   line-height: 54rpx;
+}
+
+.wait-pay {
+  color: #b45309;
+  font-size: 22rpx;
+  font-weight: 900;
 }
 
 .plans-list {

@@ -74,6 +74,7 @@
           <text class="order-meta">{{ order.orderNo }}</text>
           <text class="order-meta">{{ formatRentWindow(order) }}</text>
           <text class="order-meta">{{ deliveryLabel(order.deliveryMethod) }} · {{ formatTime(order.createdAt) }}</text>
+          <text class="order-next">{{ deviceOrderTip(order) }}</text>
         </view>
         <view class="order-side">
           <text class="order-price">{{ formatMoney(order.price) }}</text>
@@ -88,6 +89,14 @@
           >
             模拟支付
           </button>
+          <button
+            v-else-if="order.payStatus === 'PAID'"
+            class="pay-button"
+            @tap="returnBanquetDetail()"
+          >
+            返回管理台
+          </button>
+          <text v-else class="wait-pay">等待支付</text>
         </view>
       </view>
     </view>
@@ -425,6 +434,24 @@ function orderStatusLabel(value: string) {
     CANCELLED: '已取消'
   };
   return labels[value] || value;
+}
+
+function deviceOrderTip(order: DeviceOrder) {
+  if (order.payStatus !== 'PAID') {
+    return features.value.mockPaymentEnabled
+      ? '待支付，体验环境可模拟支付确认设备订单。'
+      : '待支付，真实支付上线后会从这里继续完成付款。';
+  }
+  if (order.orderStatus === 'CONFIRMED') {
+    return '已确认，运营后台可继续跟进交付方式和现场安排。';
+  }
+  if (order.orderStatus === 'DELIVERING') {
+    return '配送中，请关注交付方式和现场接收。';
+  }
+  if (order.orderStatus === 'DELIVERED') {
+    return '已交付，可在宴席现场使用对应设备。';
+  }
+  return '已支付，等待运营确认设备交付安排。';
 }
 
 onMounted(async () => {
@@ -829,6 +856,16 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+.order-next {
+  display: block;
+  max-width: 390rpx;
+  margin-top: 8rpx;
+  color: #6f6259;
+  font-size: 22rpx;
+  line-height: 1.4;
+  white-space: normal;
+}
+
 .order-highlight {
   display: inline-block;
   margin-top: 8rpx;
@@ -876,6 +913,12 @@ onMounted(async () => {
   font-size: 23rpx;
   font-weight: 900;
   line-height: 56rpx;
+}
+
+.wait-pay {
+  color: #b45309;
+  font-size: 22rpx;
+  font-weight: 900;
 }
 
 .empty {
