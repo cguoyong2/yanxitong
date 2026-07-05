@@ -146,9 +146,10 @@ fi
 
 request rsvp_submit -X POST "${BASE_URL}/api/rsvp/submit" \
   -H 'Content-Type: application/json' \
-  -d "{\"banquetId\":${BANQUET_ID},\"guestName\":\"联调来宾\",\"attendanceStatus\":\"ATTEND\",\"mealRequired\":1,\"guestCount\":2}"
+  -d "{\"banquetId\":${BANQUET_ID},\"guestName\":\" 联调来宾 \",\"attendanceStatus\":\" ATTEND \",\"mealRequired\":1,\"guestCount\":2}"
 RSVP_ID="$(json_get rsvp_submit "data.data.id")"
 assert_json rsvp_submit "data.data.created === true" "first rsvp submit should be marked created"
+assert_json rsvp_submit "data.data.guestName === '联调来宾' && data.data.attendanceStatus === 'ATTENDING'" "rsvp submit should normalize guest name and status"
 request rsvp_submit_repeat -X POST "${BASE_URL}/api/rsvp/submit" \
   -H 'Content-Type: application/json' \
   -d "{\"banquetId\":${BANQUET_ID},\"guestName\":\"联调来宾\",\"attendanceStatus\":\"ATTENDING\",\"mealRequired\":1,\"guestCount\":3}"

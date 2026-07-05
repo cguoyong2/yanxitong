@@ -23,6 +23,7 @@ public class RsvpService {
     }
 
     public RsvpRecord submit(RsvpSubmitRequest request) {
+        normalize(request);
         if (!isSupportedStatus(request.attendanceStatus)) {
             throw new IllegalArgumentException("Unsupported RSVP attendance status");
         }
@@ -138,5 +139,23 @@ public class RsvpService {
             }
         }
         return rsvpRecordMapper.selectOne(query);
+    }
+
+    private void normalize(RsvpSubmitRequest request) {
+        request.guestName = trimToNull(request.guestName);
+        request.phone = trimToNull(request.phone);
+        request.attendanceStatus = trimToNull(request.attendanceStatus);
+        request.message = trimToNull(request.message);
+        if ("ATTEND".equals(request.attendanceStatus)) {
+            request.attendanceStatus = "ATTENDING";
+        }
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
