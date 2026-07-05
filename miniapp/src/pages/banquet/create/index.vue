@@ -1154,7 +1154,7 @@ onMounted(() => {
 }
 
 .map-tip-row {
-  padding: 0 28rpx 20rpx 144rpx;
+  padding: 14rpx 28rpx 24rpx 144rpx;
   border-bottom: 1rpx solid #efe6df;
   color: var(--accent-dark);
   font-size: 23rpx;
@@ -1162,7 +1162,7 @@ onMounted(() => {
 }
 
 .map-tip-row {
-  margin-top: -10rpx;
+  margin-top: 8rpx;
   color: #8a7768;
 }
 
