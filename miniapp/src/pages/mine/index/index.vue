@@ -74,12 +74,36 @@
       <view class="section-card">
         <view class="section-head">
           <text class="section-title">我的订单</text>
-          <text class="more">查看全部 ›</text>
+          <text class="more" @tap="refreshOrderSummary()">刷新订单 ›</text>
         </view>
         <view class="order-grid">
           <view v-for="item in orders" :key="item.title" class="order-item" @tap="handleAction(item.action)">
             <text class="order-icon" :class="item.tone">{{ item.icon }}</text>
             <text class="order-title">{{ item.title }}</text>
+          </view>
+        </view>
+        <view class="recent-orders">
+          <view v-if="orderLoading" class="order-empty">正在同步最近订单</view>
+          <view v-else-if="recentOrderRows.length === 0" class="order-empty">
+            <text>暂无订单记录</text>
+            <text>开通版本或租用设备后，会在这里看到订单状态。</text>
+          </view>
+          <view v-else class="recent-order-list">
+            <view
+              v-for="item in recentOrderRows"
+              :key="item.key"
+              class="recent-order-row"
+              @tap="handleAction(item.action)"
+            >
+              <view class="recent-order-main">
+                <text class="recent-order-title">{{ item.title }}</text>
+                <text class="recent-order-meta">{{ item.orderNo }} · {{ item.time }}</text>
+              </view>
+              <view class="recent-order-side">
+                <text class="recent-order-amount">{{ item.amount }}</text>
+                <text class="recent-order-status" :class="{ paid: item.paid }">{{ item.status }}</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>
@@ -151,12 +175,35 @@ interface Banquet {
   name?: string;
 }
 
+interface PlanOrder {
+  orderNo: string;
+  amount: number;
+  priceUnit?: string;
+  payStatus: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+interface DeviceOrder {
+  orderNo: string;
+  deviceType?: string;
+  price?: number;
+  priceUnit?: string;
+  payStatus: string;
+  orderStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 const banquetCount = ref(0);
 const invitationCount = ref(0);
 const pendingCount = ref(0);
 const latestBanquetId = ref(0);
 const latestInvitationSlug = ref('');
 const bannerIndex = ref(0);
+const orderLoading = ref(false);
+const planOrderRows = ref<PlanOrder[]>([]);
+const deviceOrderRows = ref<DeviceOrder[]>([]);
 const activeType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(activeType.value));
 const banners = computed(() => [
@@ -191,6 +238,33 @@ const settings = [
   { title: '账号设置', icon: '♙' },
   { title: '意见反馈', icon: '✎' }
 ];
+const recentOrderRows = computed(() => {
+  const planRows = planOrderRows.value.map((order) => ({
+    key: `plan-${order.orderNo}`,
+    title: '版本订单',
+    orderNo: order.orderNo,
+    amount: formatMoney(order.amount),
+    time: formatTime(order.updatedAt || order.createdAt),
+    status: payStatusLabel(order.payStatus),
+    paid: order.payStatus === 'PAID',
+    action: 'plan',
+    sortAt: order.updatedAt || order.createdAt || order.orderNo
+  }));
+  const deviceRows = deviceOrderRows.value.map((order) => ({
+    key: `device-${order.orderNo}`,
+    title: `${deviceTypeLabel(order.deviceType)}订单`,
+    orderNo: order.orderNo,
+    amount: formatMoney(order.price),
+    time: formatTime(order.updatedAt || order.createdAt),
+    status: `${payStatusLabel(order.payStatus)} · ${deviceStatusLabel(order.orderStatus)}`,
+    paid: order.payStatus === 'PAID',
+    action: 'device',
+    sortAt: order.updatedAt || order.createdAt || order.orderNo
+  }));
+  return [...planRows, ...deviceRows]
+    .sort((a, b) => String(b.sortAt).localeCompare(String(a.sortAt)))
+    .slice(0, 4);
+});
 
 function handleAction(action: string) {
   if (action === 'banquet') {
@@ -269,11 +343,15 @@ function showComingSoon() {
   uni.showToast({ title: '该设置将在后续运营版本开放', icon: 'none' });
 }
 
+async function refreshOrderSummary() {
+  await loadOrderSummary();
+  uni.showToast({ title: '订单已刷新', icon: 'success' });
+}
+
 async function loadProfileStats() {
   const banquets = await request<Banquet[]>('/banquets').catch(() => []);
   banquetCount.value = banquets.length;
   invitationCount.value = banquets.length;
-  pendingCount.value = 0;
   latestBanquetId.value = banquets[0]?.id || 0;
   if (!latestBanquetId.value) {
     const cached = readLastBanquetContext();
@@ -283,6 +361,7 @@ async function loadProfileStats() {
       latestBanquetId.value = cached.id;
       latestInvitationSlug.value = cached.shareSlug || '';
     }
+    await loadOrderSummary();
     return;
   }
   writeLastBanquetContext({ id: latestBanquetId.value, name: banquets[0]?.name });
@@ -300,6 +379,80 @@ async function loadProfileStats() {
       shareSlug: detail?.invitation?.shareSlug
     });
   }
+  await loadOrderSummary();
+}
+
+async function loadOrderSummary() {
+  if (!latestBanquetId.value) {
+    planOrderRows.value = [];
+    deviceOrderRows.value = [];
+    pendingCount.value = 0;
+    return;
+  }
+  orderLoading.value = true;
+  try {
+    const [planRows, deviceRows] = await Promise.all([
+      request<PlanOrder[]>(`/plans/orders?banquetId=${latestBanquetId.value}`).catch(() => cachedPlanOrders()),
+      request<DeviceOrder[]>(`/devices/orders?banquetId=${latestBanquetId.value}`).catch(() => cachedDeviceOrders())
+    ]);
+    planOrderRows.value = mergeByOrderNo(planRows, cachedPlanOrders());
+    deviceOrderRows.value = mergeByOrderNo(deviceRows, cachedDeviceOrders());
+    pendingCount.value = [...planOrderRows.value, ...deviceOrderRows.value].filter((item) => item.payStatus !== 'PAID').length;
+  } finally {
+    orderLoading.value = false;
+  }
+}
+
+function cachedPlanOrders(): PlanOrder[] {
+  return latestBanquetId.value ? uni.getStorageSync(`plan-order:${latestBanquetId.value}`) || [] : [];
+}
+
+function cachedDeviceOrders(): DeviceOrder[] {
+  return latestBanquetId.value ? uni.getStorageSync(`device-order:${latestBanquetId.value}`) || [] : [];
+}
+
+function mergeByOrderNo<T extends { orderNo: string }>(primary: T[], fallback: T[]) {
+  const rows = new Map<string, T>();
+  for (const item of [...primary, ...fallback]) {
+    rows.set(item.orderNo, item);
+  }
+  return Array.from(rows.values());
+}
+
+function formatMoney(value: unknown) {
+  return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function formatTime(value?: string) {
+  return value ? value.replace('T', ' ').slice(0, 16) : '刚刚创建';
+}
+
+function payStatusLabel(value: string) {
+  const labels: Record<string, string> = {
+    UNPAID: '待支付',
+    PAID: '已支付',
+    REFUNDED: '已退款'
+  };
+  return labels[value] || value;
+}
+
+function deviceStatusLabel(value?: string) {
+  const labels: Record<string, string> = {
+    CREATED: '已创建',
+    CONFIRMED: '已确认',
+    DELIVERING: '配送中',
+    DELIVERED: '已交付',
+    CANCELLED: '已取消'
+  };
+  return value ? labels[value] || value : '已创建';
+}
+
+function deviceTypeLabel(value?: string) {
+  const labels: Record<string, string> = {
+    CONFIRM_SCREEN: '确认屏',
+    CLOUD_SPEAKER: '云喇叭'
+  };
+  return value ? labels[value] || value : '设备';
 }
 
 onMounted(loadProfileStats);
@@ -784,6 +937,94 @@ button::after {
   margin-top: 12rpx;
   color: #171923;
   font-size: 23rpx;
+}
+
+.recent-orders {
+  margin-top: 22rpx;
+  border-top: 1rpx solid #f0e5dd;
+  padding-top: 18rpx;
+}
+
+.recent-order-list {
+  display: grid;
+  gap: 12rpx;
+}
+
+.order-empty {
+  display: grid;
+  gap: 8rpx;
+  padding: 22rpx;
+  border: 1rpx dashed #ead8ca;
+  border-radius: 14rpx;
+  background: var(--accent-soft);
+  color: #8a7768;
+  font-size: 23rpx;
+  line-height: 1.4;
+}
+
+.recent-order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 18rpx;
+  border: 1rpx solid #f0e5dd;
+  border-radius: 16rpx;
+  background: linear-gradient(90deg, #fff, var(--accent-soft));
+}
+
+.recent-order-main {
+  min-width: 0;
+}
+
+.recent-order-title,
+.recent-order-meta,
+.recent-order-amount,
+.recent-order-status {
+  display: block;
+}
+
+.recent-order-title {
+  color: #171923;
+  font-size: 25rpx;
+  font-weight: 900;
+}
+
+.recent-order-meta {
+  overflow: hidden;
+  max-width: 370rpx;
+  margin-top: 8rpx;
+  color: #8a7768;
+  font-size: 21rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-order-side {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  gap: 8rpx;
+}
+
+.recent-order-amount {
+  color: var(--accent);
+  font-size: 25rpx;
+  font-weight: 900;
+}
+
+.recent-order-status {
+  padding: 5rpx 10rpx;
+  border-radius: 999rpx;
+  background: #fff7ed;
+  color: #b45309;
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.recent-order-status.paid {
+  background: #ecfdf3;
+  color: #138a45;
 }
 
 .red {
