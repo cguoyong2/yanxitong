@@ -38,5 +38,9 @@ public class BanquetController {
     public ApiResponse<BanquetDetailResult> detail(@PathVariable Long id) {
         return ApiResponse.ok(banquetService.detail(id));
     }
-}
 
+    @PostMapping("/{id}/publish")
+    public ApiResponse<BanquetDetailResult> publish(@PathVariable Long id) {
+        return ApiResponse.ok(banquetService.publish(id));
+    }
+}

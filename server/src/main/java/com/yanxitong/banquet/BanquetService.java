@@ -94,6 +94,28 @@ public class BanquetService {
         );
     }
 
+    @Transactional
+    public BanquetDetailResult publish(Long id) {
+        Banquet banquet = banquetMapper.selectById(id);
+        if (banquet == null) {
+            throw new IllegalArgumentException("Banquet not found");
+        }
+        if (!"PUBLISHED".equals(banquet.status)) {
+            String previousStatus = banquet.status;
+            banquet.status = "PUBLISHED";
+            banquetMapper.updateById(banquet);
+            operationLogService.record(
+                    OperationModule.BANQUET,
+                    "PUBLISH",
+                    "banquet",
+                    banquet.id,
+                    "publish banquet invitation",
+                    java.util.Map.of("previousStatus", previousStatus == null ? "" : previousStatus, "status", banquet.status)
+            );
+        }
+        return detail(id);
+    }
+
     private String nextBanquetNo() {
         return "BQ" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
                 + ThreadLocalRandom.current().nextInt(1000, 9999);

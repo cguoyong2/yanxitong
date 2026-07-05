@@ -10,7 +10,8 @@
           <text class="hero-label">宴席通</text>
           <text class="hero-title">{{ detail.banquet.name }}</text>
         </view>
-        <text class="status">{{ statusLabel }}</text>
+        <button v-if="isDraft" class="publish-pill hero-publish" :loading="publishing" @tap="publishBanquet()">发送请柬</button>
+        <text v-else class="status">{{ statusLabel }}</text>
       </view>
       <view class="hero-meta">
         <text>{{ eventTypeLabel(detail.banquet.eventTypeCode) }}</text>
@@ -27,7 +28,8 @@
         <view class="overview-body">
           <view class="overview-title-row">
             <text class="overview-title">{{ detail.banquet.name }}</text>
-            <text class="overview-tag">{{ statusLabel }}</text>
+            <button v-if="isDraft" class="overview-publish" :loading="publishing" @tap="publishBanquet()">发送请柬</button>
+            <text v-else class="overview-tag">{{ statusLabel }}</text>
           </view>
           <view class="overview-meta">
             <text>◷ {{ formatTime(detail.banquet.banquetTime) }}</text>
@@ -237,6 +239,7 @@ interface FavorContact {
 const detail = ref<BanquetDetail>();
 const currentBanquetId = ref('');
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
+const publishing = ref(false);
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const rsvpStats = ref<RsvpStats>();
 const giftSummary = ref<GiftSummary>();
@@ -379,6 +382,7 @@ const statusLabel = computed(() => {
   if (status === 'DRAFT') return '草稿';
   return status || '已创建';
 });
+const isDraft = computed(() => detail.value?.banquet.status === 'DRAFT');
 const invitationShareUrl = computed(() => {
   const slug = detail.value?.invitation?.shareSlug;
   return slug ? `/pages/invite/public/index?slug=${slug}` : '-';
@@ -405,6 +409,7 @@ async function load(id: string) {
     themeCode: banquetDetail.banquet.themeCode,
     banquetTime: banquetDetail.banquet.banquetTime,
     location: banquetDetail.banquet.location,
+    status: banquetDetail.banquet.status,
     invitationId: banquetDetail.invitation?.id,
     shareSlug: banquetDetail.invitation?.shareSlug
   });
@@ -500,6 +505,33 @@ function openInvite() {
     return;
   }
   uni.showToast({ title: '暂无请柬分享链接', icon: 'none' });
+}
+
+async function publishBanquet() {
+  const id = detail.value?.banquet.id;
+  if (!id || publishing.value) {
+    return;
+  }
+  publishing.value = true;
+  try {
+    const result = await request<BanquetDetail>(`/banquets/${id}/publish`, { method: 'POST' });
+    detail.value = result;
+    writeLastBanquetContext({
+      id: result.banquet.id,
+      name: result.banquet.name,
+      eventTypeCode: result.banquet.eventTypeCode,
+      themeCode: result.banquet.themeCode,
+      banquetTime: result.banquet.banquetTime,
+      location: result.banquet.location,
+      status: result.banquet.status,
+      invitationId: result.invitation?.id,
+      shareSlug: result.invitation?.shareSlug
+    });
+    uni.showToast({ title: '已发布，可发送请柬', icon: 'success' });
+    openInvite();
+  } finally {
+    publishing.value = false;
+  }
 }
 
 function editInvite() {
@@ -856,6 +888,26 @@ onShow(() => {
   font-weight: 800;
 }
 
+.publish-pill {
+  flex: 0 0 auto;
+  height: 66rpx;
+  margin: 0;
+  padding: 0 26rpx;
+  border: 1rpx solid rgba(255, 239, 208, 0.78);
+  border-radius: 999rpx;
+  background: rgba(255, 248, 230, 0.96);
+  color: var(--accent-dark);
+  font-size: 24rpx;
+  font-weight: 900;
+  line-height: 66rpx;
+  box-shadow: 0 10rpx 26rpx rgba(20, 24, 32, 0.14);
+}
+
+.publish-pill::after,
+.overview-publish::after {
+  border: 0;
+}
+
 .hero-meta {
   display: flex;
   gap: 12rpx;
@@ -960,6 +1012,19 @@ onShow(() => {
   color: var(--accent);
   font-size: 22rpx;
   font-weight: 900;
+}
+
+.overview-publish {
+  flex: 0 0 auto;
+  height: 58rpx;
+  margin: 0;
+  padding: 0 20rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 900;
+  line-height: 58rpx;
 }
 
 .overview-meta {

@@ -91,7 +91,7 @@
                 <text class="meta-icon">⌖</text>
                 <text>{{ latestBanquet.location || '地点待定' }}</text>
               </view>
-              <text class="status">已发布</text>
+              <text class="status">{{ statusLabel(latestBanquet.status) }}</text>
             </view>
             <view class="banquet-stats">
               <text class="stats-label">已回执</text>
@@ -180,6 +180,7 @@ interface Banquet {
   themeCode: string;
   banquetTime?: string;
   location?: string;
+  status?: string;
 }
 
 interface RsvpStats {
@@ -204,7 +205,7 @@ const loading = ref(false);
 const activeType = ref(readActiveEventType());
 const bannerIndex = ref(0);
 const hasBanquet = computed(() => banquets.value.length > 0);
-const latestBanquet = computed(() => banquets.value[0] || { id: 0, name: '', eventTypeCode: '', themeCode: '', banquetTime: '', location: '' });
+const latestBanquet = computed(() => banquets.value[0] || { id: 0, name: '', eventTypeCode: '', themeCode: '', banquetTime: '', location: '', status: '' });
 const latestBanquetId = computed(() => latestBanquet.value?.id || 0);
 const activeTone = computed(() => eventTypes.find((item) => item.code === activeType.value)?.tone || 'red');
 const activeDesign = computed(() => eventTypes.find((item) => item.code === activeType.value) || eventTypes[0]);
@@ -228,6 +229,12 @@ function formatMoney(value: unknown) {
   return `¥${Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
+function statusLabel(status?: string) {
+  if (status === 'PUBLISHED') return '已发布';
+  if (status === 'DRAFT') return '草稿';
+  return status || '已创建';
+}
+
 async function refresh() {
   loading.value = true;
   try {
@@ -246,7 +253,8 @@ async function refresh() {
         eventTypeCode: cached.eventTypeCode || activeType.value,
         themeCode: cached.themeCode || '',
         banquetTime: cached.banquetTime,
-        location: cached.location
+        location: cached.location,
+        status: cached.status
       }];
       activeType.value = writeActiveEventType(cached.eventTypeCode || activeType.value);
       await loadLatestStats();

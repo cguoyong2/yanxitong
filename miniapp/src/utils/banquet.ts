@@ -8,6 +8,7 @@ interface BanquetLite {
   themeCode?: string;
   banquetTime?: string;
   location?: string;
+  status?: string;
 }
 
 export interface BanquetContext {
@@ -17,6 +18,7 @@ export interface BanquetContext {
   themeCode?: string;
   banquetTime?: string;
   location?: string;
+  status?: string;
   invitationId?: number;
   shareSlug?: string;
   updatedAt: number;
