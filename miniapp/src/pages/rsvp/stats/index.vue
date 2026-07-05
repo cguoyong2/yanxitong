@@ -41,7 +41,7 @@
       <view class="section-head">
         <text class="section-title">状态分布</text>
         <text v-if="lastSyncText" class="section-note">{{ lastSyncText }}</text>
-        <button class="refresh-btn" :loading="loading" @tap="refreshStats">刷新</button>
+        <button class="refresh-btn" :loading="loading" @tap="refreshStats()">刷新</button>
       </view>
       <view class="progress-list">
         <view v-for="item in statusItems" :key="item.label" class="progress-row">
@@ -93,8 +93,8 @@
       <view v-else class="record-empty">
         <text>当前筛选暂无回执。</text>
         <view class="empty-actions">
-          <button class="ghost-button" @tap="shareInvite">继续发送请柬</button>
-          <button class="ghost-button" @tap="openBanquetDetail">返回管理台</button>
+          <button class="ghost-button" @tap="shareInvite()">继续发送请柬</button>
+          <button class="ghost-button" @tap="openBanquetDetail()">返回管理台</button>
         </view>
       </view>
     </view>
@@ -121,14 +121,14 @@
     </view>
 
     <view class="action-card">
-      <button class="ghost-button wide" @tap="copyInvitePath">复制请柬路径</button>
-      <button class="primary-button" @tap="shareInvite">继续发送请柬</button>
-      <button class="ghost-button" @tap="openBanquetDetail">返回宴席管理台</button>
+      <button class="ghost-button wide" @tap="copyInvitePath()">复制请柬路径</button>
+      <button class="primary-button" @tap="shareInvite()">继续发送请柬</button>
+      <button class="ghost-button" @tap="openBanquetDetail()">返回宴席管理台</button>
     </view>
 
     <view v-if="!stats && !loading" class="empty-card">
       <text>暂无回执统计，请先发送请柬并邀请宾客填写。</text>
-      <button class="primary-button" @tap="shareInvite">去发送请柬</button>
+      <button class="primary-button" @tap="shareInvite()">去发送请柬</button>
     </view>
   </view>
 </template>

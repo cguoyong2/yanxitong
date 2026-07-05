@@ -169,8 +169,8 @@
   <view class="state-page" v-else>
     <text class="state-title">宴席加载失败</text>
     <text class="state-desc">宴席可能已删除，或当前网络不可用。</text>
-    <button class="state-button" @tap="bootstrap">重新加载</button>
-    <button class="state-link" @tap="goHome">返回首页</button>
+    <button class="state-button" @tap="bootstrap()">重新加载</button>
+    <button class="state-link" @tap="goHome()">返回首页</button>
   </view>
 </template>
 

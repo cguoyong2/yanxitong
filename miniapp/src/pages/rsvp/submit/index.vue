@@ -81,7 +81,7 @@
 
     <view class="footer-safe"></view>
     <view class="sticky-submit">
-      <button class="primary-button" :loading="submitting" @tap="submit">提交回执</button>
+      <button class="primary-button" :loading="submitting" @tap="submit()">提交回执</button>
     </view>
   </view>
 
@@ -117,10 +117,10 @@
       </view>
     </view>
     <view class="success-actions">
-      <button class="primary-button" @tap="openGift">{{ giftActionText }}</button>
-      <button class="ghost-button" @tap="openRsvpStats">查看回执统计</button>
-      <button class="ghost-button" @tap="backToInvitation">返回请柬</button>
-      <button class="text-button" @tap="editAgain">修改回执</button>
+      <button class="primary-button" @tap="openGift()">{{ giftActionText }}</button>
+      <button class="ghost-button" @tap="openRsvpStats()">查看回执统计</button>
+      <button class="ghost-button" @tap="backToInvitation()">返回请柬</button>
+      <button class="text-button" @tap="editAgain()">修改回执</button>
     </view>
   </view>
 </template>

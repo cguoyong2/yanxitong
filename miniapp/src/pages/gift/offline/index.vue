@@ -44,9 +44,9 @@
       <text class="saved-title">最近保存成功</text>
       <text class="saved-desc">{{ lastSavedText }}</text>
       <view class="saved-actions">
-        <button class="saved-link secondary" @tap="continueRegistration">继续登记</button>
-        <button class="saved-link" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
-        <button class="saved-link" @tap="openLastFavor">查看人情往来</button>
+        <button class="saved-link secondary" @tap="continueRegistration()">继续登记</button>
+        <button class="saved-link" @tap="openGiftList()">查看{{ activeTheme.giftRecordLabel }}</button>
+        <button class="saved-link" @tap="openLastFavor()">查看人情往来</button>
       </view>
       <view v-if="recentSaved.length > 1" class="recent-saved">
         <text class="recent-title">本次已保存 {{ recentSaved.length }} 笔</text>
@@ -59,8 +59,8 @@
 
     <view class="footer-safe"></view>
     <view class="sticky-submit">
-      <button class="primary-button" :loading="submitting" @tap="submit">保存{{ activeTheme.giftRecordLabel }}</button>
-      <button class="ghost-button" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
+      <button class="primary-button" :loading="submitting" @tap="submit()">保存{{ activeTheme.giftRecordLabel }}</button>
+      <button class="ghost-button" @tap="openGiftList()">查看{{ activeTheme.giftRecordLabel }}</button>
     </view>
   </view>
 </template>

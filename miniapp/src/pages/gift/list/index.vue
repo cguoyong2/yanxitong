@@ -27,12 +27,12 @@
         <text class="manage-title">{{ activeTheme.giftRecordLabel }}管理</text>
         <text class="manage-desc">{{ lastSyncText || '从宴席管理台进入后，可随时返回继续办席。' }}</text>
       </view>
-      <button class="mini-button" @tap="openBanquetDetail">返回管理台</button>
+      <button class="mini-button" @tap="openBanquetDetail()">返回管理台</button>
     </view>
 
     <view v-if="highlightNoticeText" class="highlight-card">
       <text>{{ highlightNoticeText }}</text>
-      <button class="mini-button" @tap="refreshList">刷新确认</button>
+      <button class="mini-button" @tap="refreshList()">刷新确认</button>
     </view>
 
     <view class="tool-card">
@@ -52,22 +52,22 @@
         </view>
       </view>
       <view class="tool-actions">
-        <button class="mini-button primary" @tap="openOfflineGift">{{ activeTheme.offlineGiftLabel }}</button>
-        <button class="mini-button" @tap="resetFilters">重置筛选</button>
+        <button class="mini-button primary" @tap="openOfflineGift()">{{ activeTheme.offlineGiftLabel }}</button>
+        <button class="mini-button" @tap="resetFilters()">重置筛选</button>
       </view>
     </view>
 
     <view class="list-card">
       <view class="section-head">
         <text class="section-title">{{ activeTheme.giftRecordLabel }}</text>
-        <button class="refresh-btn" :loading="loading" @tap="refreshList">刷新 {{ gifts.length }} 条</button>
+        <button class="refresh-btn" :loading="loading" @tap="refreshList()">刷新 {{ gifts.length }} 条</button>
       </view>
       <view v-if="loading" class="state-box">同步{{ activeTheme.giftRecordLabel }}中</view>
       <view v-else-if="gifts.length === 0" class="state-box">
         <text class="state-title">{{ emptyText }}</text>
         <view class="empty-actions">
-          <button class="mini-button primary" @tap="openOfflineGift">{{ activeTheme.offlineGiftLabel }}</button>
-          <button class="mini-button" @tap="openBanquetDetail">返回管理台</button>
+          <button class="mini-button primary" @tap="openOfflineGift()">{{ activeTheme.offlineGiftLabel }}</button>
+          <button class="mini-button" @tap="openBanquetDetail()">返回管理台</button>
         </view>
       </view>
       <view
@@ -90,7 +90,7 @@
       </view>
     </view>
 
-    <view v-if="selectedGift" class="detail-mask" @tap="closeGiftDetail">
+    <view v-if="selectedGift" class="detail-mask" @tap="closeGiftDetail()">
       <view class="detail-panel" @tap.stop>
         <view class="detail-head">
           <text class="detail-title">{{ selectedGift.guestName }}</text>
@@ -109,9 +109,9 @@
           <text>{{ selectedGift.blessing || '暂无备注' }}</text>
         </view>
         <view class="detail-actions">
-          <button class="mini-button" @tap="copyGiftDetail">复制记录</button>
-          <button class="mini-button" @tap="openFavorFromGift">查看人情</button>
-          <button class="mini-button primary" @tap="closeGiftDetail">关闭</button>
+          <button class="mini-button" @tap="copyGiftDetail()">复制记录</button>
+          <button class="mini-button" @tap="openFavorFromGift()">查看人情</button>
+          <button class="mini-button primary" @tap="closeGiftDetail()">关闭</button>
         </view>
       </view>
     </view>

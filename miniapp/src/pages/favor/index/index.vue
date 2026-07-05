@@ -77,7 +77,7 @@
           <text class="search-icon">⌕</text>
           <input v-model="keyword" placeholder="搜索姓名、手机号、关系" confirm-type="search" @confirm="load()" />
         </view>
-        <view class="sync-tip" @tap="openLatestAutoContact">
+        <view class="sync-tip" @tap="openLatestAutoContact()">
           <text class="sync-dot"></text>
           <text>{{ autoSyncText }}</text>
           <text class="sync-arrow">›</text>
@@ -204,7 +204,7 @@
         <view v-if="manualFocused" class="manual-focus-tip">
           当前已切换为{{ directions[directionIndex].label }}，请填写对象和金额后添加记录。
         </view>
-        <view v-if="lastManualText" class="manual-success" @tap="setCompareFromLastManual">
+        <view v-if="lastManualText" class="manual-success" @tap="setCompareFromLastManual()">
           <text>{{ lastManualText }}</text>
           <text>查看往来 ›</text>
         </view>

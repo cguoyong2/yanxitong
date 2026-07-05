@@ -31,7 +31,7 @@
       <text v-else class="pending-text">等待真实支付回调</text>
     </view>
 
-    <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail">返回宴席管理台</button>
+    <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail()">返回宴席管理台</button>
 
     <view v-if="planOrders.length" class="orders-card">
       <view class="section-head">

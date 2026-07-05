@@ -28,8 +28,8 @@
     </view>
 
     <view class="action-card">
-      <button class="ghost-button" @tap="copySummary">复制往来摘要</button>
-      <button class="ghost-button" @tap="goFavor">返回人情账本</button>
+      <button class="ghost-button" @tap="copySummary()">复制往来摘要</button>
+      <button class="ghost-button" @tap="goFavor()">返回人情账本</button>
     </view>
 
     <view class="section-card">
@@ -58,8 +58,8 @@
   <view class="page state-page" :class="activeTheme.tone" v-else>
     <text class="state-title">人情详情加载失败</text>
     <text class="state-desc">该联系人可能不存在，或网络暂时不可用。</text>
-    <button class="state-button" @tap="bootstrap">重新加载</button>
-    <button class="state-link" @tap="goFavor">返回人情账本</button>
+    <button class="state-button" @tap="bootstrap()">重新加载</button>
+    <button class="state-link" @tap="goFavor()">返回人情账本</button>
   </view>
 </template>
 

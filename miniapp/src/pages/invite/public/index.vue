@@ -3,7 +3,7 @@
     <view class="state-card">
       <text class="state-title">{{ stateTitle }}</text>
       <text class="state-text">{{ stateText }}</text>
-      <button v-if="pageState === 'error'" class="state-button" @tap="loadInvitation">重新加载</button>
+      <button v-if="pageState === 'error'" class="state-button" @tap="loadInvitation()">重新加载</button>
     </view>
   </view>
 
@@ -45,7 +45,7 @@
             <text class="info-sub">{{ formatClock(data.banquet.banquetTime) }}</text>
           </view>
         </view>
-        <view class="info-row" @tap="showMapTip">
+        <view class="info-row" @tap="showMapTip()">
           <text class="info-icon">地</text>
           <view class="info-main">
             <text class="info-label">宴席地点</text>
@@ -60,7 +60,7 @@
             <text class="info-value">{{ basicFields.hostName }}</text>
           </view>
         </view>
-        <view v-if="basicFields.contactPhone" class="info-row" @tap="showContactTip">
+        <view v-if="basicFields.contactPhone" class="info-row" @tap="showContactTip()">
           <text class="info-icon">电</text>
           <view class="info-main">
             <text class="info-label">联系电话</text>
@@ -71,19 +71,19 @@
       </view>
 
       <view class="quick-card">
-        <view class="quick-item" @tap="showMapTip">
+        <view class="quick-item" @tap="showMapTip()">
           <text class="quick-icon">⌖</text>
           <text>地图导航</text>
         </view>
-        <view class="quick-item" @tap="showComingSoon">
+        <view class="quick-item" @tap="showComingSoon()">
           <text class="quick-icon">车</text>
           <text>交通路线</text>
         </view>
-        <view class="quick-item" @tap="showComingSoon">
+        <view class="quick-item" @tap="showComingSoon()">
           <text class="quick-icon">P</text>
           <text>停车指引</text>
         </view>
-        <view class="quick-item" @tap="showComingSoon">
+        <view class="quick-item" @tap="showComingSoon()">
           <text class="quick-icon">温</text>
           <text>温馨提示</text>
         </view>
@@ -94,7 +94,7 @@
           <text class="section-title">宾客操作</text>
           <text class="guide-note">先回执，再表达心意</text>
         </view>
-        <view class="guide-row" @tap="openRsvp">
+        <view class="guide-row" @tap="openRsvp()">
           <text class="guide-index">1</text>
           <view class="guide-main">
             <text class="guide-title">回执出席</text>
@@ -131,9 +131,9 @@
 
       <view class="footer-safe"></view>
       <view class="sticky-actions">
-        <button class="primary-action" @tap="openRsvp">回执出席</button>
+        <button class="primary-action" @tap="openRsvp()">回执出席</button>
         <button class="secondary-action" v-if="showGiftEntry" @tap="openGift('ONLINE_GIFT')">{{ activeTheme.onlineGiftLabel }}</button>
-        <button class="secondary-action disabled" v-else @tap="showGiftDisabled">{{ activeTheme.onlineGiftLabel }}</button>
+        <button class="secondary-action disabled" v-else @tap="showGiftDisabled()">{{ activeTheme.onlineGiftLabel }}</button>
       </view>
     </view>
   </view>

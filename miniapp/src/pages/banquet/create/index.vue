@@ -59,7 +59,7 @@
             </view>
           </view>
         </view>
-        <view class="form-row location-row" @tap="focusLocationInput">
+        <view class="form-row location-row" @tap="focusLocationInput()">
           <text class="row-icon">⌖</text>
           <text class="row-label">宴席地点</text>
           <view class="location-field">
@@ -160,11 +160,11 @@
       </button>
     </view>
 
-    <view v-if="showTimePanel" class="modal-mask" @tap="closeTimePanel">
+    <view v-if="showTimePanel" class="modal-mask" @tap="closeTimePanel()">
       <view class="modal-panel" @tap.stop>
         <view class="modal-head">
           <text class="modal-title">填写宴席时间</text>
-          <text class="modal-close" @tap="closeTimePanel">×</text>
+          <text class="modal-close" @tap="closeTimePanel()">×</text>
         </view>
         <text class="modal-desc">如果系统日期选择器没有弹出，可直接在这里填写日期和时间。</text>
         <view class="modal-section">
@@ -213,17 +213,17 @@
           </view>
         </view>
         <view class="modal-actions">
-          <button class="plain-button" @tap="closeTimePanel">取消</button>
-          <button class="confirm-button" @tap="applyManualDateTime">确认填入</button>
+          <button class="plain-button" @tap="closeTimePanel()">取消</button>
+          <button class="confirm-button" @tap="applyManualDateTime()">确认填入</button>
         </view>
       </view>
     </view>
 
-    <view v-if="showLocationPanel" class="modal-mask" @tap="closeLocationPanel">
+    <view v-if="showLocationPanel" class="modal-mask" @tap="closeLocationPanel()">
       <view class="modal-panel" @tap.stop>
         <view class="modal-head">
           <text class="modal-title">填写宴席地点</text>
-          <text class="modal-close" @tap="closeLocationPanel">×</text>
+          <text class="modal-close" @tap="closeLocationPanel()">×</text>
         </view>
         <text class="modal-desc">可以手动输入酒店、宴会厅或详细地址；地图权限可用时也能继续选点。</text>
         <input v-model="manualLocation" class="manual-input location-input" placeholder="请输入酒店、宴会厅或地址" />
@@ -233,8 +233,8 @@
           </view>
         </view>
         <view class="modal-actions">
-          <button class="plain-button" @tap="chooseLocationFromPanel">地图选点</button>
-          <button class="confirm-button" @tap="applyManualLocation">确认填入</button>
+          <button class="plain-button" @tap="chooseLocationFromPanel()">地图选点</button>
+          <button class="confirm-button" @tap="applyManualLocation()">确认填入</button>
         </view>
       </view>
     </view>

@@ -27,12 +27,12 @@
     </view>
 
     <view class="actions">
-      <button v-if="features.mockPaymentEnabled" class="primary-button" :loading="submitting" @tap="confirmSuccess">
+      <button v-if="features.mockPaymentEnabled" class="primary-button" :loading="submitting" @tap="confirmSuccess()">
         {{ confirmed ? '已模拟入账' : '模拟支付成功入账' }}
       </button>
-      <button v-if="banquetId" class="ghost-button" @tap="openGiftList">查看{{ activeTheme.giftRecordLabel }}</button>
-      <button v-if="shareUrl" class="ghost-button" @tap="backToInvitation">返回请柬</button>
-      <button class="text-button" @tap="goBack">返回</button>
+      <button v-if="banquetId" class="ghost-button" @tap="openGiftList()">查看{{ activeTheme.giftRecordLabel }}</button>
+      <button v-if="shareUrl" class="ghost-button" @tap="backToInvitation()">返回请柬</button>
+      <button class="text-button" @tap="goBack()">返回</button>
     </view>
   </view>
 </template>

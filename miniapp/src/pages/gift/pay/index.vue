@@ -24,8 +24,8 @@
       <text class="notice-title">当前为非支付体验版</text>
       <text class="notice-text">{{ activeTheme.onlineGiftLabel }}和现场扫码支付暂未开放。您可以先返回请柬提交回执，正式支付配置完成后会开放统一支付入口。</text>
       <view class="notice-actions">
-        <button class="notice-button" @tap="backToInvitation">{{ shareUrl ? '返回请柬' : '返回上一页' }}</button>
-        <button class="notice-button ghost" @tap="showPaymentNotice">了解说明</button>
+        <button class="notice-button" @tap="backToInvitation()">{{ shareUrl ? '返回请柬' : '返回上一页' }}</button>
+        <button class="notice-button ghost" @tap="showPaymentNotice()">了解说明</button>
       </view>
     </view>
 
@@ -84,7 +84,7 @@
 
       <view class="footer-safe"></view>
       <view class="sticky-submit">
-        <button class="primary-button" :loading="submitting" @tap="submit">{{ submitText }}</button>
+        <button class="primary-button" :loading="submitting" @tap="submit()">{{ submitText }}</button>
       </view>
     </template>
   </view>

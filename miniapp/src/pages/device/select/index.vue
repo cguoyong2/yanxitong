@@ -17,18 +17,18 @@
         <text class="card-title">当前版本</text>
         <text class="card-desc">{{ entitlements.currentPlan?.name || '基础版' }}</text>
       </view>
-      <button v-if="!hasDeviceRight" class="small-button primary" @tap="openPlan">去开通版本</button>
+      <button v-if="!hasDeviceRight" class="small-button primary" @tap="openPlan()">去开通版本</button>
       <text v-else class="right-ok">可租用</text>
     </view>
 
-    <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail">返回宴席管理台</button>
+    <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail()">返回宴席管理台</button>
 
     <view v-if="lastOrderText" class="success-card">
       <text class="success-title">设备订单已记录</text>
       <text class="success-desc">{{ lastOrderText }}</text>
       <view class="success-actions">
-        <button class="small-button" @tap="refreshOrders">刷新订单</button>
-        <button class="small-button primary" @tap="returnBanquetDetail">返回管理台</button>
+        <button class="small-button" @tap="refreshOrders()">刷新订单</button>
+        <button class="small-button primary" @tap="returnBanquetDetail()">返回管理台</button>
       </view>
     </view>
 
@@ -59,7 +59,7 @@
     <view class="orders-card">
       <view class="section-head">
         <text class="section-title">设备订单跟踪</text>
-        <button class="refresh-btn" :loading="loadingOrders" @tap="refreshOrders">
+        <button class="refresh-btn" :loading="loadingOrders" @tap="refreshOrders()">
           刷新 {{ orders.length ? `${orders.length} 单` : '暂无订单' }}
         </button>
       </view>
