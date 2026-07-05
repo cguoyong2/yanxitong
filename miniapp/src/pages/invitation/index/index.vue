@@ -181,6 +181,7 @@ interface Banquet {
   name: string;
   eventTypeCode: string;
   banquetTime?: string;
+  status?: string;
 }
 
 interface BanquetDetail {
@@ -209,6 +210,7 @@ interface InvitationTemplate {
 
 interface MyInvitation {
   id: number;
+  banquetId: number;
   title: string;
   shareSlug: string;
   eventTypeCode: string;
@@ -216,6 +218,7 @@ interface MyInvitation {
   visitCount: number;
   rsvpGuests: number;
   status: string;
+  statusCode?: string;
 }
 
 const activeType = ref(readActiveEventType());
@@ -252,6 +255,10 @@ function openCreateEntry() {
 function openMyInvitation() {
   if (!myInvitation.value) {
     openCreateEntry();
+    return;
+  }
+  if (myInvitation.value.statusCode === 'DRAFT') {
+    safeNavigate(`/pages/banquet/detail/index?id=${myInvitation.value.banquetId}`, '宴席管理台打开失败');
     return;
   }
   safeNavigate(`/pages/invite/public/index?slug=${myInvitation.value.shareSlug}`, '请柬公开页打开失败');
@@ -301,6 +308,12 @@ function formatTime(value?: string) {
   return value ? value.replace('T', ' ').slice(0, 16) : '时间待定';
 }
 
+function banquetStatusLabel(status?: string) {
+  if (status === 'PUBLISHED') return '已发布';
+  if (status === 'DRAFT') return '草稿';
+  return status || '已创建';
+}
+
 function matchesEventType(item: InvitationTemplate, eventTypeCode: string) {
   const code = item.templateCode || '';
   if (eventTypeCode === 'WEDDING') return code.includes('WEDDING');
@@ -346,13 +359,15 @@ async function loadMyInvitation() {
     if (cached?.id && cached.shareSlug) {
       myInvitation.value = {
         id: cached.invitationId || 0,
+        banquetId: cached.id,
         title: cached.name ? `${cached.name}邀请函` : activeTheme.value.invitationTitle,
         shareSlug: cached.shareSlug,
         eventTypeCode: cached.eventTypeCode || activeType.value,
         banquetTime: cached.banquetTime,
         visitCount: 0,
         rsvpGuests: 0,
-        status: '已发布'
+        status: banquetStatusLabel(cached.status),
+        statusCode: cached.status
       };
       return;
     }
@@ -372,18 +387,21 @@ async function loadMyInvitation() {
     name: detail.banquet.name,
     eventTypeCode: detail.banquet.eventTypeCode,
     banquetTime: detail.banquet.banquetTime,
+    status: detail.banquet.status,
     invitationId: detail.invitation.id,
     shareSlug: detail.invitation.shareSlug
   });
   myInvitation.value = {
     id: detail.invitation.id,
+    banquetId: detail.banquet.id,
     title: detail.invitation.title || `${detail.banquet.name}邀请函`,
     shareSlug: detail.invitation.shareSlug,
     eventTypeCode: detail.banquet.eventTypeCode,
     banquetTime: detail.banquet.banquetTime,
     visitCount: Number(detail.invitation.visitCount || 0),
     rsvpGuests: Number(rsvp.totalGuests || 0),
-    status: '已发布'
+    status: banquetStatusLabel(detail.banquet.status),
+    statusCode: detail.banquet.status
   };
 }
 

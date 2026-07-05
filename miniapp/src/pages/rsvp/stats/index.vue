@@ -314,7 +314,7 @@ onMounted(async () => {
   }
   if (banquetId.value) {
     const detail = await request<{
-      banquet?: { id?: number; name?: string; eventTypeCode?: string; themeCode?: string; banquetTime?: string; location?: string };
+      banquet?: { id?: number; name?: string; eventTypeCode?: string; themeCode?: string; banquetTime?: string; location?: string; status?: string };
       eventTypeCode?: string;
       invitation?: { shareSlug?: string };
     }>(`/banquets/${banquetId.value}`).catch(() => undefined);
@@ -328,6 +328,7 @@ onMounted(async () => {
         themeCode: detail.banquet.themeCode,
         banquetTime: detail.banquet.banquetTime,
         location: detail.banquet.location,
+        status: detail.banquet.status,
         shareSlug: detail.invitation?.shareSlug
       });
     }

@@ -10,8 +10,11 @@
           <text class="hero-label">宴席通</text>
           <text class="hero-title">{{ detail.banquet.name }}</text>
         </view>
-        <button v-if="isDraft" class="publish-pill hero-publish" :loading="publishing" @tap="publishBanquet()">发送请柬</button>
-        <text v-else class="status">{{ statusLabel }}</text>
+        <view class="hero-actions">
+          <text v-if="!isDraft" class="status">{{ statusLabel }}</text>
+          <button v-if="isDraft" class="publish-pill hero-publish" :loading="publishing" @tap="publishBanquet()">发送请柬</button>
+          <button v-else class="publish-pill hero-publish" @tap="openInvite()">分享请柬</button>
+        </view>
       </view>
       <view class="hero-meta">
         <text>{{ eventTypeLabel(detail.banquet.eventTypeCode) }}</text>
@@ -28,8 +31,11 @@
         <view class="overview-body">
           <view class="overview-title-row">
             <text class="overview-title">{{ detail.banquet.name }}</text>
-            <button v-if="isDraft" class="overview-publish" :loading="publishing" @tap="publishBanquet()">发送请柬</button>
-            <text v-else class="overview-tag">{{ statusLabel }}</text>
+            <view class="overview-actions">
+              <text v-if="!isDraft" class="overview-tag">{{ statusLabel }}</text>
+              <button v-if="isDraft" class="overview-publish" :loading="publishing" @tap="publishBanquet()">发送请柬</button>
+              <button v-else class="overview-publish" @tap="openInvite()">分享请柬</button>
+            </view>
           </view>
           <view class="overview-meta">
             <text>◷ {{ formatTime(detail.banquet.banquetTime) }}</text>
@@ -888,6 +894,13 @@ onShow(() => {
   font-weight: 800;
 }
 
+.hero-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .publish-pill {
   flex: 0 0 auto;
   height: 66rpx;
@@ -983,6 +996,13 @@ onShow(() => {
   align-items: center;
   justify-content: space-between;
   gap: 14rpx;
+}
+
+.overview-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10rpx;
 }
 
 .overview-title,
