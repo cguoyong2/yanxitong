@@ -79,8 +79,8 @@
       <text class="section-title">分享路径</text>
       <text class="share-url">{{ shareUrl }}</text>
       <view class="share-actions">
-        <view class="ghost-button tap-button" @tap.stop="previewInvite">预览请柬</view>
-        <view class="ghost-button tap-button" @tap.stop="copyShareUrl">复制路径</view>
+        <view class="ghost-button tap-button" @tap.stop="previewInvite" @click.stop="previewInvite">预览请柬</view>
+        <view class="ghost-button tap-button" @tap.stop="copyShareUrl" @click.stop="copyShareUrl">复制路径</view>
       </view>
     </view>
 
@@ -89,12 +89,14 @@
       <text class="share-url">已保存：{{ lastSavedAt }}</text>
     </view>
 
-    <view class="footer-safe"></view>
-    <view class="sticky-submit">
-      <view class="ghost-button compact tap-button" @tap.stop="returnBanquetDetail">返回管理台</view>
-      <view class="ghost-button compact tap-button" :class="{ disabled: submitting }" @tap.stop="saveAndPreview">保存预览</view>
-      <view class="primary-button tap-button" :class="{ disabled: submitting }" @tap.stop="submit">保存请柬</view>
+    <view class="action-card">
+      <view class="action-grid">
+        <view class="ghost-button compact tap-button" @tap.stop="returnBanquetDetail" @click.stop="returnBanquetDetail">返回管理台</view>
+        <view class="ghost-button compact tap-button" :class="{ disabled: submitting }" @tap.stop="saveAndPreview" @click.stop="saveAndPreview">保存预览</view>
+        <view class="primary-button tap-button" :class="{ disabled: submitting }" @tap.stop="submit" @click.stop="submit">保存请柬</view>
+      </view>
     </view>
+    <view class="footer-safe"></view>
 
     <view v-if="textEditor.visible" class="modal-mask" @tap="closeTextEditor">
       <view class="modal-panel" @tap.stop>
@@ -129,6 +131,7 @@ import { readLastBanquetContext, writeLastBanquetContext } from '../../../utils/
 const invitationId = ref('');
 const banquetId = ref('');
 const submitting = ref(false);
+const actionLock = ref('');
 const shareUrl = ref('');
 const lastSavedAt = ref('');
 const eventType = ref(readActiveEventType());
@@ -220,6 +223,9 @@ async function loadInvitation() {
 }
 
 async function submit() {
+  if (!beginAction('submit')) {
+    return false;
+  }
   if (!invitationId.value || !form.title.trim()) {
     uni.showToast({ title: '请填写标题', icon: 'none' });
     return false;
@@ -284,6 +290,9 @@ function confirmTextEditor() {
 }
 
 async function saveAndPreview() {
+  if (!beginAction('saveAndPreview')) {
+    return;
+  }
   if (submitting.value) {
     uni.showToast({ title: '正在保存', icon: 'none' });
     return;
@@ -295,6 +304,9 @@ async function saveAndPreview() {
 }
 
 function copyShareUrl() {
+  if (!beginAction('copyShareUrl')) {
+    return;
+  }
   if (!shareUrl.value) {
     uni.showToast({ title: '暂无分享路径', icon: 'none' });
     return;
@@ -306,6 +318,9 @@ function copyShareUrl() {
 }
 
 function previewInvite() {
+  if (!beginAction('previewInvite')) {
+    return;
+  }
   if (!shareUrl.value) {
     uni.showToast({ title: '暂无分享路径', icon: 'none' });
     return;
@@ -314,6 +329,9 @@ function previewInvite() {
 }
 
 function returnBanquetDetail() {
+  if (!beginAction('returnBanquetDetail')) {
+    return;
+  }
   const targetId = banquetId.value || String(readLastBanquetContext()?.id || '');
   if (!targetId) {
     uni.showToast({ title: '返回上一页', icon: 'none' });
@@ -321,6 +339,19 @@ function returnBanquetDetail() {
     return;
   }
   safeNavigate(`/pages/banquet/detail/index?id=${targetId}`, '宴席管理台打开失败');
+}
+
+function beginAction(name: string) {
+  if (actionLock.value === name) {
+    return false;
+  }
+  actionLock.value = name;
+  setTimeout(() => {
+    if (actionLock.value === name) {
+      actionLock.value = '';
+    }
+  }, 500);
+  return true;
 }
 
 function safeNavigate(url: string, failTitle: string) {
@@ -671,32 +702,33 @@ onMounted(async () => {
 }
 
 .footer-safe {
-  height: 152rpx;
+  height: calc(24rpx + env(safe-area-inset-bottom));
 }
 
-.sticky-submit {
-  position: fixed;
+.action-card {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  border: 1rpx solid #f0dfcf;
+  border-radius: 24rpx;
+  background: #fff;
+  box-shadow: 0 12rpx 32rpx rgba(82, 45, 24, 0.07);
+}
+
+.action-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1.35fr;
   gap: 12rpx;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 20;
-  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
-  background: var(--page-bg);
-  box-shadow: 0 -8rpx 28rpx rgba(72, 45, 24, 0.08);
 }
 
-.sticky-submit .ghost-button,
-.sticky-submit .primary-button {
+.action-grid .ghost-button,
+.action-grid .primary-button {
   height: 84rpx;
   border-radius: 16rpx;
   font-size: 26rpx;
   line-height: 84rpx;
 }
 
-.sticky-submit .compact {
+.action-grid .compact {
   font-size: 24rpx;
 }
 
