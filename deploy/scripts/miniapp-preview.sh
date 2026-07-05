@@ -28,6 +28,9 @@ node "${REPO_ROOT}/deploy/scripts/miniapp-experience-check.mjs"
 log "Running miniapp route check."
 node "${REPO_ROOT}/deploy/scripts/miniapp-route-check.mjs"
 
+log "Running miniapp interaction check."
+node "${REPO_ROOT}/deploy/scripts/miniapp-interaction-check.mjs"
+
 if [[ "${SKIP_BUILD}" == "1" ]]; then
   log "Skipping miniapp build."
 else

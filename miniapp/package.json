@@ -6,6 +6,7 @@
     "dev": "uni -p mp-weixin",
     "build": "uni build -p mp-weixin",
     "check:routes": "node ../deploy/scripts/miniapp-route-check.mjs",
+    "check:interactions": "node ../deploy/scripts/miniapp-interaction-check.mjs",
     "check:experience": "node ../deploy/scripts/miniapp-experience-check.mjs"
   },
   "dependencies": {

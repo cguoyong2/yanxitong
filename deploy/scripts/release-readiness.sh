@@ -39,6 +39,7 @@ write_summary() {
   ADMIN_BUILD_STATUS="${ADMIN_BUILD_STATUS:-not_run}" \
   CONFIRM_SCREEN_BUILD_STATUS="${CONFIRM_SCREEN_BUILD_STATUS:-not_run}" \
   MINIAPP_ROUTE_STATUS="${MINIAPP_ROUTE_STATUS:-not_run}" \
+  MINIAPP_INTERACTION_STATUS="${MINIAPP_INTERACTION_STATUS:-not_run}" \
   MINIAPP_EXPERIENCE_STATUS="${MINIAPP_EXPERIENCE_STATUS:-not_run}" \
   MINIAPP_BUILD_STATUS="${MINIAPP_BUILD_STATUS:-not_run}" \
   READINESS_STATUS="${READINESS_STATUS:-not_checked}" \
@@ -96,6 +97,11 @@ const summary = {
       log: path.join(artifactsRoot, 'miniapp-route-check.log'),
       tail: tail(path.join(artifactsRoot, 'miniapp-route-check.log'))
     },
+    miniappInteractionCheck: {
+      status: process.env.MINIAPP_INTERACTION_STATUS,
+      log: path.join(artifactsRoot, 'miniapp-interaction-check.log'),
+      tail: tail(path.join(artifactsRoot, 'miniapp-interaction-check.log'))
+    },
     miniappExperienceCheck: {
       status: process.env.MINIAPP_EXPERIENCE_STATUS,
       log: path.join(artifactsRoot, 'miniapp-experience-check.log'),
@@ -148,6 +154,7 @@ CONFIRM_SCREEN_BUILD_STATUS="passed"
 
 if [[ "${SKIP_MINIAPP_BUILD}" == "1" ]]; then
   MINIAPP_ROUTE_STATUS="skipped"
+  MINIAPP_INTERACTION_STATUS="skipped"
   MINIAPP_EXPERIENCE_STATUS="skipped"
   MINIAPP_BUILD_STATUS="skipped"
   log "Skipping miniapp route check, experience check and build."
@@ -155,6 +162,10 @@ else
   MINIAPP_ROUTE_STATUS="running"
   run_step miniapp-route-check node "${REPO_ROOT}/deploy/scripts/miniapp-route-check.mjs"
   MINIAPP_ROUTE_STATUS="passed"
+
+  MINIAPP_INTERACTION_STATUS="running"
+  run_step miniapp-interaction-check node "${REPO_ROOT}/deploy/scripts/miniapp-interaction-check.mjs"
+  MINIAPP_INTERACTION_STATUS="passed"
 
   MINIAPP_EXPERIENCE_STATUS="running"
   run_step miniapp-experience-check node "${REPO_ROOT}/deploy/scripts/miniapp-experience-check.mjs"
