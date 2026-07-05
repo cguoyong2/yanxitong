@@ -82,6 +82,20 @@
             <text class="order-title">{{ item.title }}</text>
           </view>
         </view>
+        <view class="order-state-strip">
+          <view>
+            <text class="state-value">{{ latestPlanName }}</text>
+            <text class="state-label">当前版本</text>
+          </view>
+          <view>
+            <text class="state-value">{{ deviceOrderRows.length }}</text>
+            <text class="state-label">设备订单</text>
+          </view>
+          <view>
+            <text class="state-value" :class="{ warn: pendingCount > 0 }">{{ pendingCount }}</text>
+            <text class="state-label">待支付</text>
+          </view>
+        </view>
         <view class="recent-orders">
           <view v-if="orderLoading" class="order-empty">正在同步最近订单</view>
           <view v-else-if="recentOrderRows.length === 0" class="order-empty">
@@ -195,9 +209,16 @@ interface DeviceOrder {
   updatedAt?: string;
 }
 
+interface Entitlements {
+  currentPlan?: {
+    name: string;
+  };
+}
+
 const banquetCount = ref(0);
 const invitationCount = ref(0);
 const pendingCount = ref(0);
+const latestPlanName = ref('基础版');
 const latestBanquetId = ref(0);
 const latestInvitationSlug = ref('');
 const bannerIndex = ref(0);
@@ -419,10 +440,12 @@ async function loadOrderSummary() {
   }
   orderLoading.value = true;
   try {
-    const [planRows, deviceRows] = await Promise.all([
+    const [entitlements, planRows, deviceRows] = await Promise.all([
+      request<Entitlements>(`/plans/banquets/${latestBanquetId.value}/entitlements`).catch(() => ({ currentPlan: { name: '基础版' } })),
       request<PlanOrder[]>(`/plans/orders?banquetId=${latestBanquetId.value}`).catch(() => cachedPlanOrders()),
       request<DeviceOrder[]>(`/devices/orders?banquetId=${latestBanquetId.value}`).catch(() => cachedDeviceOrders())
     ]);
+    latestPlanName.value = entitlements.currentPlan?.name || '基础版';
     planOrderRows.value = mergeByOrderNo(planRows, cachedPlanOrders());
     deviceOrderRows.value = mergeByOrderNo(deviceRows, cachedDeviceOrders());
     pendingCount.value = [...planOrderRows.value, ...deviceOrderRows.value].filter((item) => item.payStatus !== 'PAID').length;
@@ -965,6 +988,44 @@ button::after {
   margin-top: 12rpx;
   color: #171923;
   font-size: 23rpx;
+}
+
+.order-state-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12rpx;
+  margin-top: 18rpx;
+  padding: 16rpx;
+  border-radius: 16rpx;
+  background: linear-gradient(90deg, var(--accent-soft), #fff);
+}
+
+.order-state-strip view {
+  text-align: center;
+}
+
+.state-value,
+.state-label {
+  display: block;
+}
+
+.state-value {
+  overflow: hidden;
+  color: var(--accent);
+  font-size: 25rpx;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.state-value.warn {
+  color: #d97706;
+}
+
+.state-label {
+  margin-top: 6rpx;
+  color: #8a7768;
+  font-size: 21rpx;
 }
 
 .recent-orders {

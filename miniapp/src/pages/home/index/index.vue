@@ -92,6 +92,11 @@
                 <text>{{ latestBanquet.location || '地点待定' }}</text>
               </view>
               <text class="status">{{ statusLabel(latestBanquet.status) }}</text>
+              <view class="state-row">
+                <text>{{ latestPlanName }}</text>
+                <text>{{ latestDeviceOrderCount }} 设备单</text>
+                <text :class="{ warn: latestPendingOrderCount > 0 }">{{ latestPendingOrderCount }} 待支付</text>
+              </view>
             </view>
             <view class="banquet-stats">
               <text class="stats-label">已回执</text>
@@ -191,6 +196,20 @@ interface GiftSummary {
   totalAmount: number;
 }
 
+interface Entitlements {
+  currentPlan?: {
+    name: string;
+  };
+}
+
+interface PlanOrder {
+  payStatus: string;
+}
+
+interface DeviceOrder {
+  payStatus: string;
+}
+
 const eventTypes = EVENT_THEMES;
 const guides = [
   { title: '办席流程', desc: '了解完整办席步骤', icon: '▰', tone: 'red', action: 'create' },
@@ -201,6 +220,9 @@ const guides = [
 const banquets = ref<Banquet[]>([]);
 const latestRsvpGuests = ref(0);
 const latestGiftAmount = ref(0);
+const latestPlanName = ref('基础版');
+const latestDeviceOrderCount = ref(0);
+const latestPendingOrderCount = ref(0);
 const loading = ref(false);
 const activeType = ref(readActiveEventType());
 const bannerIndex = ref(0);
@@ -269,16 +291,25 @@ async function refresh() {
 async function loadLatestStats() {
   latestRsvpGuests.value = 0;
   latestGiftAmount.value = 0;
+  latestPlanName.value = '基础版';
+  latestDeviceOrderCount.value = 0;
+  latestPendingOrderCount.value = 0;
   const id = banquets.value[0]?.id;
   if (!id) {
     return;
   }
-  const [rsvp, gifts] = await Promise.all([
+  const [rsvp, gifts, entitlements, planOrders, deviceOrders] = await Promise.all([
     request<RsvpStats>(`/rsvp/stats?banquetId=${id}`).catch(() => ({ totalGuests: 0 })),
-    request<GiftSummary>(`/gifts/summary?banquetId=${id}`).catch(() => ({ totalAmount: 0 }))
+    request<GiftSummary>(`/gifts/summary?banquetId=${id}`).catch(() => ({ totalAmount: 0 })),
+    request<Entitlements>(`/plans/banquets/${id}/entitlements`).catch(() => ({ currentPlan: { name: '基础版' } })),
+    request<PlanOrder[]>(`/plans/orders?banquetId=${id}`).catch(() => []),
+    request<DeviceOrder[]>(`/devices/orders?banquetId=${id}`).catch(() => [])
   ]);
   latestRsvpGuests.value = Number(rsvp.totalGuests || 0);
   latestGiftAmount.value = Number(gifts.totalAmount || 0);
+  latestPlanName.value = entitlements.currentPlan?.name || '基础版';
+  latestDeviceOrderCount.value = deviceOrders.length;
+  latestPendingOrderCount.value = [...planOrders, ...deviceOrders].filter((item) => item.payStatus !== 'PAID').length;
 }
 
 function selectType(code: string) {
@@ -938,6 +969,27 @@ onShow(() => {
   color: var(--accent);
   font-size: 21rpx;
   font-weight: 700;
+}
+
+.state-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 10rpx;
+}
+
+.state-row text {
+  padding: 5rpx 10rpx;
+  border-radius: 999rpx;
+  background: #fff8f1;
+  color: #8b6a54;
+  font-size: 20rpx;
+  font-weight: 800;
+}
+
+.state-row .warn {
+  background: #fff1e6;
+  color: #b45309;
 }
 
 .banquet-stats {

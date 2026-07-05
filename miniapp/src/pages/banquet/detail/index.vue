@@ -153,8 +153,16 @@
             <text class="right-value">{{ entitlements.currentPlan?.name || '基础版' }}</text>
           </view>
           <view class="right-row">
+            <text class="right-name">版本订单</text>
+            <text class="right-value" :class="{ ok: planPaidCount > 0, warn: planPendingCount > 0 }">{{ orderSummary(planOrders) }}</text>
+          </view>
+          <view class="right-row">
             <text class="right-name">设备租赁</text>
             <text class="right-value" :class="{ ok: hasDeviceRight }">{{ hasDeviceRight ? '已开通' : '未开通' }}</text>
+          </view>
+          <view class="right-row">
+            <text class="right-name">设备订单</text>
+            <text class="right-value" :class="{ ok: devicePaidCount > 0, warn: devicePendingCount > 0 }">{{ orderSummary(deviceOrders) }}</text>
           </view>
           <view class="right-row">
             <text class="right-name">Excel 导出</text>
@@ -234,6 +242,11 @@ interface DeviceOrder {
   orderStatus: string;
 }
 
+interface PlanOrder {
+  orderNo: string;
+  payStatus: string;
+}
+
 interface FavorContact {
   contactId: number;
   contactName: string;
@@ -250,6 +263,7 @@ const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const rsvpStats = ref<RsvpStats>();
 const giftSummary = ref<GiftSummary>();
 const deviceOrders = ref<DeviceOrder[]>([]);
+const planOrders = ref<PlanOrder[]>([]);
 const favorContacts = ref<FavorContact[]>([]);
 const entitlements = reactive<Entitlements>({
   rightValues: {}
@@ -290,7 +304,10 @@ const progressItems = computed(() => [
   }
 ]);
 const favorBalance = computed(() => favorContacts.value.reduce((total, contact) => total + Number(contact.balance || 0), 0));
+const planPaidCount = computed(() => planOrders.value.filter((order) => order.payStatus === 'PAID').length);
+const planPendingCount = computed(() => planOrders.value.filter((order) => order.payStatus !== 'PAID').length);
 const devicePaidCount = computed(() => deviceOrders.value.filter((order) => order.payStatus === 'PAID').length);
+const devicePendingCount = computed(() => deviceOrders.value.filter((order) => order.payStatus !== 'PAID').length);
 const dashboardItems = computed(() => [
   {
     title: '回执',
@@ -397,12 +414,13 @@ const invitationShareUrl = computed(() => {
 async function load(id: string) {
   currentBanquetId.value = id;
   pageState.value = 'loading';
-  const [runtimeFeatures, banquetDetail, result, rsvp, gifts, devices, favors] = await Promise.all([
+  const [runtimeFeatures, banquetDetail, result, rsvp, gifts, plans, devices, favors] = await Promise.all([
     loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
     request<BanquetDetail>(`/banquets/${id}`),
     request<Entitlements>(`/plans/banquets/${id}/entitlements`),
     request<RsvpStats>(`/rsvp/stats?banquetId=${id}`).catch(() => ({ totalGuests: 0 })),
     request<GiftSummary>(`/gifts/summary?banquetId=${id}`).catch(() => ({ totalAmount: 0 })),
+    request<PlanOrder[]>(`/plans/orders?banquetId=${id}`).catch(() => []),
     request<DeviceOrder[]>(`/devices/orders?banquetId=${id}`).catch(() => []),
     request<FavorContact[]>(`/favor/contacts?banquetId=${id}`).catch(() => [])
   ]);
@@ -425,6 +443,7 @@ async function load(id: string) {
   entitlements.paidPlanActive = result.paidPlanActive;
   rsvpStats.value = rsvp;
   giftSummary.value = gifts;
+  planOrders.value = plans;
   deviceOrders.value = devices;
   favorContacts.value = favors;
   pageState.value = 'ready';
@@ -464,6 +483,18 @@ function signedMoney(value: unknown) {
     return `-${formatMoney(Math.abs(amount))}`;
   }
   return formatMoney(0);
+}
+
+function orderSummary(orders: Array<{ payStatus: string }>) {
+  if (!orders.length) {
+    return '暂无订单';
+  }
+  const paid = orders.filter((order) => order.payStatus === 'PAID').length;
+  const pending = orders.length - paid;
+  if (pending > 0) {
+    return `${orders.length} 单 · ${pending} 待支付`;
+  }
+  return `${orders.length} 单 · 已支付`;
 }
 
 function handleAction(action: string) {
@@ -1516,6 +1547,10 @@ button::after {
 
 .right-value.ok {
   color: #36b96a;
+}
+
+.right-value.warn {
+  color: #d97706;
 }
 
 .copy-text {
