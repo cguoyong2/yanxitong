@@ -40,17 +40,21 @@
     <view class="section-card">
       <view class="section-head">
         <text class="section-title">邀请文案</text>
-        <button class="inline-button" @tap="applyThemeCopy">套用推荐</button>
+        <view class="inline-button tap-button" @tap.stop="applyThemeCopy">套用推荐</view>
       </view>
-      <textarea v-model="form.greeting" class="textarea" placeholder="欢迎语" placeholder-class="placeholder" />
+      <view class="text-preview" :class="{ empty: !form.greeting }" @tap.stop="openTextEditor('greeting')">
+        <text>{{ form.greeting || '点击填写欢迎语' }}</text>
+      </view>
     </view>
 
     <view class="section-card">
       <view class="section-head">
         <text class="section-title">宴席流程</text>
-        <button class="inline-button" @tap="applyDefaultSchedule">填入流程</button>
+        <view class="inline-button tap-button" @tap.stop="applyDefaultSchedule">填入流程</view>
       </view>
-      <textarea v-model="form.scheduleText" class="textarea tall" placeholder="每行一个节点，如：17:30 签到" placeholder-class="placeholder" />
+      <view class="text-preview tall" :class="{ empty: !form.scheduleText }" @tap.stop="openTextEditor('scheduleText')">
+        <text>{{ form.scheduleText || '点击填写流程，每行一个节点，如：17:30 签到' }}</text>
+      </view>
     </view>
 
     <view class="section-card">
@@ -90,6 +94,28 @@
       <view class="ghost-button compact tap-button" @tap.stop="returnBanquetDetail">返回管理台</view>
       <view class="ghost-button compact tap-button" :class="{ disabled: submitting }" @tap.stop="saveAndPreview">保存预览</view>
       <view class="primary-button tap-button" :class="{ disabled: submitting }" @tap.stop="submit">保存请柬</view>
+    </view>
+
+    <view v-if="textEditor.visible" class="modal-mask" @tap="closeTextEditor">
+      <view class="modal-panel" @tap.stop>
+        <view class="modal-head">
+          <text class="modal-title">{{ textEditor.field === 'greeting' ? '编辑邀请文案' : '编辑宴席流程' }}</text>
+          <text class="modal-close" @tap="closeTextEditor">×</text>
+        </view>
+        <textarea
+          v-model="textEditor.value"
+          class="modal-textarea"
+          :placeholder="textEditor.field === 'greeting' ? '请输入欢迎语' : '每行一个节点，如：17:30 签到'"
+          placeholder-class="placeholder"
+          :adjust-position="false"
+          :show-confirm-bar="false"
+          :disable-default-padding="true"
+        />
+        <view class="modal-actions">
+          <view class="ghost-button tap-button" @tap.stop="closeTextEditor">取消</view>
+          <view class="primary-button tap-button" @tap.stop="confirmTextEditor">确认填入</view>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -141,6 +167,11 @@ const form = reactive({
   scheduleText: '',
   showGiftEntry: true,
   showDeviceEntry: true
+});
+const textEditor = reactive({
+  visible: false,
+  field: 'greeting' as 'greeting' | 'scheduleText',
+  value: ''
 });
 
 interface InvitationDetail {
@@ -234,6 +265,22 @@ function applyThemeCopy() {
 function applyDefaultSchedule() {
   form.scheduleText = defaultSchedule.value;
   uni.showToast({ title: '已填入默认流程', icon: 'success' });
+}
+
+function openTextEditor(field: 'greeting' | 'scheduleText') {
+  textEditor.field = field;
+  textEditor.value = form[field];
+  textEditor.visible = true;
+}
+
+function closeTextEditor() {
+  textEditor.visible = false;
+}
+
+function confirmTextEditor() {
+  form[textEditor.field] = textEditor.value.trim();
+  textEditor.visible = false;
+  uni.showToast({ title: '已填入', icon: 'success' });
 }
 
 async function saveAndPreview() {
@@ -516,6 +563,7 @@ onMounted(async () => {
 }
 
 .inline-button {
+  box-sizing: border-box;
   flex: 0 0 auto;
   height: 58rpx;
   margin: 0;
@@ -527,13 +575,14 @@ onMounted(async () => {
   font-size: 24rpx;
   font-weight: 900;
   line-height: 58rpx;
+  text-align: center;
 }
 
 .inline-button::after {
   border: 0;
 }
 
-.textarea {
+.text-preview {
   box-sizing: border-box;
   width: 100%;
   min-height: 170rpx;
@@ -544,9 +593,14 @@ onMounted(async () => {
   color: #171c2a;
   font-size: 27rpx;
   line-height: 1.55;
+  white-space: pre-wrap;
 }
 
-.textarea.tall {
+.text-preview.empty {
+  color: #9aa0aa;
+}
+
+.text-preview.tall {
   min-height: 220rpx;
 }
 
@@ -662,5 +716,69 @@ onMounted(async () => {
 .primary-button::after,
 .ghost-button::after {
   border: 0;
+}
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  padding: 24rpx;
+  background: rgba(0, 0, 0, 0.42);
+  box-sizing: border-box;
+}
+
+.modal-panel {
+  width: 100%;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.modal-title {
+  color: #171c2a;
+  font-size: 32rpx;
+  font-weight: 900;
+}
+
+.modal-close {
+  width: 54rpx;
+  height: 54rpx;
+  border-radius: 50%;
+  background: #f4f0ec;
+  color: #7b5a45;
+  font-size: 36rpx;
+  font-weight: 800;
+  line-height: 50rpx;
+  text-align: center;
+}
+
+.modal-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  height: 320rpx;
+  padding: 22rpx;
+  border: 1rpx solid #ead8ca;
+  border-radius: 18rpx;
+  background: #fffdfb;
+  color: #171c2a;
+  font-size: 27rpx;
+  line-height: 1.55;
+}
+
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 16rpx;
+  margin-top: 22rpx;
 }
 </style>
