@@ -17,7 +17,7 @@
       <div class="context-actions">
         <el-button v-if="isBanquetContext" @click="goBanquet(Number(filters.targetId))">返回宴席工作台</el-button>
         <el-button v-if="isBanquetContext" @click="goBusiness">业务数据</el-button>
-        <el-button v-if="isBanquetContext" @click="goPayments">支付排障</el-button>
+        <el-button v-if="isPaymentContext || isBanquetContext" @click="goPayments">支付排障</el-button>
         <el-button @click="goBroadcastByContext">播报日志</el-button>
         <el-button @click="clearContext">清除筛选</el-button>
       </div>
@@ -79,6 +79,7 @@
         <template #default="{ row }">
           <el-button v-if="row.targetType === 'banquet'" link type="primary" @click="goBanquet(row.targetId)">宴席视图</el-button>
           <el-button v-if="row.targetType === 'banquet'" link type="primary" @click="goBusiness(row.targetId)">业务</el-button>
+          <el-button v-if="row.module === 'PAYMENT'" link type="primary" @click="goPaymentTroubleshoot(row)">支付排障</el-button>
           <el-button v-if="row.module === 'GIFT' || row.module === 'PAYMENT'" link type="primary" @click="goBroadcast(row)">播报</el-button>
         </template>
       </el-table-column>
@@ -123,6 +124,7 @@ const systemCount = computed(() => rows.value.filter((row) => row.operatorType =
 const adminCount = computed(() => rows.value.filter((row) => row.operatorType === 'ADMIN').length);
 const hasContext = computed(() => Boolean(filters.targetType || filters.targetId || filters.module || filters.action));
 const isBanquetContext = computed(() => filters.targetType === 'banquet' && Boolean(filters.targetId));
+const isPaymentContext = computed(() => ['payment_order', 'payment_callback_log'].includes(filters.targetType) || filters.module === 'PAYMENT');
 const contextTitle = computed(() => {
   if (filters.targetType && filters.targetId) {
     return `${displayLabel(filters.targetType)} ${filters.targetId}`;
@@ -209,10 +211,23 @@ async function goBusiness(targetId?: number) {
 }
 
 async function goPayments() {
-  if (!isBanquetContext.value) {
+  if (isBanquetContext.value) {
+    await router.push({ path: '/payments', query: { banquetId: filters.targetId, tab: 'orders' } });
     return;
   }
-  await router.push({ path: '/payments', query: { banquetId: filters.targetId, tab: 'orders' } });
+  if (filters.targetType === 'payment_callback_log') {
+    await router.push({ path: '/payments', query: { tab: 'callbacks' } });
+    return;
+  }
+  await router.push({ path: '/payments', query: { tab: 'orders' } });
+}
+
+async function goPaymentTroubleshoot(row: OperationLog) {
+  if (row.targetType === 'payment_callback_log') {
+    await router.push({ path: '/payments', query: { tab: 'callbacks' } });
+    return;
+  }
+  await router.push({ path: '/payments', query: { tab: 'orders' } });
 }
 
 async function goBroadcastByContext() {

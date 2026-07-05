@@ -12,6 +12,7 @@
       </div>
       <div class="context-actions">
         <el-button @click="goBanquet(Number(filters.banquetId))">返回宴席工作台</el-button>
+        <el-button @click="goPayments(Number(filters.banquetId))">支付排障</el-button>
         <el-button @click="goOperationLog('banquet', Number(filters.banquetId))">查看日志</el-button>
         <el-button @click="clearContext">清除筛选</el-button>
       </div>
@@ -75,6 +76,7 @@
             <template #default="{ row }">
               <el-button v-if="features.mockPaymentEnabled && row.payStatus !== 'PAID'" link type="primary" @click="mockPlanPay(row.orderNo as string)">模拟支付</el-button>
               <el-button link type="primary" @click="goBanquet(row.banquetId as number)">宴席视图</el-button>
+              <el-button link type="primary" @click="goPayments(row.banquetId as number)">支付排障</el-button>
               <el-button link type="primary" @click="goOperationLog('plan_order', row.id as number)">日志</el-button>
             </template>
           </el-table-column>
@@ -134,6 +136,7 @@
               <el-button v-if="row.payStatus === 'PAID' && row.orderStatus !== 'DELIVERED'" link type="success" @click="updateDeviceStatus(row.orderNo as string, 'DELIVERED')">已交付</el-button>
               <el-button v-if="row.orderStatus !== 'CANCELLED' && row.orderStatus !== 'DELIVERED'" link type="danger" @click="updateDeviceStatus(row.orderNo as string, 'CANCELLED')">取消</el-button>
               <el-button link type="primary" @click="goBanquet(row.banquetId as number)">宴席视图</el-button>
+              <el-button link type="primary" @click="goPayments(row.banquetId as number)">支付排障</el-button>
               <el-button link type="primary" @click="goOperationLog('device_order', row.id as number)">日志</el-button>
             </template>
           </el-table-column>
@@ -292,6 +295,10 @@ async function goBanquet(banquetId: number) {
 
 async function goOperationLog(targetType: string, targetId: number) {
   await router.push({ path: '/operation-logs', query: { targetType, targetId } });
+}
+
+async function goPayments(banquetId: number) {
+  await router.push({ path: '/payments', query: { banquetId, tab: 'orders' } });
 }
 
 function syncOrderQuery() {

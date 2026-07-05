@@ -21,7 +21,13 @@ const sourceAssertions = [
   ['admin/src/views/orders/OrdersView.vue', 'planOrderNextStep', 'plan orders show operational next step'],
   ['admin/src/views/orders/OrdersView.vue', 'deviceOrderNextStep', 'device orders show operational next step'],
   ['admin/src/views/orders/OrdersView.vue', "updateDeviceStatus(row.orderNo as string, 'CONFIRMED')", 'paid device orders can be confirmed by admin'],
-  ['admin/src/views/orders/OrdersView.vue', '设备订单已更新为', 'device status update has clear admin feedback']
+  ['admin/src/views/orders/OrdersView.vue', '设备订单已更新为', 'device status update has clear admin feedback'],
+  ['admin/src/views/orders/OrdersView.vue', 'goPayments(row.banquetId as number)', 'orders page links order rows to payment troubleshooting'],
+  ['admin/src/views/payments/PaymentsView.vue', 'paymentOrderAdvice', 'payment orders show troubleshooting advice'],
+  ['admin/src/views/payments/PaymentsView.vue', 'goOrderCenter(row)', 'payment orders link back to order center'],
+  ['admin/src/views/payments/PaymentsView.vue', 'goPaymentOrderLog(row)', 'callback rows link to payment operation logs'],
+  ['admin/src/views/operation-logs/OperationLogsView.vue', 'isPaymentContext', 'operation logs recognize payment troubleshooting context'],
+  ['admin/src/views/operation-logs/OperationLogsView.vue', 'goPaymentTroubleshoot(row)', 'operation log rows link back to payment troubleshooting']
 ];
 
 const routes = [

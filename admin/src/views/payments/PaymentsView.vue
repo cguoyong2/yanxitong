@@ -222,6 +222,9 @@
           <el-table-column label="状态" width="110">
             <template #default="{ row }"><el-tag :type="tagType(row.payStatus)">{{ displayLabel(row.payStatus) }}</el-tag></template>
           </el-table-column>
+          <el-table-column label="排障建议" min-width="260">
+            <template #default="{ row }">{{ paymentOrderAdvice(row) }}</template>
+          </el-table-column>
           <el-table-column prop="providerTradeNo" label="机构交易号" min-width="180" />
           <el-table-column prop="prepayId" label="预支付ID" min-width="180" show-overflow-tooltip />
           <el-table-column label="创建时间" min-width="170">
@@ -230,6 +233,7 @@
           <el-table-column label="操作" width="210" fixed="right">
             <template #default="{ row }">
               <el-button v-if="row.banquetId" link type="primary" @click="goBanquet(row.banquetId as number)">宴席视图</el-button>
+              <el-button v-if="row.banquetId" link type="primary" @click="goOrderCenter(row)">订单中心</el-button>
               <el-button link type="primary" @click="goOperationLog('payment_order', row.id as number)">日志</el-button>
               <el-button link type="primary" @click="goBroadcast()">播报</el-button>
               <el-button
@@ -319,6 +323,9 @@
           </el-table-column>
           <el-table-column prop="errorMessage" label="异常" min-width="220" show-overflow-tooltip />
           <el-table-column prop="handleRemark" label="处理备注" min-width="180" show-overflow-tooltip />
+          <el-table-column label="排障建议" min-width="240">
+            <template #default="{ row }">{{ callbackAdvice(row).detail }}</template>
+          </el-table-column>
           <el-table-column label="创建时间" min-width="170">
             <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
           </el-table-column>
@@ -326,6 +333,7 @@
             <template #default="{ row }">
               <el-button link type="primary" @click="openCallback(row)">详情</el-button>
               <el-button link type="primary" @click="focusOrder(row.orderNo as string)">订单</el-button>
+              <el-button link type="primary" @click="goPaymentOrderLog(row)">订单日志</el-button>
               <el-button link type="primary" @click="goOperationLog('payment_callback_log', row.id as number)">日志</el-button>
               <el-button
                 v-if="row.processStatus === 'FAILED'"
@@ -607,8 +615,27 @@ async function goOperationLog(targetType: string, targetId: number) {
   await router.push({ path: '/operation-logs', query: { targetType, targetId } });
 }
 
+async function goPaymentOrderLog(row: Record<string, unknown>) {
+  if (!row.orderNo) {
+    await router.push({ path: '/operation-logs', query: { module: 'PAYMENT' } });
+    return;
+  }
+  await router.push({ path: '/operation-logs', query: { module: 'PAYMENT', keyword: String(row.orderNo) } });
+}
+
 async function goBroadcast() {
   await router.push({ path: '/broadcast-logs' });
+}
+
+async function goOrderCenter(row: Record<string, unknown>) {
+  const query: Record<string, string> = {};
+  if (row.banquetId) {
+    query.banquetId = String(row.banquetId);
+  }
+  if (row.payStatus) {
+    query.payStatus = String(row.payStatus);
+  }
+  await router.push({ path: '/orders', query });
 }
 
 async function goBusiness() {
@@ -691,6 +718,19 @@ function callbackAdvice(row: Record<string, unknown>) {
     detail: '修复根因后重试；已外部处理则标记已处理，非业务回调可忽略。',
     type: 'primary' as const
   };
+}
+
+function paymentOrderAdvice(row: Record<string, unknown>) {
+  if (row.payStatus === 'PAID') {
+    if (!row.providerTradeNo) {
+      return '已支付但缺少机构交易号，建议查看回调详情并补齐支付凭证。';
+    }
+    return '已支付，可核对礼金记录、人情账本和确认屏/云喇叭播报是否完成。';
+  }
+  if (row.providerTradeNo) {
+    return '未支付但已有机构交易号，建议先查回调与支付机构后台，再决定人工核销。';
+  }
+  return '待支付，若用户已付款但状态未变，请先查回调异常，再人工核销或重试回调。';
 }
 
 onMounted(load);
