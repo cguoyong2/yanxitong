@@ -67,9 +67,10 @@
         <text class="empty-title">还没有设备订单</text>
         <text class="empty-desc">选择下方确认屏或云喇叭后，会在这里显示订单、租用时间、交付方式和支付状态。</text>
       </view>
-      <view v-for="order in orders" :key="order.orderNo" class="order-row">
+      <view v-for="order in orders" :key="order.orderNo" class="order-row" :class="{ highlight: isHighlightedOrder(order.orderNo) }">
         <view class="order-main">
           <text class="order-title">{{ deviceTypeLabel(order.deviceType) }}</text>
+          <text v-if="isHighlightedOrder(order.orderNo)" class="order-highlight">当前查看的订单</text>
           <text class="order-meta">{{ order.orderNo }}</text>
           <text class="order-meta">{{ formatRentWindow(order) }}</text>
           <text class="order-meta">{{ deliveryLabel(order.deliveryMethod) }} · {{ formatTime(order.createdAt) }}</text>
@@ -174,6 +175,7 @@ const submittingId = ref<number>();
 const payingOrderNo = ref('');
 const loadingOrders = ref(false);
 const lastOrderText = ref('');
+const highlightOrderNo = ref('');
 const eventType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(eventType.value));
 const entitlements = reactive<Entitlements>({
@@ -210,7 +212,8 @@ async function loadOrders() {
   }
   loadingOrders.value = true;
   try {
-    orders.value = await request<DeviceOrder[]>(`/devices/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
+    const remoteOrders = await request<DeviceOrder[]>(`/devices/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
+    orders.value = prioritizeHighlightedOrders(mergeOrders(remoteOrders, cachedOrders()));
   } finally {
     loadingOrders.value = false;
   }
@@ -240,7 +243,8 @@ async function createOrder(config: DeviceConfig) {
         rentEndAt: toLocalDateTime(rentDate.value, rentEndTime.value)
       }
     });
-    orders.value = [order, ...orders.value.filter((item) => item.orderNo !== order.orderNo)];
+    highlightOrderNo.value = order.orderNo;
+    orders.value = prioritizeHighlightedOrders([order, ...orders.value.filter((item) => item.orderNo !== order.orderNo)]);
     cacheOrder(order);
     lastOrderText.value = `${deviceTypeLabel(order.deviceType)} · ${formatRentWindow(order)} · ${deliveryLabel(order.deliveryMethod)}`;
     uni.showToast({ title: '设备订单已创建', icon: 'success' });
@@ -296,6 +300,25 @@ function clearCachedOrder(orderNo: string) {
 
 function deviceOrderCacheKey() {
   return `device-order:${banquetId.value}`;
+}
+
+function mergeOrders(primary: DeviceOrder[], fallback: DeviceOrder[]) {
+  const byOrderNo = new Map<string, DeviceOrder>();
+  for (const item of [...primary, ...fallback]) {
+    byOrderNo.set(item.orderNo, item);
+  }
+  return Array.from(byOrderNo.values()).sort((a, b) => String(b.createdAt || b.orderNo).localeCompare(String(a.createdAt || a.orderNo)));
+}
+
+function prioritizeHighlightedOrders(nextOrders: DeviceOrder[]) {
+  if (!highlightOrderNo.value) {
+    return nextOrders;
+  }
+  return [...nextOrders].sort((a, b) => Number(isHighlightedOrder(b.orderNo)) - Number(isHighlightedOrder(a.orderNo)));
+}
+
+function isHighlightedOrder(orderNo: string) {
+  return Boolean(highlightOrderNo.value && orderNo === highlightOrderNo.value);
 }
 
 function validateRentWindow() {
@@ -408,6 +431,7 @@ onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
   banquetId.value = await resolveBanquetId(current.options?.banquetId);
+  highlightOrderNo.value = current.options?.highlightOrderNo ? decodeURIComponent(current.options.highlightOrderNo) : '';
   if (!banquetId.value) {
     requireBanquetToast();
   } else {
@@ -746,6 +770,14 @@ onMounted(async () => {
   border-bottom: 1rpx solid #f0dfcf;
 }
 
+.order-row.highlight {
+  margin: 14rpx 0;
+  padding: 22rpx;
+  border: 2rpx solid var(--accent);
+  border-radius: 18rpx;
+  background: linear-gradient(90deg, var(--accent-soft), #fff);
+}
+
 .order-empty {
   padding: 30rpx 24rpx;
   border: 1rpx dashed #ead8ca;
@@ -795,6 +827,17 @@ onMounted(async () => {
   font-size: 23rpx;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.order-highlight {
+  display: inline-block;
+  margin-top: 8rpx;
+  padding: 5rpx 10rpx;
+  border-radius: 999rpx;
+  background: var(--accent);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 900;
 }
 
 .order-side {

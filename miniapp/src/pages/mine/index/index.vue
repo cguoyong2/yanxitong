@@ -93,7 +93,7 @@
               v-for="item in recentOrderRows"
               :key="item.key"
               class="recent-order-row"
-              @tap="handleAction(item.action)"
+              @tap="openRecentOrder(item)"
             >
               <view class="recent-order-main">
                 <text class="recent-order-title">{{ item.title }}</text>
@@ -248,6 +248,7 @@ const recentOrderRows = computed(() => {
     status: payStatusLabel(order.payStatus),
     paid: order.payStatus === 'PAID',
     action: 'plan',
+    highlightOrderNo: order.orderNo,
     sortAt: order.updatedAt || order.createdAt || order.orderNo
   }));
   const deviceRows = deviceOrderRows.value.map((order) => ({
@@ -259,6 +260,7 @@ const recentOrderRows = computed(() => {
     status: `${payStatusLabel(order.payStatus)} · ${deviceStatusLabel(order.orderStatus)}`,
     paid: order.payStatus === 'PAID',
     action: 'device',
+    highlightOrderNo: order.orderNo,
     sortAt: order.updatedAt || order.createdAt || order.orderNo
   }));
   return [...planRows, ...deviceRows]
@@ -298,6 +300,18 @@ function handleBanner(action: string) {
   handleAction(action);
 }
 
+function openRecentOrder(item: { action: string; highlightOrderNo: string }) {
+  if (item.action === 'plan') {
+    openPlanOrders(item.highlightOrderNo);
+    return;
+  }
+  if (item.action === 'device') {
+    openDeviceOrders(item.highlightOrderNo);
+    return;
+  }
+  handleAction(item.action);
+}
+
 function openLatestBanquet() {
   if (latestBanquetId.value) {
     safeNavigate(`/pages/banquet/detail/index?id=${latestBanquetId.value}`, '宴席详情打开失败');
@@ -322,13 +336,27 @@ function openGiftRecords() {
   safeNavigate(`/pages/gift/list/index?banquetId=${latestBanquetId.value}`, `${activeTheme.value.giftRecordLabel}打开失败`);
 }
 
-function openPlanOrders() {
-  const query = latestBanquetId.value ? `?banquetId=${latestBanquetId.value}` : '';
+function openPlanOrders(highlightOrderNo = '') {
+  const params = [];
+  if (latestBanquetId.value) {
+    params.push(`banquetId=${latestBanquetId.value}`);
+  }
+  if (highlightOrderNo) {
+    params.push(`highlightOrderNo=${encodeURIComponent(highlightOrderNo)}`);
+  }
+  const query = params.length ? `?${params.join('&')}` : '';
   safeNavigate(`/pages/order/plan/index${query}`, '版本订单打开失败');
 }
 
-function openDeviceOrders() {
-  const query = latestBanquetId.value ? `?banquetId=${latestBanquetId.value}` : '';
+function openDeviceOrders(highlightOrderNo = '') {
+  const params = [];
+  if (latestBanquetId.value) {
+    params.push(`banquetId=${latestBanquetId.value}`);
+  }
+  if (highlightOrderNo) {
+    params.push(`highlightOrderNo=${encodeURIComponent(highlightOrderNo)}`);
+  }
+  const query = params.length ? `?${params.join('&')}` : '';
   safeNavigate(`/pages/device/select/index${query}`, '设备订单打开失败');
 }
 

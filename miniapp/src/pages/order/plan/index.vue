@@ -38,9 +38,10 @@
         <text class="section-title">版本订单</text>
         <text class="section-note">{{ planOrders.length }} 单</text>
       </view>
-      <view v-for="order in planOrders" :key="order.orderNo" class="order-row">
+      <view v-for="order in planOrders" :key="order.orderNo" class="order-row" :class="{ highlight: isHighlightedOrder(order.orderNo) }">
         <view class="order-main">
           <text class="order-title">{{ order.orderNo }}</text>
+          <text v-if="isHighlightedOrder(order.orderNo)" class="order-highlight">当前查看的订单</text>
           <text class="order-meta">{{ formatTime(order.createdAt) }} · {{ orderStatusLabel(order.payStatus) }}</text>
         </view>
         <view class="order-side">
@@ -138,6 +139,7 @@ const submittingId = ref<number>();
 const paying = ref(false);
 const pendingOrder = ref<PlanOrder>();
 const planOrders = ref<PlanOrder[]>([]);
+const highlightOrderNo = ref('');
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const eventType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(eventType.value));
@@ -176,7 +178,7 @@ async function loadOrders() {
     return;
   }
   const orders = await request<PlanOrder[]>(`/plans/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
-  planOrders.value = mergeOrders(orders, cachedOrders());
+  planOrders.value = prioritizeHighlightedOrders(mergeOrders(orders, cachedOrders()));
   pendingOrder.value = orders.find((item) => item.payStatus !== 'PAID');
 }
 
@@ -205,7 +207,8 @@ async function createOrder(planId: number) {
       cacheOrder(order);
       uni.showToast({ title: '订单已创建', icon: 'success' });
     }
-    planOrders.value = mergeOrders([order], planOrders.value);
+    highlightOrderNo.value = order.orderNo;
+    planOrders.value = prioritizeHighlightedOrders(mergeOrders([order], planOrders.value));
   } finally {
     submittingId.value = undefined;
   }
@@ -253,6 +256,17 @@ function mergeOrders(primary: PlanOrder[], fallback: PlanOrder[]) {
     byOrderNo.set(item.orderNo, item);
   }
   return Array.from(byOrderNo.values()).sort((a, b) => String(b.createdAt || b.orderNo).localeCompare(String(a.createdAt || a.orderNo)));
+}
+
+function prioritizeHighlightedOrders(orders: PlanOrder[]) {
+  if (!highlightOrderNo.value) {
+    return orders;
+  }
+  return [...orders].sort((a, b) => Number(isHighlightedOrder(b.orderNo)) - Number(isHighlightedOrder(a.orderNo)));
+}
+
+function isHighlightedOrder(orderNo: string) {
+  return Boolean(highlightOrderNo.value && orderNo === highlightOrderNo.value);
 }
 
 function formatMoney(value: unknown) {
@@ -322,6 +336,7 @@ onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
   banquetId.value = await resolveBanquetId(current.options?.banquetId);
+  highlightOrderNo.value = current.options?.highlightOrderNo ? decodeURIComponent(current.options.highlightOrderNo) : '';
   if (!banquetId.value) {
     requireBanquetToast();
   } else {
@@ -585,6 +600,14 @@ onMounted(async () => {
   border-bottom: 1rpx solid #f0dfcf;
 }
 
+.order-row.highlight {
+  margin: 14rpx 0;
+  padding: 22rpx;
+  border: 2rpx solid var(--accent);
+  border-radius: 18rpx;
+  background: linear-gradient(90deg, var(--accent-soft), #fff);
+}
+
 .order-row:last-child {
   border-bottom: 0;
   padding-bottom: 0;
@@ -613,6 +636,17 @@ onMounted(async () => {
   margin-top: 8rpx;
   color: #8a7768;
   font-size: 23rpx;
+}
+
+.order-highlight {
+  display: inline-block;
+  margin-top: 8rpx;
+  padding: 5rpx 10rpx;
+  border-radius: 999rpx;
+  background: var(--accent);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 900;
 }
 
 .order-side {
