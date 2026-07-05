@@ -69,6 +69,16 @@
           <small>创建、回执、记礼、补录可追踪</small>
         </article>
         <article class="metric">
+          <span>支付异常</span>
+          <strong :class="{ negative: auditFailedCallbacks > 0 }">{{ auditFailedCallbacks }}</strong>
+          <small>{{ auditPaidPaymentCount }}/{{ audit.paymentOrders.length }} 已支付</small>
+        </article>
+        <article class="metric">
+          <span>设备订单</span>
+          <strong>{{ auditPaidDeviceCount }}/{{ audit.deviceOrders.length }}</strong>
+          <small>{{ auditDeliveredDeviceCount }} 个已交付</small>
+        </article>
+        <article class="metric">
           <span>核对状态</span>
           <strong :class="auditStatusClass">{{ auditStatusText }}</strong>
           <small>{{ auditStatusHint }}</small>
@@ -80,6 +90,9 @@
         <el-button :disabled="!auditBanquetId" @click="focusAuditSection('rsvp')">处理回执</el-button>
         <el-button :disabled="!auditBanquetId" @click="focusAuditSection('gifts')">处理收礼</el-button>
         <el-button :disabled="!auditBanquetId" @click="focusAuditSection('favor')">处理人情</el-button>
+        <el-button :disabled="!auditBanquetId" @click="goAuditInvitations">请柬分析</el-button>
+        <el-button :disabled="!auditBanquetId" @click="goAuditOrders">订单中心</el-button>
+        <el-button :disabled="!auditBanquetId" @click="goAuditBroadcast">播报日志</el-button>
         <el-button :disabled="!auditBanquetId" @click="goAuditOperationLogs">查看操作日志</el-button>
         <el-button :disabled="!auditBanquetId" @click="goAuditPayments">排查支付</el-button>
       </section>
@@ -408,10 +421,16 @@ interface AuditState {
   gifts: Record<string, unknown>[];
   favorContacts: Record<string, unknown>[];
   operationLogs: Record<string, unknown>[];
+  invitations: Record<string, unknown>[];
+  planOrders: Record<string, unknown>[];
+  deviceOrders: Record<string, unknown>[];
+  paymentOrders: Record<string, unknown>[];
+  paymentCallbacks: Record<string, unknown>[];
+  broadcastLogs: Record<string, unknown>[];
 }
 
 type BusinessTab = 'gifts' | 'rsvp' | 'favor';
-type AuditRowKey = BusinessTab | 'operationLogs';
+type AuditRowKey = BusinessTab | 'invitations' | 'orders' | 'devices' | 'payments' | 'broadcast' | 'operationLogs';
 
 const gifts = ref<Record<string, unknown>[]>([]);
 const route = useRoute();
@@ -433,7 +452,13 @@ const audit = reactive<AuditState>({
   rsvpStats: null,
   gifts: [],
   favorContacts: [],
-  operationLogs: []
+  operationLogs: [],
+  invitations: [],
+  planOrders: [],
+  deviceOrders: [],
+  paymentOrders: [],
+  paymentCallbacks: [],
+  broadcastLogs: []
 });
 
 const giftFilters = reactive({ banquetId: String(route.query.banquetId || ''), source: '', keyword: '' });
@@ -495,7 +520,19 @@ const auditFavorBalance = computed(() => {
   const givenAmount = sum(audit.favorContacts.map((row) => row.givenAmount));
   return receivedAmount - givenAmount;
 });
+const auditPaidPaymentCount = computed(() => audit.paymentOrders.filter((row) => row.payStatus === 'PAID').length);
+const auditFailedCallbacks = computed(() => audit.paymentCallbacks.filter((row) => row.processStatus === 'FAILED' || row.verifyStatus === 'FAILED').length);
+const auditPaidDeviceCount = computed(() => audit.deviceOrders.filter((row) => row.payStatus === 'PAID').length);
+const auditDeliveredDeviceCount = computed(() => audit.deviceOrders.filter((row) => row.orderStatus === 'DELIVERED').length);
+const auditBroadcastRiskCount = computed(() => audit.broadcastLogs.filter((row) => ['FAILED', 'OFFLINE'].includes(String(row.status))).length);
 const auditRows = computed(() => [
+  {
+    key: 'invitations' as const,
+    name: '请柬',
+    value: `${audit.invitations.length} 个请柬实例`,
+    hint: '基础请柬公开页、分享和访问分析应能按宴席追溯。',
+    ok: audit.invitations.length > 0
+  },
   {
     key: 'rsvp' as const,
     name: '回执',
@@ -516,6 +553,34 @@ const auditRows = computed(() => [
     value: `${audit.favorContacts.length} 个对象 / ${balanceText(auditFavorBalance.value)}`,
     hint: '收礼和手动补录会沉淀到人情账本，用于往来对比。',
     ok: audit.favorContacts.length > 0
+  },
+  {
+    key: 'orders' as const,
+    name: '版本订单',
+    value: `${audit.planOrders.filter((row) => row.payStatus === 'PAID').length}/${audit.planOrders.length} 已支付`,
+    hint: '版本权益订单影响设备、导出、收礼等入口可用性。',
+    ok: audit.planOrders.length > 0
+  },
+  {
+    key: 'devices' as const,
+    name: '设备订单',
+    value: `${auditPaidDeviceCount.value}/${audit.deviceOrders.length} 已支付，${auditDeliveredDeviceCount.value} 已交付`,
+    hint: '确认屏和云喇叭租赁需要能看到订单、状态和交付进度。',
+    ok: audit.deviceOrders.length === 0 || audit.deviceOrders.every((row) => ['PAID', 'UNPAID'].includes(String(row.payStatus)))
+  },
+  {
+    key: 'payments' as const,
+    name: '支付排障',
+    value: `${auditPaidPaymentCount.value}/${audit.paymentOrders.length} 已支付，异常 ${auditFailedCallbacks.value}`,
+    hint: '线上随礼和现场扫码共用支付订单、回调、礼金履约链路。',
+    ok: auditFailedCallbacks.value === 0
+  },
+  {
+    key: 'broadcast' as const,
+    name: '播报',
+    value: `${audit.broadcastLogs.length} 条，风险 ${auditBroadcastRiskCount.value}`,
+    hint: '确认屏展示和云喇叭模拟日志应可从礼金成功事件派生追踪。',
+    ok: auditBroadcastRiskCount.value === 0
   },
   {
     key: 'operationLogs' as const,
@@ -627,16 +692,40 @@ async function loadAudit() {
   }
   loading.audit = true;
   try {
-    const [rsvpResponse, giftResponse, favorResponse, operationLogResponse] = await Promise.all([
+    const [
+      rsvpResponse,
+      giftResponse,
+      favorResponse,
+      operationLogResponse,
+      invitationResponse,
+      planOrderResponse,
+      deviceOrderResponse,
+      paymentOrderResponse,
+      paymentCallbackResponse,
+      broadcastResponse
+    ] = await Promise.all([
       http.get<ApiResponse<RsvpStats>>(`/admin/rsvp/stats?banquetId=${encodeURIComponent(auditBanquetId.value)}`),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/gifts?banquetId=${encodeURIComponent(auditBanquetId.value)}&pageSize=100`),
       http.get<ApiResponse<Record<string, unknown>[]>>(`/admin/favor/contacts?banquetId=${encodeURIComponent(auditBanquetId.value)}`),
-      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/operation-logs?targetType=banquet&targetId=${encodeURIComponent(auditBanquetId.value)}&pageSize=100`)
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/operation-logs?targetType=banquet&targetId=${encodeURIComponent(auditBanquetId.value)}&pageSize=100`),
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/invitations?banquetId=${encodeURIComponent(auditBanquetId.value)}&pageSize=100`),
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/orders/plans?pageSize=100'),
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/orders/devices?pageSize=100'),
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/payments/orders?pageSize=100'),
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/payments/callbacks?pageSize=100'),
+      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/broadcast-logs?banquetId=${encodeURIComponent(auditBanquetId.value)}&pageSize=100`)
     ]);
     audit.rsvpStats = rsvpResponse.data.data;
     audit.gifts = recordsOf(giftResponse.data.data);
     audit.favorContacts = favorResponse.data.data || [];
     audit.operationLogs = recordsOf(operationLogResponse.data.data);
+    audit.invitations = recordsOf(invitationResponse.data.data);
+    audit.planOrders = recordsOf(planOrderResponse.data.data).filter((row) => String(row.banquetId) === auditBanquetId.value);
+    audit.deviceOrders = recordsOf(deviceOrderResponse.data.data).filter((row) => String(row.banquetId) === auditBanquetId.value);
+    audit.paymentOrders = recordsOf(paymentOrderResponse.data.data).filter((row) => String(row.banquetId) === auditBanquetId.value);
+    const paymentOrderNos = new Set(audit.paymentOrders.map((row) => String(row.orderNo)));
+    audit.paymentCallbacks = recordsOf(paymentCallbackResponse.data.data).filter((row) => paymentOrderNos.has(String(row.orderNo)));
+    audit.broadcastLogs = recordsOf(broadcastResponse.data.data);
   } finally {
     loading.audit = false;
   }
@@ -678,6 +767,26 @@ async function focusAuditSection(tab: BusinessTab) {
 }
 
 async function handleAuditRow(key: AuditRowKey) {
+  if (key === 'invitations') {
+    await goAuditInvitations();
+    return;
+  }
+  if (key === 'orders') {
+    await goAuditOrders();
+    return;
+  }
+  if (key === 'devices') {
+    await goAuditOrders('devices');
+    return;
+  }
+  if (key === 'payments') {
+    await goAuditPayments();
+    return;
+  }
+  if (key === 'broadcast') {
+    await goAuditBroadcast();
+    return;
+  }
   if (key === 'operationLogs') {
     await goAuditOperationLogs();
     return;
@@ -709,7 +818,31 @@ async function goAuditPayments() {
   if (!banquetId) {
     return;
   }
-  await router.push({ path: '/payments', query: { banquetId } });
+  await router.push({ path: '/payments', query: { banquetId, tab: auditFailedCallbacks.value > 0 ? 'callbacks' : 'orders' } });
+}
+
+async function goAuditOrders(tab = 'plans') {
+  const banquetId = contextBanquetId.value;
+  if (!banquetId) {
+    return;
+  }
+  await router.push({ path: '/orders', query: { banquetId, tab } });
+}
+
+async function goAuditInvitations() {
+  const banquetId = contextBanquetId.value;
+  if (!banquetId) {
+    return;
+  }
+  await router.push({ path: '/invitations', query: { banquetId } });
+}
+
+async function goAuditBroadcast() {
+  const banquetId = contextBanquetId.value;
+  if (!banquetId) {
+    return;
+  }
+  await router.push({ path: '/broadcast-logs', query: { banquetId } });
 }
 
 function resetGiftFilters() {

@@ -27,7 +27,12 @@ const sourceAssertions = [
   ['admin/src/views/payments/PaymentsView.vue', 'goOrderCenter(row)', 'payment orders link back to order center'],
   ['admin/src/views/payments/PaymentsView.vue', 'goPaymentOrderLog(row)', 'callback rows link to payment operation logs'],
   ['admin/src/views/operation-logs/OperationLogsView.vue', 'isPaymentContext', 'operation logs recognize payment troubleshooting context'],
-  ['admin/src/views/operation-logs/OperationLogsView.vue', 'goPaymentTroubleshoot(row)', 'operation log rows link back to payment troubleshooting']
+  ['admin/src/views/operation-logs/OperationLogsView.vue', 'goPaymentTroubleshoot(row)', 'operation log rows link back to payment troubleshooting'],
+  ['admin/src/views/business/BusinessView.vue', 'goAuditInvitations', 'business audit can drill into invitation analytics'],
+  ['admin/src/views/business/BusinessView.vue', 'goAuditOrders', 'business audit can drill into order center'],
+  ['admin/src/views/business/BusinessView.vue', 'goAuditBroadcast', 'business audit can drill into broadcast logs'],
+  ['admin/src/views/business/BusinessView.vue', 'auditFailedCallbacks', 'business audit surfaces payment callback risks'],
+  ['admin/src/views/business/BusinessView.vue', 'auditDeliveredDeviceCount', 'business audit surfaces device delivery progress']
 ];
 
 const routes = [
