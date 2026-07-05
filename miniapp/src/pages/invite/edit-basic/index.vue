@@ -40,7 +40,7 @@
     <view class="section-card">
       <view class="section-head">
         <text class="section-title">邀请文案</text>
-        <view class="inline-button tap-button" @tap.stop="applyThemeCopy">套用推荐</view>
+        <view class="inline-button tap-button" @tap.stop="applyThemeCopy()">套用推荐</view>
       </view>
       <view class="text-preview" :class="{ empty: !form.greeting }" @tap.stop="openTextEditor('greeting')">
         <text>{{ form.greeting || '点击填写欢迎语' }}</text>
@@ -50,7 +50,7 @@
     <view class="section-card">
       <view class="section-head">
         <text class="section-title">宴席流程</text>
-        <view class="inline-button tap-button" @tap.stop="applyDefaultSchedule">填入流程</view>
+        <view class="inline-button tap-button" @tap.stop="applyDefaultSchedule()">填入流程</view>
       </view>
       <view class="text-preview tall" :class="{ empty: !form.scheduleText }" @tap.stop="openTextEditor('scheduleText')">
         <text>{{ form.scheduleText || '点击填写流程，每行一个节点，如：17:30 签到' }}</text>
@@ -79,8 +79,8 @@
       <text class="section-title">分享路径</text>
       <text class="share-url">{{ shareUrl }}</text>
       <view class="share-actions">
-        <view class="ghost-button tap-button" @tap.stop="previewInvite" @click.stop="previewInvite">预览请柬</view>
-        <view class="ghost-button tap-button" @tap.stop="copyShareUrl" @click.stop="copyShareUrl">复制路径</view>
+        <view class="ghost-button tap-button" @tap.stop="previewInvite()">预览请柬</view>
+        <view class="ghost-button tap-button" @tap.stop="copyShareUrl()">复制路径</view>
       </view>
     </view>
 
@@ -91,18 +91,18 @@
 
     <view class="action-card">
       <view class="action-grid">
-        <view class="ghost-button compact tap-button" @tap.stop="returnBanquetDetail" @click.stop="returnBanquetDetail">返回管理台</view>
-        <view class="ghost-button compact tap-button" :class="{ disabled: submitting }" @tap.stop="saveAndPreview" @click.stop="saveAndPreview">保存预览</view>
-        <view class="primary-button tap-button" :class="{ disabled: submitting }" @tap.stop="submit" @click.stop="submit">保存请柬</view>
+        <view class="ghost-button compact tap-button" @tap.stop="returnBanquetDetail()">返回管理台</view>
+        <view class="ghost-button compact tap-button" :class="{ disabled: submitting }" @tap.stop="saveAndPreview()">保存预览</view>
+        <view class="primary-button tap-button" :class="{ disabled: submitting }" @tap.stop="submit()">保存请柬</view>
       </view>
     </view>
     <view class="footer-safe"></view>
 
-    <view v-if="textEditor.visible" class="modal-mask" @tap="closeTextEditor">
+    <view v-if="textEditor.visible" class="modal-mask" @tap="closeTextEditor()">
       <view class="modal-panel" @tap.stop>
         <view class="modal-head">
           <text class="modal-title">{{ textEditor.field === 'greeting' ? '编辑邀请文案' : '编辑宴席流程' }}</text>
-          <text class="modal-close" @tap="closeTextEditor">×</text>
+          <text class="modal-close" @tap="closeTextEditor()">×</text>
         </view>
         <textarea
           v-model="textEditor.value"
@@ -114,8 +114,8 @@
           :disable-default-padding="true"
         />
         <view class="modal-actions">
-          <view class="ghost-button tap-button" @tap.stop="closeTextEditor">取消</view>
-          <view class="primary-button tap-button" @tap.stop="confirmTextEditor">确认填入</view>
+          <view class="ghost-button tap-button" @tap.stop="closeTextEditor()">取消</view>
+          <view class="primary-button tap-button" @tap.stop="confirmTextEditor()">确认填入</view>
         </view>
       </view>
     </view>
