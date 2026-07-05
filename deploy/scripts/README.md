@@ -47,6 +47,45 @@ Environment variables:
 - `SKIP_REMOTE_CHECKS`: set to `1` before services are reachable
 - `REQUIRE_READINESS_READY`: default `1`
 
+## Production Acceptance Suite
+
+`production-acceptance-suite.sh` is the unified launch-check entrypoint. It writes one consolidated `summary.json` while reusing the existing preflight, release-readiness, production API acceptance, browser smoke, ops/security checks and miniapp preview scripts.
+
+```bash
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+Remote production checks are opt-in so the suite can be used before all credentials are available:
+
+```bash
+ADMIN_PASSWORD='<admin-password>' \
+BASE_URL=https://yxt.yqej.cn \
+SKIP_REMOTE_CHECKS=0 \
+RUN_PRODUCTION_API=1 \
+RUN_PRODUCTION_BROWSER=1 \
+RUN_OPS_CHECK=1 \
+bash deploy/scripts/production-acceptance-suite.sh
+```
+
+Environment variables:
+
+- `ARTIFACTS_ROOT`: output directory, default `.artifacts/production-acceptance/<run-id>`
+- `BASE_URL`: public deployment base URL, default `https://yxt.yqej.cn`
+- `ENV_FILE`: production env file, default `deploy/.env.production`
+- `RUN_PREFLIGHT`: default `1`
+- `RUN_RELEASE_READINESS`: default `1`
+- `RUN_ADMIN_SOURCE_SMOKE`: default `1`
+- `RUN_PRODUCTION_API`: default `0`, requires `ADMIN_PASSWORD`
+- `RUN_PRODUCTION_BROWSER`: default `0`, requires `ADMIN_PASSWORD` and Chrome
+- `RUN_OPS_CHECK`: default `0`, requires SSH access
+- `RUN_SECURITY_CHECK`: default `0`, requires SSH access
+- `RUN_MINIAPP_PREVIEW`: default `0`, requires WeChat DevTools CLI login
+- `SKIP_REMOTE_CHECKS`: passed to production preflight, default `1`
+- `REQUIRE_READINESS_READY`: default `0` before real WeChat payment launch
+- `SKIP_MINIAPP_BUILD`: passed to release readiness, default `0`
+
+The generated `summary.json` records each step status, log path and the last lines of failed logs.
+
 ## Production API Acceptance
 
 `production-api-acceptance.sh` verifies the production API loop without calling mock-success endpoints. It is safe to run while real payment launch is still blocked because it does not force payment completion.

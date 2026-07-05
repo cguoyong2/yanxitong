@@ -32,7 +32,10 @@ const sourceAssertions = [
   ['admin/src/views/business/BusinessView.vue', 'goAuditOrders', 'business audit can drill into order center'],
   ['admin/src/views/business/BusinessView.vue', 'goAuditBroadcast', 'business audit can drill into broadcast logs'],
   ['admin/src/views/business/BusinessView.vue', 'auditFailedCallbacks', 'business audit surfaces payment callback risks'],
-  ['admin/src/views/business/BusinessView.vue', 'auditDeliveredDeviceCount', 'business audit surfaces device delivery progress']
+  ['admin/src/views/business/BusinessView.vue', 'auditDeliveredDeviceCount', 'business audit surfaces device delivery progress'],
+  ['deploy/scripts/production-acceptance-suite.sh', 'RUN_PRODUCTION_API', 'production acceptance suite can opt into API acceptance'],
+  ['deploy/scripts/production-acceptance-suite.sh', 'RUN_MINIAPP_PREVIEW', 'production acceptance suite can opt into miniapp preview'],
+  ['deploy/scripts/production-acceptance-suite.sh', 'summary.json', 'production acceptance suite writes consolidated summary']
 ];
 
 const routes = [
