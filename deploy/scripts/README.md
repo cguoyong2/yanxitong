@@ -45,7 +45,7 @@ Environment variables:
 - `ENV_FILE`: production env file path, default `deploy/.env.production`
 - `BASE_URL`: public deployment base URL, default `http://127.0.0.1`
 - `SKIP_REMOTE_CHECKS`: set to `1` before services are reachable
-- `REQUIRE_READINESS_READY`: default `1`
+- `REQUIRE_READINESS_READY`: default `1`; set to `0` only for technical validation before real payment credentials are complete
 
 ## Production Acceptance Suite
 
@@ -85,6 +85,8 @@ Environment variables:
 - `SKIP_MINIAPP_BUILD`: passed to release readiness, default `0`
 
 The generated `summary.json` records each step status, log path and the last lines of failed logs.
+
+The default suite passes `REQUIRE_READINESS_READY=0` to preflight, so incomplete WeChat service-provider credentials are reported as deferred instead of blocking local technical validation. Formal real-money launch must set `REQUIRE_READINESS_READY=1`.
 
 ## Production API Acceptance
 

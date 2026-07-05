@@ -22,7 +22,7 @@ Environment:
   ENV_FILE                 default deploy/.env.production
   BASE_URL                 default http://127.0.0.1
   SKIP_REMOTE_CHECKS=1     skip health/readiness HTTP checks
-  REQUIRE_READINESS_READY=0 allow readiness status other than READY
+  REQUIRE_READINESS_READY=0 allow readiness/payment-provider status other than READY
 EOF
   exit 0
 fi
@@ -83,6 +83,11 @@ done
 [[ "${PAYMENT_MOCK_SUCCESS_ENABLED}" == "false" ]] || fail "PAYMENT_MOCK_SUCCESS_ENABLED must be false"
 [[ "${PAYMENT_MOCK_CALLBACK_SECRET}" != "yanxitong-mock-callback-secret" ]] || fail "PAYMENT_MOCK_CALLBACK_SECRET must not use local default"
 
+is_placeholder() {
+  local value="$1"
+  [[ -z "${value}" || "${value}" == *"replace-with"* ]]
+}
+
 if [[ "${PAYMENT_DEFAULT_PROVIDER}" != "MOCK" ]]; then
   wechat_vars=(
     PAYMENT_WECHAT_SP_ENABLED
@@ -95,13 +100,29 @@ if [[ "${PAYMENT_DEFAULT_PROVIDER}" != "MOCK" ]]; then
     PAYMENT_WECHAT_API_V3_KEY
     PAYMENT_WECHAT_NOTIFY_URL
   )
-  for name in "${wechat_vars[@]}"; do
-    value="${!name:-}"
-    [[ -n "${value}" ]] || fail "${name} is required when PAYMENT_DEFAULT_PROVIDER=${PAYMENT_DEFAULT_PROVIDER}"
-    [[ "${value}" != *"replace-with"* ]] || fail "${name} still contains placeholder value"
-  done
-  [[ "${PAYMENT_WECHAT_SP_ENABLED}" == "true" ]] || fail "PAYMENT_WECHAT_SP_ENABLED must be true for real provider default"
-  [[ "${PAYMENT_WECHAT_NOTIFY_URL}" == https://* ]] || fail "PAYMENT_WECHAT_NOTIFY_URL must be public HTTPS"
+  if [[ "${REQUIRE_READINESS_READY}" == "1" ]]; then
+    for name in "${wechat_vars[@]}"; do
+      value="${!name:-}"
+      [[ -n "${value}" ]] || fail "${name} is required when PAYMENT_DEFAULT_PROVIDER=${PAYMENT_DEFAULT_PROVIDER}"
+      [[ "${value}" != *"replace-with"* ]] || fail "${name} still contains placeholder value"
+    done
+    [[ "${PAYMENT_WECHAT_SP_ENABLED}" == "true" ]] || fail "PAYMENT_WECHAT_SP_ENABLED must be true for real provider default"
+    [[ "${PAYMENT_WECHAT_NOTIFY_URL}" == https://* ]] || fail "PAYMENT_WECHAT_NOTIFY_URL must be public HTTPS"
+  else
+    incomplete_wechat_vars=()
+    for name in "${wechat_vars[@]}"; do
+      value="${!name:-}"
+      if is_placeholder "${value}"; then
+        incomplete_wechat_vars+=("${name}")
+      fi
+    done
+    if [[ "${#incomplete_wechat_vars[@]}" -gt 0 ]]; then
+      log "Payment provider credentials deferred: ${incomplete_wechat_vars[*]}"
+    fi
+    if [[ -n "${PAYMENT_WECHAT_NOTIFY_URL:-}" && "${PAYMENT_WECHAT_NOTIFY_URL}" != https://* ]]; then
+      fail "PAYMENT_WECHAT_NOTIFY_URL must be public HTTPS"
+    fi
+  fi
 fi
 
 [[ -f "${REPO_ROOT}/admin/dist/index.html" ]] || fail "admin/dist/index.html missing; run npm run build in admin"
