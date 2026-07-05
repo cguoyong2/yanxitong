@@ -29,7 +29,7 @@
         <text class="card-desc">{{ pendingOrderTip }}</text>
       </view>
       <button v-if="features.mockPaymentEnabled" class="small-button primary" :loading="paying" @tap="mockPay(pendingOrder.orderNo)">模拟支付</button>
-      <text v-else class="pending-text">等待真实支付回调</text>
+      <button v-else class="small-button primary" @tap="openPaymentPanel(pendingOrder)">去支付</button>
     </view>
 
     <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail()">返回宴席管理台</button>
@@ -64,7 +64,13 @@
           >
             去选设备
           </button>
-          <text v-else-if="order.payStatus !== 'PAID'" class="wait-pay">等待支付</text>
+          <button
+            v-else-if="order.payStatus !== 'PAID'"
+            class="small-button pay"
+            @tap="openPaymentPanel(order)"
+          >
+            去支付
+          </button>
         </view>
       </view>
     </view>
@@ -111,6 +117,40 @@
       <text class="scope-line">Excel 正式导出将在后续版本开放，本阶段先预留权益与提示。</text>
       <text class="scope-line">设备租赁只做订单基础闭环，复杂库存、押金、维修、归还后续迭代。</text>
     </view>
+
+    <view v-if="paymentPanel.visible" class="payment-mask" @tap="closePaymentPanel()">
+      <view class="payment-sheet" @tap.stop>
+        <view class="sheet-handle"></view>
+        <view class="payment-head">
+          <view>
+            <text class="payment-label">版本支付</text>
+            <text class="payment-title">{{ paymentPlanName }}</text>
+          </view>
+          <button class="close-button" @tap="closePaymentPanel()">×</button>
+        </view>
+        <view class="amount-card">
+          <text class="amount-label">应付金额</text>
+          <text class="amount-value">{{ formatMoney(paymentPanel.order?.amount) }}</text>
+          <text class="amount-unit">/{{ paymentPanel.order?.priceUnit || '场' }}</text>
+        </view>
+        <view class="pay-info">
+          <view>
+            <text>订单编号</text>
+            <text>{{ paymentPanel.order?.orderNo || '-' }}</text>
+          </view>
+          <view>
+            <text>支付方式</text>
+            <text>微信支付</text>
+          </view>
+          <view>
+            <text>开通说明</text>
+            <text>支付完成后自动开通版本权益</text>
+          </view>
+        </view>
+        <button class="confirm-pay-button" @tap="showPaymentUnavailable()">确认支付</button>
+        <text class="payment-note">当前仅展示支付确认流程，真实支付接口上线后将从这里完成付款。</text>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -131,6 +171,7 @@ interface Plan {
 
 interface PlanOrder {
   orderNo: string;
+  planId?: number;
   amount: number;
   priceUnit: string;
   payStatus: string;
@@ -153,6 +194,9 @@ const planOrders = ref<PlanOrder[]>([]);
 const highlightOrderNo = ref('');
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const eventType = ref(readActiveEventType());
+const paymentPanel = reactive<{ visible: boolean; order?: PlanOrder; plan?: Plan }>({
+  visible: false
+});
 const activeTheme = computed(() => eventThemeFor(eventType.value));
 const entitlements = reactive<Entitlements>({
   rightValues: {},
@@ -168,8 +212,9 @@ const pendingOrderTip = computed(() => {
   }
   return features.value.mockPaymentEnabled
     ? '体验环境可点“模拟支付”立即开通权益。'
-    : '正式微信支付未启用前，请等待支付回调或后台处理。';
+    : '点击“去支付”可查看支付确认界面，真实支付暂未开通。';
 });
+const paymentPlanName = computed(() => paymentPanel.plan?.name || planByOrder(paymentPanel.order)?.name || '付费版本');
 
 async function load() {
   const [runtimeFeatures, planList] = await Promise.all([
@@ -225,6 +270,9 @@ async function createOrder(planId: number) {
       pendingOrder.value = order;
       cacheOrder(order);
       uni.showToast({ title: '订单已创建', icon: 'success' });
+      if (shouldShowPaymentPanel(plan)) {
+        openPaymentPanel(order, plan);
+      }
     }
     highlightOrderNo.value = order.orderNo;
     planOrders.value = prioritizeHighlightedOrders(mergeOrders([order], planOrders.value));
@@ -318,6 +366,37 @@ function planOrderTip(order: PlanOrder) {
   return '待支付，真实支付上线后会从这里继续完成付款。';
 }
 
+function shouldShowPaymentPanel(plan?: Plan) {
+  if (!plan || Number(plan.price) <= 0) {
+    return false;
+  }
+  return /PRO|PREMIUM|VIP|DIAMOND/i.test(plan.planCode) || /专业|至尊|尊享/.test(plan.name);
+}
+
+function planByOrder(order?: PlanOrder) {
+  if (!order?.planId) {
+    return undefined;
+  }
+  return plans.value.find((item) => item.id === order.planId);
+}
+
+function openPaymentPanel(order?: PlanOrder, plan?: Plan) {
+  if (!order) {
+    return;
+  }
+  paymentPanel.order = order;
+  paymentPanel.plan = plan || planByOrder(order);
+  paymentPanel.visible = true;
+}
+
+function closePaymentPanel() {
+  paymentPanel.visible = false;
+}
+
+function showPaymentUnavailable() {
+  uni.showToast({ title: '还没有开通支付功能', icon: 'none' });
+}
+
 function openDevice() {
   if (!banquetId.value) {
     requireBanquetToast();
@@ -361,6 +440,7 @@ function rightsPreview(plan: Plan) {
 function buttonText(plan: Plan) {
   if (isCurrent(plan)) return '当前版本';
   if (Number(plan.price) === 0) return '启用基础版';
+  if (/PRO|PREMIUM|VIP|DIAMOND/i.test(plan.planCode) || /专业|至尊|尊享/.test(plan.name)) return '选择并支付';
   return '立即开通';
 }
 
@@ -874,5 +954,170 @@ onMounted(async () => {
   color: #7f7167;
   font-size: 25rpx;
   line-height: 1.55;
+}
+
+.payment-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(16, 18, 24, 0.46);
+}
+
+.payment-sheet {
+  width: 100%;
+  max-height: 82vh;
+  padding: 18rpx 30rpx 42rpx;
+  border-radius: 34rpx 34rpx 0 0;
+  background: linear-gradient(180deg, #fffdf8 0%, #fff 44%, var(--accent-soft) 100%);
+  box-shadow: 0 -18rpx 56rpx rgba(17, 24, 39, 0.18);
+  box-sizing: border-box;
+}
+
+.sheet-handle {
+  width: 76rpx;
+  height: 8rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 999rpx;
+  background: #ead8ca;
+}
+
+.payment-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.payment-label,
+.payment-title,
+.amount-label,
+.amount-value,
+.amount-unit,
+.payment-note {
+  display: block;
+}
+
+.payment-label {
+  color: var(--accent);
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.payment-title {
+  margin-top: 10rpx;
+  color: #171c2a;
+  font-size: 42rpx;
+  font-weight: 900;
+}
+
+.close-button {
+  width: 62rpx;
+  height: 62rpx;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: #f6efe8;
+  color: #8a7768;
+  font-size: 42rpx;
+  line-height: 56rpx;
+}
+
+.close-button::after,
+.confirm-pay-button::after {
+  border: 0;
+}
+
+.amount-card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 28rpx;
+  padding: 32rpx;
+  border-radius: 28rpx;
+  background:
+    radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.22), transparent 150rpx),
+    linear-gradient(135deg, var(--accent), var(--accent-dark));
+  box-shadow: 0 16rpx 42rpx var(--accent-shadow);
+}
+
+.amount-label {
+  color: rgba(255, 248, 232, 0.82);
+  font-size: 25rpx;
+  font-weight: 800;
+}
+
+.amount-value {
+  margin-top: 8rpx;
+  color: #fff8df;
+  font-size: 64rpx;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.amount-unit {
+  position: absolute;
+  right: 32rpx;
+  bottom: 34rpx;
+  color: rgba(255, 248, 232, 0.86);
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.pay-info {
+  margin-top: 24rpx;
+  padding: 8rpx 26rpx;
+  border: 1rpx solid #f0dfcf;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.pay-info view {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 23rpx 0;
+  border-bottom: 1rpx solid #f2e7dc;
+}
+
+.pay-info view:last-child {
+  border-bottom: 0;
+}
+
+.pay-info text:first-child {
+  flex: 0 0 auto;
+  color: #8a7768;
+  font-size: 25rpx;
+  font-weight: 800;
+}
+
+.pay-info text:last-child {
+  min-width: 0;
+  color: #171c2a;
+  font-size: 25rpx;
+  font-weight: 900;
+  text-align: right;
+  word-break: break-all;
+}
+
+.confirm-pay-button {
+  height: 92rpx;
+  margin: 28rpx 0 0;
+  border-radius: 22rpx;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-size: 31rpx;
+  font-weight: 900;
+  line-height: 92rpx;
+}
+
+.payment-note {
+  margin-top: 18rpx;
+  color: #8a7768;
+  font-size: 23rpx;
+  line-height: 1.45;
+  text-align: center;
 }
 </style>
