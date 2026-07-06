@@ -194,6 +194,8 @@ Backend unit tests and packaging run through `.github/workflows/server-ci.yml` w
 
 The admin console and confirmation screen run through the matrix in `.github/workflows/web-ci.yml`. Each frontend uses its lock file with Node.js 20, then runs the existing TypeScript check and Vite production build.
 
+Docker production packaging is checked by `.github/workflows/docker-build-ci.yml`. It validates `deploy/docker-compose.production.yml` with required production variables and builds the backend image from `server/Dockerfile` without pushing an image.
+
 ```bash
 bash deploy/scripts/miniapp-preview.sh
 ```
