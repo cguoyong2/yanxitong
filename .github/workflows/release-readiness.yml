@@ -1,6 +1,16 @@
 name: Release Readiness
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "deploy/scripts/**"
+      - ".github/workflows/release-readiness.yml"
+  pull_request:
+    paths:
+      - "deploy/scripts/**"
+      - ".github/workflows/release-readiness.yml"
   workflow_dispatch:
     inputs:
       base_url:
@@ -39,14 +49,14 @@ jobs:
     env:
       RUN_ID: github-${{ github.run_id }}
       ARTIFACTS_ROOT: .artifacts/release-readiness/github-${{ github.run_id }}
-      BASE_URL: ${{ inputs.base_url }}
+      BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url || 'https://yxt.yqej.cn' }}
       SKIP_REMOTE_CHECKS: "1"
-      REQUIRE_READINESS_READY: ${{ inputs.require_readiness_ready && '1' || '0' }}
+      REQUIRE_READINESS_READY: ${{ github.event_name == 'workflow_dispatch' && inputs.require_readiness_ready && '1' || '0' }}
       RUN_PREFLIGHT: "1"
       RUN_RELEASE_READINESS: "1"
       RUN_ADMIN_SOURCE_SMOKE: "1"
-      RUN_PRODUCTION_API: ${{ inputs.run_remote_api && '1' || '0' }}
-      RUN_PRODUCTION_BROWSER: ${{ inputs.run_remote_browser && '1' || '0' }}
+      RUN_PRODUCTION_API: ${{ github.event_name == 'workflow_dispatch' && inputs.run_remote_api && '1' || '0' }}
+      RUN_PRODUCTION_BROWSER: ${{ github.event_name == 'workflow_dispatch' && inputs.run_remote_browser && '1' || '0' }}
       RUN_OPS_CHECK: "0"
       RUN_SECURITY_CHECK: "0"
       RUN_MINIAPP_PREVIEW: "0"
