@@ -190,6 +190,8 @@ The interaction check validates every template handler reference and locks the c
 
 The same `npm run check` and `npm run build` gates run in `.github/workflows/miniapp-ci.yml` for miniapp-related pushes to `main`, pull requests and manual workflow dispatches.
 
+Backend unit tests and packaging run through `.github/workflows/server-ci.yml` with Java 17. The workflow executes `mvn verify` for server-related pushes, pull requests and manual dispatches, and retains Surefire reports when a run fails.
+
 ```bash
 bash deploy/scripts/miniapp-preview.sh
 ```
