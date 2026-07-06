@@ -756,7 +756,7 @@ async function submit() {
   submitting.value = true;
   uni.showLoading({ title: '创建中' });
   try {
-    const result = await request<{ banquet: { id: number; name?: string; eventTypeCode?: string; themeCode?: string; banquetTime?: string; location?: string }; invitation?: { id: number; shareSlug?: string } }>('/banquets', {
+    const result = await request<{ banquet: { id: number; name?: string; eventTypeCode?: string; themeCode?: string; banquetTime?: string; location?: string; status?: string }; invitation?: { id: number; shareSlug?: string } }>('/banquets', {
       method: 'POST',
       data: {
         name: form.name,
@@ -781,6 +781,7 @@ async function submit() {
       themeCode: result.banquet.themeCode,
       banquetTime: result.banquet.banquetTime || form.banquetTime,
       location: result.banquet.location || form.location,
+      status: result.banquet.status || 'DRAFT',
       invitationId: result.invitation?.id,
       shareSlug: result.invitation?.shareSlug
     });

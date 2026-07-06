@@ -160,6 +160,19 @@
             </view>
           </view>
         </view>
+        <view v-if="myInvitation" class="mine-actions">
+          <button
+            v-if="myInvitation.statusCode === 'DRAFT'"
+            class="primary-action"
+            :loading="publishing"
+            @tap.stop="publishMyInvitation()"
+          >
+            发送请柬
+          </button>
+          <button v-else class="primary-action" @tap.stop="previewMyInvitation()">预览请柬</button>
+          <button class="ghost-action" @tap.stop="copyMyInvitationPath()">复制路径</button>
+          <button class="ghost-action" @tap.stop="openManageConsole()">管理台</button>
+        </view>
         <view v-else class="mine-empty" @tap="openCreateEntry()">
           <text class="empty-title">还没有可分享的请柬</text>
           <text class="empty-desc">创建宴席后，系统会自动生成基础请柬。</text>
@@ -226,6 +239,7 @@ const activeFilter = ref('全部');
 const myInvitation = ref<MyInvitation>();
 const templates = ref<InvitationTemplate[]>([]);
 const loadingTemplates = ref(false);
+const publishing = ref(false);
 const bannerIndex = ref(0);
 const filters = ['全部', '免费', '付费', '定制', '热门'];
 const banners = [
@@ -264,6 +278,60 @@ function openMyInvitation() {
   safeNavigate(`/pages/invite/public/index?slug=${myInvitation.value.shareSlug}`, '请柬公开页打开失败');
 }
 
+function previewMyInvitation() {
+  if (!myInvitation.value?.shareSlug) {
+    uni.showToast({ title: '暂无请柬路径', icon: 'none' });
+    return;
+  }
+  safeNavigate(`/pages/invite/public/index?slug=${myInvitation.value.shareSlug}`, '请柬公开页打开失败');
+}
+
+function copyMyInvitationPath() {
+  if (!myInvitation.value?.shareSlug) {
+    uni.showToast({ title: '暂无可复制路径', icon: 'none' });
+    return;
+  }
+  uni.setClipboardData({
+    data: `/pages/invite/public/index?slug=${myInvitation.value.shareSlug}`,
+    success: () => uni.showToast({ title: '已复制路径', icon: 'success' }),
+    fail: () => uni.showToast({ title: '复制失败', icon: 'none' })
+  });
+}
+
+function openManageConsole() {
+  if (!myInvitation.value?.banquetId) {
+    openCreateEntry();
+    return;
+  }
+  safeNavigate(`/pages/banquet/detail/index?id=${myInvitation.value.banquetId}`, '宴席管理台打开失败');
+}
+
+async function publishMyInvitation() {
+  if (!myInvitation.value?.banquetId || publishing.value) {
+    return;
+  }
+  publishing.value = true;
+  try {
+    const detail = await request<BanquetDetail>(`/banquets/${myInvitation.value.banquetId}/publish`, { method: 'POST' });
+    if (detail?.invitation?.id) {
+      writeLastBanquetContext({
+        id: detail.banquet.id,
+        name: detail.banquet.name,
+        eventTypeCode: detail.banquet.eventTypeCode,
+        banquetTime: detail.banquet.banquetTime,
+        status: detail.banquet.status,
+        invitationId: detail.invitation.id,
+        shareSlug: detail.invitation.shareSlug
+      });
+    }
+    await refreshMyInvitation(false);
+    uni.showToast({ title: '已发布，可分享', icon: 'success' });
+    previewMyInvitation();
+  } finally {
+    publishing.value = false;
+  }
+}
+
 function showComingSoon() {
   uni.showToast({ title: '定制请柬服务将在后续版本开放', icon: 'none' });
 }
@@ -287,7 +355,12 @@ function handleBanner(action: string) {
 function safeNavigate(url: string, failTitle: string) {
   uni.navigateTo({
     url,
-    fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+    fail: () => {
+      uni.redirectTo({
+        url,
+        fail: () => uni.showToast({ title: failTitle, icon: 'none' })
+      });
+    }
   });
 }
 
@@ -1207,6 +1280,39 @@ button::after {
 
 .mine-stats view:last-child {
   border-right: 0;
+}
+
+.mine-actions {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr;
+  gap: 14rpx;
+  margin-top: 18rpx;
+}
+
+.primary-action,
+.ghost-action {
+  height: 68rpx;
+  margin: 0;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  font-weight: 900;
+  line-height: 68rpx;
+}
+
+.primary-action {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+}
+
+.ghost-action {
+  border: 1rpx solid #ead8ca;
+  background: #fffaf5;
+  color: var(--accent);
+}
+
+.primary-action::after,
+.ghost-action::after {
+  border: 0;
 }
 
 .mine-number {
