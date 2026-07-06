@@ -121,7 +121,7 @@ const pageTitle = computed(() => isOnsiteQr.value ? `现场扫码${activeTheme.v
 const pageHint = computed(() => isOnsiteQr.value
   ? `现场扫码与${activeTheme.value.onlineGiftLabel}共用同一套在线支付能力。`
   : `填写姓名、金额和${activeTheme.value.blessingLabel}，生成统一${activeTheme.value.onlineGiftLabel}订单。`);
-const submitText = computed(() => isOnsiteQr.value ? '创建现场扫码订单' : `创建${activeTheme.value.onlineGiftLabel}订单`);
+const submitText = computed(() => isOnsiteQr.value ? '确认现场扫码支付' : '确认支付');
 
 function selectSource(index: number) {
   selectedIndex.value = index;
@@ -424,31 +424,6 @@ onMounted(async () => {
   line-height: 1.6;
 }
 
-.notice-actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16rpx;
-  margin-top: 28rpx;
-}
-
-.notice-button {
-  height: 84rpx;
-  margin: 0;
-  border-radius: 18rpx;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-  color: #fff;
-  font-size: 30rpx;
-  font-weight: 900;
-  line-height: 84rpx;
-}
-
-.notice-button.ghost {
-  border: 1rpx solid #ead1b2;
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-}
-
-.notice-button::after,
 .primary-button::after {
   border: 0;
 }
