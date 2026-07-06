@@ -174,6 +174,46 @@
         <button class="agent-btn" @tap="showComingSoon()">立即联系</button>
       </view>
     </view>
+
+    <view v-if="orderDetail.visible" class="order-detail-mask" @tap="closeOrderDetail()">
+      <view class="order-detail-sheet" @tap.stop>
+        <view class="sheet-handle"></view>
+        <view class="detail-head">
+          <view>
+            <text class="detail-label">{{ orderDetail.row?.title || '订单详情' }}</text>
+            <text class="detail-title">{{ orderDetail.row?.orderNo || '-' }}</text>
+          </view>
+          <button class="detail-close" @tap="closeOrderDetail()">×</button>
+        </view>
+        <view class="detail-amount-card">
+          <text class="detail-amount">{{ orderDetail.row?.amount || '¥0' }}</text>
+          <text class="detail-status" :class="{ paid: orderDetail.row?.paid }">{{ orderDetail.row?.status || '-' }}</text>
+        </view>
+        <view class="detail-list">
+          <view>
+            <text>订单类型</text>
+            <text>{{ orderDetail.row?.title || '-' }}</text>
+          </view>
+          <view>
+            <text>创建时间</text>
+            <text>{{ orderDetail.row?.time || '-' }}</text>
+          </view>
+          <view>
+            <text>关联宴席</text>
+            <text>{{ latestBanquetId ? `#${latestBanquetId}` : '暂无' }}</text>
+          </view>
+          <view>
+            <text>支付说明</text>
+            <text>{{ orderPayTip }}</text>
+          </view>
+        </view>
+        <view class="detail-actions">
+          <button class="detail-button ghost" @tap="openOrderSource()">查看订单页</button>
+          <button v-if="!orderDetail.row?.paid" class="detail-button primary" @tap="showPaymentUnavailable()">确认支付</button>
+          <button v-else class="detail-button primary" @tap="closeOrderDetail()">已完成</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -226,6 +266,7 @@ const orderLoading = ref(false);
 const planOrderRows = ref<PlanOrder[]>([]);
 const deviceOrderRows = ref<DeviceOrder[]>([]);
 const activeType = ref(readActiveEventType());
+const orderDetail = ref<{ visible: boolean; row?: RecentOrderRow }>({ visible: false });
 const activeTheme = computed(() => eventThemeFor(activeType.value));
 const banners = computed(() => [
   { title: '我的宴席', desc: '查看当前类型下的宴席与服务', tags: ['宴席', '订单', '服务'], action: 'banquet' },
@@ -259,7 +300,20 @@ const settings = [
   { title: '账号设置', icon: '♙' },
   { title: '意见反馈', icon: '✎' }
 ];
-const recentOrderRows = computed(() => {
+interface RecentOrderRow {
+  key: string;
+  title: string;
+  orderNo: string;
+  amount: string;
+  time: string;
+  status: string;
+  paid: boolean;
+  action: string;
+  highlightOrderNo: string;
+  sortAt: string;
+}
+
+const recentOrderRows = computed<RecentOrderRow[]>(() => {
   const planRows = planOrderRows.value.map((order) => ({
     key: `plan-${order.orderNo}`,
     title: '版本订单',
@@ -287,6 +341,15 @@ const recentOrderRows = computed(() => {
   return [...planRows, ...deviceRows]
     .sort((a, b) => String(b.sortAt).localeCompare(String(a.sortAt)))
     .slice(0, 4);
+});
+const orderPayTip = computed(() => {
+  if (!orderDetail.value.row) {
+    return '暂无订单信息';
+  }
+  if (orderDetail.value.row.paid) {
+    return '订单已支付，相关权益或设备服务已进入后续流程。';
+  }
+  return '当前展示支付确认流程，真实支付接口尚未开通。';
 });
 
 function handleAction(action: string) {
@@ -321,16 +384,38 @@ function handleBanner(action: string) {
   handleAction(action);
 }
 
-function openRecentOrder(item: { action: string; highlightOrderNo: string }) {
-  if (item.action === 'plan') {
-    openPlanOrders(item.highlightOrderNo);
+function openRecentOrder(item: RecentOrderRow) {
+  orderDetail.value = { visible: true, row: item };
+}
+
+function closeOrderDetail() {
+  orderDetail.value = { visible: false };
+}
+
+function openOrderSource() {
+  const row = orderDetail.value.row;
+  closeOrderDetail();
+  if (!row) {
     return;
   }
-  if (item.action === 'device') {
-    openDeviceOrders(item.highlightOrderNo);
+  if (row.action === 'plan') {
+    openPlanOrders(row.highlightOrderNo);
     return;
   }
-  handleAction(item.action);
+  if (row.action === 'device') {
+    openDeviceOrders(row.highlightOrderNo);
+    return;
+  }
+  handleAction(row.action);
+}
+
+function showPaymentUnavailable() {
+  uni.showModal({
+    title: '还没有开通支付功能',
+    content: '当前仅展示订单支付确认流程，正式微信支付配置完成后即可从这里完成付款。',
+    showCancel: false,
+    confirmText: '知道了'
+  });
 }
 
 function openLatestBanquet() {
@@ -1280,5 +1365,162 @@ button::after {
   font-size: 26rpx;
   font-weight: 900;
   line-height: 68rpx;
+}
+
+.order-detail-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(15, 18, 25, 0.42);
+}
+
+.order-detail-sheet {
+  width: 100%;
+  padding: 18rpx 30rpx calc(28rpx + env(safe-area-inset-bottom));
+  border-radius: 28rpx 28rpx 0 0;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.sheet-handle {
+  width: 76rpx;
+  height: 8rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 999rpx;
+  background: #e4d8cf;
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.detail-label,
+.detail-title,
+.detail-amount,
+.detail-status,
+.detail-list text {
+  display: block;
+}
+
+.detail-label {
+  color: #8a7768;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.detail-title {
+  margin-top: 8rpx;
+  color: #171923;
+  font-size: 31rpx;
+  font-weight: 900;
+}
+
+.detail-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #f5eee8;
+  color: #8a7768;
+  font-size: 34rpx;
+  line-height: 56rpx;
+}
+
+.detail-amount-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 26rpx;
+  padding: 24rpx;
+  border-radius: 18rpx;
+  background: linear-gradient(90deg, var(--accent-soft), #fff);
+}
+
+.detail-amount {
+  color: var(--accent);
+  font-size: 42rpx;
+  font-weight: 900;
+}
+
+.detail-status {
+  padding: 7rpx 16rpx;
+  border-radius: 999rpx;
+  background: #fff7ed;
+  color: #b45309;
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.detail-status.paid {
+  background: #ecfdf3;
+  color: #138a45;
+}
+
+.detail-list {
+  overflow: hidden;
+  margin-top: 22rpx;
+  border: 1rpx solid #f0e5dd;
+  border-radius: 18rpx;
+}
+
+.detail-list view {
+  display: grid;
+  grid-template-columns: 160rpx 1fr;
+  gap: 18rpx;
+  align-items: start;
+  min-height: 76rpx;
+  padding: 18rpx 20rpx;
+  border-bottom: 1rpx solid #f0e5dd;
+  box-sizing: border-box;
+}
+
+.detail-list view:last-child {
+  border-bottom: 0;
+}
+
+.detail-list text:first-child {
+  color: #8a7768;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.detail-list text:last-child {
+  min-width: 0;
+  color: #171923;
+  font-size: 25rpx;
+  font-weight: 800;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 26rpx;
+}
+
+.detail-button {
+  height: 82rpx;
+  border-radius: 18rpx;
+  font-size: 28rpx;
+  font-weight: 900;
+  line-height: 82rpx;
+}
+
+.detail-button.ghost {
+  border: 1rpx solid #ead8ca;
+  background: #fffaf6;
+  color: var(--accent-dark);
+}
+
+.detail-button.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
 }
 </style>
