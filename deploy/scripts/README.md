@@ -116,6 +116,31 @@ Coverage:
 - online gift payment-order creation, or controlled failure when readiness is blocked
 - admin gift, RSVP, broadcast-log and operation-log list endpoints
 
+## Non-Payment Flow Acceptance
+
+`non-payment-flow-acceptance.sh` verifies the core non-payment data loop. It is intended for quick checks after miniapp interaction changes, because it focuses on whether backend data can move through the full MVP path without touching online payment.
+
+```bash
+bash deploy/scripts/non-payment-flow-acceptance.sh
+```
+
+Environment variables:
+
+- `BASE_URL`: backend API base URL, default `http://127.0.0.1:8080`
+- `ADMIN_USERNAME`: default `admin`
+- `ADMIN_PASSWORD`: default `admin123`
+- `ARTIFACTS_DIR`: optional output directory for response payloads and `summary.json`
+
+Coverage:
+
+- health and admin login
+- banquet creation and publish
+- base invitation update and public invitation read
+- RSVP submission and RSVP stats
+- offline cash gift and gift list
+- favor contact, favor detail and favor compare data
+- admin RSVP and gift protected read paths
+
 ## Production Browser Smoke
 
 `production-browser-smoke.sh` verifies the production admin and confirm-screen UI in a browser.
