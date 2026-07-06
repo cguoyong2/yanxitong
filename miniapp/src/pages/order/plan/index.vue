@@ -74,6 +74,14 @@
         </view>
       </view>
     </view>
+    <view v-else class="orders-card order-empty-card">
+      <text class="empty-title">还没有版本订单</text>
+      <text class="empty-desc">选择下方版本后，会在这里显示订单编号、金额、支付状态和后续处理入口。</text>
+      <view class="empty-actions">
+        <button class="small-button primary" @tap="scrollToPlans()">选择版本</button>
+        <button v-if="banquetId" class="small-button ghost" @tap="returnBanquetDetail()">返回管理台</button>
+      </view>
+    </view>
 
     <view class="plans-list">
       <view
@@ -408,6 +416,14 @@ function openDevice() {
   });
 }
 
+function scrollToPlans() {
+  uni.pageScrollTo({
+    selector: '.plans-list',
+    duration: 220,
+    fail: () => uni.showToast({ title: '请选择下方版本', icon: 'none' })
+  });
+}
+
 function isRecommended(plan: Plan) {
   return Number(plan.recommended || 0) === 1 || /STANDARD|PRO/i.test(plan.planCode);
 }
@@ -694,6 +710,12 @@ onMounted(async () => {
   color: #fff;
 }
 
+.small-button.ghost {
+  border: 1rpx solid #ead8ca;
+  background: #fffaf6;
+  color: var(--accent-dark);
+}
+
 .small-button::after,
 .open-button::after,
 .return-button::after {
@@ -714,6 +736,36 @@ onMounted(async () => {
 
 .orders-card {
   padding: 26rpx;
+}
+
+.order-empty-card {
+  display: grid;
+  gap: 16rpx;
+  background: linear-gradient(90deg, #fff, var(--accent-soft));
+}
+
+.empty-title,
+.empty-desc {
+  display: block;
+}
+
+.empty-title {
+  color: #171c2a;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+
+.empty-desc {
+  color: #8a7768;
+  font-size: 25rpx;
+  line-height: 1.5;
+}
+
+.empty-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-top: 6rpx;
 }
 
 .section-head {

@@ -101,6 +101,10 @@
           <view v-else-if="recentOrderRows.length === 0" class="order-empty">
             <text>暂无订单记录</text>
             <text>开通版本或租用设备后，会在这里看到订单状态。</text>
+            <view class="empty-order-actions">
+              <button @tap="openPlanOrders()">开通版本</button>
+              <button @tap="openDeviceOrders()">选择设备</button>
+            </view>
           </view>
           <view v-else class="recent-order-list">
             <view
@@ -1134,6 +1138,32 @@ button::after {
   color: #8a7768;
   font-size: 23rpx;
   line-height: 1.4;
+}
+
+.empty-order-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+  margin-top: 10rpx;
+}
+
+.empty-order-actions button {
+  height: 66rpx;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  font-weight: 900;
+  line-height: 66rpx;
+}
+
+.empty-order-actions button:first-child {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+}
+
+.empty-order-actions button:last-child {
+  border: 1rpx solid #ead8ca;
+  background: #fffaf6;
+  color: var(--accent-dark);
 }
 
 .recent-order-row {
