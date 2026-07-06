@@ -188,6 +188,8 @@ npm run check
 
 The interaction check validates every template handler reference and locks the critical click paths for banquet management, invitation editing, RSVP, offline gifts, plan/device orders, favor records and mine orders. This catches missing handlers and accidental removal of required navigation or API behavior before a phone preview.
 
+The same `npm run check` and `npm run build` gates run in `.github/workflows/miniapp-ci.yml` for miniapp-related pushes to `main`, pull requests and manual workflow dispatches.
+
 ```bash
 bash deploy/scripts/miniapp-preview.sh
 ```
