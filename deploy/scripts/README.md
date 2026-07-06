@@ -179,6 +179,15 @@ Coverage:
 
 `miniapp-preview.sh` runs the miniapp experience check, route check and production build, then asks WeChat DevTools CLI to generate a preview QR code.
 
+Before previewing, run the complete static acceptance suite when interaction code changes:
+
+```bash
+cd miniapp
+npm run check
+```
+
+The interaction check validates every template handler reference and locks the critical click paths for banquet management, invitation editing, RSVP, offline gifts, plan/device orders, favor records and mine orders. This catches missing handlers and accidental removal of required navigation or API behavior before a phone preview.
+
 ```bash
 bash deploy/scripts/miniapp-preview.sh
 ```

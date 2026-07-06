@@ -7,7 +7,8 @@
     "build": "uni build -p mp-weixin",
     "check:routes": "node ../deploy/scripts/miniapp-route-check.mjs",
     "check:interactions": "node ../deploy/scripts/miniapp-interaction-check.mjs",
-    "check:experience": "node ../deploy/scripts/miniapp-experience-check.mjs"
+    "check:experience": "node ../deploy/scripts/miniapp-experience-check.mjs",
+    "check": "npm run check:routes && npm run check:interactions && npm run check:experience"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-1000920260615733",
