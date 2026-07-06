@@ -142,7 +142,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { onShareAppMessage } from '@dcloudio/uni-app';
-import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
+import { request } from '../../../api/client';
 import { eventThemeFor, eventToneClass } from '../../../utils/event-theme';
 
 interface PublicInvitation {
@@ -202,7 +202,6 @@ interface PublicInvitation {
 }
 
 const data = ref<PublicInvitation>();
-const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
 const slug = ref('');
 const pageState = ref<'loading' | 'ready' | 'error'>('loading');
 const errorMessage = ref('');
@@ -231,15 +230,15 @@ const scheduleItems = computed(() => (basicFields.value.scheduleText || data.val
   .split(/\r?\n/)
   .map((item) => item.trim())
   .filter(Boolean));
-const showGiftEntry = computed(() => basicFields.value.showGiftEntry !== '0' && features.value.mockPaymentEnabled);
+const showGiftEntry = computed(() => basicFields.value.showGiftEntry !== '0');
 const giftGuideDesc = computed(() => showGiftEntry.value
-  ? `${activeTheme.value.onlineGiftLabel}和现场扫码共用统一支付能力。`
-  : `当前先开放回执流程，${activeTheme.value.onlineGiftLabel}待支付配置完成后开启。`);
+  ? `${activeTheme.value.onlineGiftLabel}和现场扫码共用统一支付能力，支付开通后从这里完成。`
+  : `${activeTheme.value.onlineGiftLabel}入口已由主办方关闭。`);
 const giftGuideAction = computed(() => showGiftEntry.value ? activeTheme.value.giftActionLabel : '未开放');
 const disabledEntryMessages = computed(() => {
   const messages: string[] = [];
   if (!showGiftEntry.value) {
-    messages.push(`${activeTheme.value.onlineGiftLabel}暂未开放，可先提交回执。`);
+    messages.push(`${activeTheme.value.onlineGiftLabel}入口已由主办方关闭。`);
   }
   if (basicFields.value.showDeviceEntry === '0') {
     messages.push('设备租赁入口暂未开放');
@@ -383,11 +382,7 @@ async function loadInvitation() {
   pageState.value = 'loading';
   errorMessage.value = '';
   try {
-    const [runtimeFeatures, invitation] = await Promise.all([
-      loadRuntimeFeatures().catch(() => ({ mockPaymentEnabled: false })),
-      request<PublicInvitation>(`/invitations/public/${encodeURIComponent(slug.value)}`)
-    ]);
-    features.value = runtimeFeatures;
+    const invitation = await request<PublicInvitation>(`/invitations/public/${encodeURIComponent(slug.value)}`);
     data.value = invitation;
     pageState.value = 'ready';
   } catch (error) {

@@ -20,73 +20,67 @@
       </view>
     </view>
 
-    <view v-if="!paymentEntryEnabled" class="notice-card">
-      <text class="notice-title">当前为非支付体验版</text>
-      <text class="notice-text">{{ activeTheme.onlineGiftLabel }}和现场扫码支付暂未开放。您可以先返回请柬提交回执，正式支付配置完成后会开放统一支付入口。</text>
-      <view class="notice-actions">
-        <button class="notice-button" @tap="backToInvitation()">{{ shareUrl ? '返回请柬' : '返回上一页' }}</button>
-        <button class="notice-button ghost" @tap="showPaymentNotice()">了解说明</button>
+    <view v-if="!paymentEntryEnabled" class="notice-card compact">
+      <text class="notice-title">支付功能暂未开通</text>
+      <text class="notice-text">当前先展示{{ activeTheme.onlineGiftLabel }}填写和确认流程，正式微信支付开通后将共用同一套订单与回调能力。</text>
+    </view>
+
+    <view class="amount-card">
+      <text class="amount-label">{{ activeTheme.giftAmountLabel }}</text>
+      <view class="amount-input-row">
+        <text class="currency">¥</text>
+        <input v-model.number="form.amount" class="amount-input" type="digit" placeholder="0" placeholder-class="amount-placeholder" />
+      </view>
+      <view class="quick-amounts">
+        <view
+          v-for="amount in quickAmounts"
+          :key="amount"
+          class="quick-amount"
+          :class="{ active: Number(form.amount) === amount }"
+          @tap="selectAmount(amount)"
+        >
+          ¥{{ amount }}
+        </view>
       </view>
     </view>
 
-    <template v-else>
-      <view class="amount-card">
-        <text class="amount-label">{{ activeTheme.giftAmountLabel }}</text>
-        <view class="amount-input-row">
-          <text class="currency">¥</text>
-          <input v-model.number="form.amount" class="amount-input" type="digit" placeholder="0" placeholder-class="amount-placeholder" />
-        </view>
-        <view class="quick-amounts">
-          <view
-            v-for="amount in quickAmounts"
-            :key="amount"
-            class="quick-amount"
-            :class="{ active: Number(form.amount) === amount }"
-            @tap="selectAmount(amount)"
-          >
-            ¥{{ amount }}
-          </view>
-        </view>
+    <view class="form-card">
+      <view class="form-row">
+        <text class="row-icon">人</text>
+        <text class="row-label">宾客姓名</text>
+        <input v-model="form.guestName" class="row-input" placeholder="请输入姓名" placeholder-class="placeholder" />
       </view>
+      <view class="blessing-panel">
+        <text class="panel-title">{{ activeTheme.blessingLabel }}</text>
+        <view class="blessing-list">
+          <view v-for="item in blessingTemplates" :key="item" class="blessing-chip" @tap="form.blessing = item">{{ item }}</view>
+        </view>
+        <textarea v-model="form.blessing" class="textarea" maxlength="120" :placeholder="activeTheme.blessingPlaceholder" placeholder-class="placeholder" />
+        <text class="counter">{{ form.blessing.length }}/120</text>
+      </view>
+    </view>
 
-      <view class="form-card">
-        <view class="form-row">
-          <text class="row-icon">人</text>
-          <text class="row-label">宾客姓名</text>
-          <input v-model="form.guestName" class="row-input" placeholder="请输入姓名" placeholder-class="placeholder" />
-        </view>
-        <view class="blessing-panel">
-          <text class="panel-title">{{ activeTheme.blessingLabel }}</text>
-          <view class="blessing-list">
-            <view v-for="item in blessingTemplates" :key="item" class="blessing-chip" @tap="form.blessing = item">{{ item }}</view>
-          </view>
-          <textarea v-model="form.blessing" class="textarea" maxlength="120" :placeholder="activeTheme.blessingPlaceholder" placeholder-class="placeholder" />
-          <text class="counter">{{ form.blessing.length }}/120</text>
-        </view>
+    <view class="flow-card">
+      <view class="flow-item">
+        <text class="flow-dot">1</text>
+        <text>创建统一支付订单</text>
       </view>
+      <view class="flow-line"></view>
+      <view class="flow-item">
+        <text class="flow-dot">2</text>
+        <text>支付回调写入{{ activeTheme.giftRecordLabel }}</text>
+      </view>
+      <view class="flow-line"></view>
+      <view class="flow-item">
+        <text class="flow-dot">3</text>
+        <text>确认屏与云喇叭同步播报</text>
+      </view>
+    </view>
 
-      <view class="flow-card">
-        <view class="flow-item">
-          <text class="flow-dot">1</text>
-          <text>创建统一支付订单</text>
-        </view>
-        <view class="flow-line"></view>
-        <view class="flow-item">
-          <text class="flow-dot">2</text>
-          <text>支付回调写入{{ activeTheme.giftRecordLabel }}</text>
-        </view>
-        <view class="flow-line"></view>
-        <view class="flow-item">
-          <text class="flow-dot">3</text>
-          <text>确认屏与云喇叭同步播报</text>
-        </view>
-      </view>
-
-      <view class="footer-safe"></view>
-      <view class="sticky-submit">
-        <button class="primary-button" :loading="submitting" @tap="submit()">{{ submitText }}</button>
-      </view>
-    </template>
+    <view class="footer-safe"></view>
+    <view class="sticky-submit">
+      <button class="primary-button" :loading="submitting" @tap="submit()">{{ submitText }}</button>
+    </view>
   </view>
 </template>
 
@@ -142,11 +136,11 @@ function selectAmount(amount: number) {
 }
 
 async function submit() {
-  if (!paymentEntryEnabled.value) {
-    uni.showToast({ title: '支付入口暂未开放', icon: 'none' });
+  if (!validate()) {
     return;
   }
-  if (!validate()) {
+  if (!paymentEntryEnabled.value) {
+    showPaymentNotice();
     return;
   }
   submitting.value = true;
@@ -190,8 +184,8 @@ function validate() {
 
 function showPaymentNotice() {
   uni.showModal({
-    title: '支付暂未开放',
-    content: `${activeTheme.value.onlineGiftLabel}和现场扫码共用统一支付能力，需完成微信支付配置后开放。`,
+    title: '还没有开通支付功能',
+    content: `${activeTheme.value.onlineGiftLabel}和现场扫码共用统一支付能力，正式微信支付配置完成后即可从这里完成付款。`,
     showCancel: false,
     confirmText: '知道了'
   });
@@ -409,6 +403,10 @@ onMounted(async () => {
 
 .notice-card {
   padding: 34rpx;
+}
+
+.notice-card.compact {
+  padding: 24rpx 28rpx;
 }
 
 .notice-title {
