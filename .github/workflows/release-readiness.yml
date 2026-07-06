@@ -1,0 +1,94 @@
+name: Release Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Public base URL used for optional readiness checks"
+        required: false
+        default: "https://yxt.yqej.cn"
+      require_readiness_ready:
+        description: "Fail when /api/health/readiness is not READY"
+        required: false
+        type: boolean
+        default: false
+      run_remote_api:
+        description: "Run production API acceptance; requires ADMIN_PASSWORD secret"
+        required: false
+        type: boolean
+        default: false
+      run_remote_browser:
+        description: "Run production browser smoke; requires ADMIN_PASSWORD secret"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-readiness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    name: Run release readiness suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      RUN_ID: github-${{ github.run_id }}
+      ARTIFACTS_ROOT: .artifacts/release-readiness/github-${{ github.run_id }}
+      BASE_URL: ${{ inputs.base_url }}
+      SKIP_REMOTE_CHECKS: "1"
+      REQUIRE_READINESS_READY: ${{ inputs.require_readiness_ready && '1' || '0' }}
+      RUN_PREFLIGHT: "1"
+      RUN_RELEASE_READINESS: "1"
+      RUN_ADMIN_SOURCE_SMOKE: "1"
+      RUN_PRODUCTION_API: ${{ inputs.run_remote_api && '1' || '0' }}
+      RUN_PRODUCTION_BROWSER: ${{ inputs.run_remote_browser && '1' || '0' }}
+      RUN_OPS_CHECK: "0"
+      RUN_SECURITY_CHECK: "0"
+      RUN_MINIAPP_PREVIEW: "0"
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: server/pom.xml
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install admin dependencies
+        working-directory: admin
+        run: npm ci
+
+      - name: Install confirm-screen dependencies
+        working-directory: confirm-screen
+        run: npm ci
+
+      - name: Install miniapp dependencies
+        working-directory: miniapp
+        run: npm ci
+
+      - name: Run release readiness checks
+        run: bash deploy/scripts/production-acceptance-suite.sh
+
+      - name: Upload readiness artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-readiness-${{ github.run_id }}
+          path: .artifacts/release-readiness/github-${{ github.run_id }}
+          if-no-files-found: ignore
+          retention-days: 14

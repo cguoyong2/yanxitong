@@ -196,6 +196,8 @@ The admin console and confirmation screen run through the matrix in `.github/wor
 
 Docker production packaging is checked by `.github/workflows/docker-build-ci.yml`. It validates `deploy/docker-compose.production.yml` with required production variables and builds the backend image from `server/Dockerfile` without pushing an image.
 
+The manual release gate is `.github/workflows/release-readiness.yml`. It runs the unified production acceptance suite with remote production checks disabled by default, then uploads the generated release artifacts for review.
+
 ```bash
 bash deploy/scripts/miniapp-preview.sh
 ```
