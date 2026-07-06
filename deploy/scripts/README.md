@@ -192,6 +192,8 @@ The same `npm run check` and `npm run build` gates run in `.github/workflows/min
 
 Backend unit tests and packaging run through `.github/workflows/server-ci.yml` with Java 17. The workflow executes `mvn verify` for server-related pushes, pull requests and manual dispatches, and retains Surefire reports when a run fails.
 
+The admin console and confirmation screen run through the matrix in `.github/workflows/web-ci.yml`. Each frontend uses its lock file with Node.js 20, then runs the existing TypeScript check and Vite production build.
+
 ```bash
 bash deploy/scripts/miniapp-preview.sh
 ```
