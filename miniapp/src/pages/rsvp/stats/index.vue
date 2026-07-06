@@ -76,11 +76,12 @@
         </view>
       </view>
       <view v-if="filteredRecords.length" class="record-list">
-        <view v-for="record in filteredRecords" :key="record.id" class="record-row">
+        <view v-for="record in filteredRecords" :key="record.id" class="record-row" :class="{ highlight: isHighlightedRecord(record.id) }">
           <view class="record-main">
             <view class="record-title-line">
               <text class="record-name">{{ record.guestName || '未填写姓名' }}</text>
               <text class="record-status" :class="statusTone(record.attendanceStatus)">{{ statusLabel(record.attendanceStatus) }}</text>
+              <text v-if="isHighlightedRecord(record.id)" class="record-highlight">刚刚提交</text>
             </view>
             <text class="record-meta">
               {{ record.guestCount || 1 }} 人 · {{ record.mealRequired ? '用餐' : '不用餐' }} · {{ record.accommodationRequired ? '住宿' : '不住宿' }}
@@ -169,6 +170,8 @@ const stats = ref<RsvpStats>();
 const records = ref<RsvpRecord[]>([]);
 const banquetId = ref('');
 const shareSlug = ref('');
+const shareUrl = ref('');
+const highlightRsvpId = ref('');
 const loading = ref(false);
 const lastSyncText = ref('');
 const activeFilter = ref('ALL');
@@ -204,10 +207,17 @@ const statusItems = computed(() => {
   ];
 });
 const filteredRecords = computed(() => {
+  const source = prioritizedRecords.value;
   if (activeFilter.value === 'ALL') {
+    return source;
+  }
+  return source.filter((record) => normalizeStatus(record.attendanceStatus) === activeFilter.value);
+});
+const prioritizedRecords = computed(() => {
+  if (!highlightRsvpId.value) {
     return records.value;
   }
-  return records.value.filter((record) => normalizeStatus(record.attendanceStatus) === activeFilter.value);
+  return [...records.value].sort((a, b) => Number(isHighlightedRecord(b.id)) - Number(isHighlightedRecord(a.id)));
 });
 
 async function load() {
@@ -238,6 +248,10 @@ function shareInvite() {
     safeNavigate(`/pages/invite/public/index?slug=${shareSlug.value}`, '请柬页面打开失败');
     return;
   }
+  if (shareUrl.value) {
+    safeNavigate(shareUrl.value, '请柬页面打开失败');
+    return;
+  }
   if (!banquetId.value) {
     uni.showToast({ title: '缺少宴席信息', icon: 'none' });
     return;
@@ -254,12 +268,13 @@ function openBanquetDetail() {
 }
 
 function copyInvitePath() {
-  if (!invitePath.value) {
+  const path = invitePath.value || shareUrl.value;
+  if (!path) {
     uni.showToast({ title: '暂无请柬路径', icon: 'none' });
     return;
   }
   uni.setClipboardData({
-    data: invitePath.value,
+    data: path,
     success: () => uni.showToast({ title: '已复制请柬路径', icon: 'success' }),
     fail: () => uni.showToast({ title: '复制失败', icon: 'none' })
   });
@@ -286,6 +301,10 @@ function statusTone(status?: string) {
   return 'orange';
 }
 
+function isHighlightedRecord(id?: number) {
+  return Boolean(highlightRsvpId.value && String(id) === String(highlightRsvpId.value));
+}
+
 function formatDate(value?: string) {
   if (!value) {
     return '';
@@ -309,6 +328,8 @@ onMounted(async () => {
   const pages = getCurrentPages();
   const current = pages[pages.length - 1] as unknown as { options?: Record<string, string> };
   banquetId.value = await resolveBanquetId(current.options?.banquetId);
+  highlightRsvpId.value = current.options?.highlightRsvpId || '';
+  shareUrl.value = current.options?.shareUrl ? decodeURIComponent(current.options.shareUrl) : '';
   if (!banquetId.value) {
     requireBanquetToast();
   }
@@ -722,6 +743,12 @@ onShow(() => {
   background: #fffdfb;
 }
 
+.record-row.highlight {
+  border-color: var(--accent);
+  background: linear-gradient(90deg, var(--accent-soft), #fffdfb);
+  box-shadow: 0 10rpx 28rpx rgba(43, 35, 31, 0.08);
+}
+
 .record-main {
   min-width: 0;
   flex: 1;
@@ -763,6 +790,16 @@ onShow(() => {
 .record-status.gray {
   background: #f3f4f6;
   color: #6b7280;
+}
+
+.record-highlight {
+  flex: 0 0 auto;
+  padding: 5rpx 10rpx;
+  border-radius: 999rpx;
+  background: var(--accent);
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 900;
 }
 
 .record-meta,

@@ -281,7 +281,14 @@ function openRsvpStats() {
     uni.showToast({ title: '缺少宴席信息', icon: 'none' });
     return;
   }
-  safeNavigate(`/pages/rsvp/stats/index?banquetId=${banquetId.value}`, '回执统计打开失败');
+  const params = [`banquetId=${banquetId.value}`];
+  if (submitResult.value?.id) {
+    params.push(`highlightRsvpId=${submitResult.value.id}`);
+  }
+  if (shareUrl.value) {
+    params.push(`shareUrl=${encodeURIComponent(shareUrl.value)}`);
+  }
+  safeNavigate(`/pages/rsvp/stats/index?${params.join('&')}`, '回执统计打开失败');
 }
 
 function editAgain() {
