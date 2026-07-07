@@ -18,6 +18,8 @@ public class PaymentOrder {
     public String provider;
     public String scene;
     public String entrySource;
+    public String bizOrderType;
+    public String bizOrderNo;
     public BigDecimal amount;
     public String currency;
     public String subject;

@@ -17,6 +17,8 @@ Set these variables before switching the default provider:
 - `PAYMENT_WECHAT_PRIVATE_KEY_PATH`
 - `PAYMENT_WECHAT_API_V3_KEY`
 - `PAYMENT_WECHAT_NOTIFY_URL`
+- `WECHAT_MINIAPP_APP_ID`
+- `WECHAT_MINIAPP_APP_SECRET`
 - `PAYMENT_WECHAT_CERTIFICATE_MODE`
 - `PAYMENT_WECHAT_PLATFORM_CERTIFICATE_PATH` when `PLATFORM_CERTIFICATE`
 - `PAYMENT_WECHAT_PUBLIC_KEY_ID` and `PAYMENT_WECHAT_PUBLIC_KEY_PATH` when `PUBLIC_KEY`
@@ -34,11 +36,13 @@ Do not configure private keys, API v3 keys, or platform certificates through adm
 
 ## Prepay Checks
 
-1. Create a gift payment order from the online gift entry.
-2. Confirm `payment_order.provider=WECHAT_SERVICE_PROVIDER`.
-3. Confirm `payment_order.prepay_id` is not empty.
-4. Confirm `payment_order.pay_payload` contains `appId`, `timeStamp`, `nonceStr`, `package`, `signType`, and `paySign`.
-5. Confirm no business service calls WeChat SDK directly; payment creation must go through `PaymentService` and `PaymentAdapter`.
+1. Confirm `POST /api/wechat/miniapp/openid` succeeds from the miniapp login code path.
+2. Create a gift payment order from the online gift entry.
+3. Confirm `payment_order.provider=WECHAT_SERVICE_PROVIDER`.
+4. Confirm `payment_order.prepay_id` is not empty.
+5. Confirm `payment_order.pay_payload` contains `appId`, `timeStamp`, `nonceStr`, `package`, `signType`, and `paySign`.
+6. Create one paid version order and one paid device order; confirm both create `payment_order` rows with `biz_order_type` and `biz_order_no`.
+7. Confirm no business service calls WeChat SDK directly; payment creation must go through `PaymentService` and `PaymentAdapter`.
 
 ## Callback Checks
 
@@ -53,11 +57,13 @@ Do not configure private keys, API v3 keys, or platform certificates through adm
    - `decrypted_body` populated
 3. Confirm `payment_order.pay_status=PAID`.
 4. Confirm `payment_order.provider_trade_no` stores the final WeChat transaction ID.
-5. Confirm the corresponding `gift_record` and `favor_entry` are created once.
-6. Confirm confirm-screen and cloud-speaker broadcast logs are generated from the same paid event path.
-7. Replay the same successful callback once in a non-production environment.
-8. Confirm the replayed callback is marked `IGNORED` and does not create a second `gift_record` or `favor_entry`.
-9. Create a redacted callback fixture from the successful sample following `docs/wechat-callback-fixture-policy.md`.
+5. Confirm the corresponding `gift_record` and `favor_entry` are created once for gift payment.
+6. Confirm version payment marks the matching `plan_order.pay_status=PAID`.
+7. Confirm device payment marks the matching `device_order.pay_status=PAID` and `device_order.order_status=CONFIRMED`.
+8. Confirm confirm-screen and cloud-speaker broadcast logs are generated from the same paid gift event path.
+9. Replay the same successful callback once in a non-production environment.
+10. Confirm the replayed callback is marked `IGNORED` and does not create duplicate fulfillment rows.
+11. Create a redacted callback fixture from the successful sample following `docs/wechat-callback-fixture-policy.md`.
 
 ## Failure Checks
 

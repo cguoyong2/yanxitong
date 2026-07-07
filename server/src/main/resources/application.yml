@@ -52,3 +52,8 @@ payment:
       platform-certificate-path: ${PAYMENT_WECHAT_PLATFORM_CERTIFICATE_PATH:}
       wechat-pay-public-key-id: ${PAYMENT_WECHAT_PUBLIC_KEY_ID:}
       wechat-pay-public-key-path: ${PAYMENT_WECHAT_PUBLIC_KEY_PATH:}
+
+wechat:
+  miniapp:
+    app-id: ${WECHAT_MINIAPP_APP_ID:${PAYMENT_WECHAT_SUB_APP_ID:${PAYMENT_WECHAT_APP_ID:}}}
+    app-secret: ${WECHAT_MINIAPP_APP_SECRET:}

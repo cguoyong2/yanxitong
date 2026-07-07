@@ -179,8 +179,8 @@
             <text>微信支付</text>
           </view>
         </view>
-        <button class="confirm-pay-button" @tap="showPaymentUnavailable()">确认支付</button>
-        <text class="payment-note">当前仅展示支付确认流程，真实支付接口上线后将从这里完成付款。</text>
+        <button class="confirm-pay-button" :loading="Boolean(payingOrderNo)" @tap="payOrder(paymentPanel.order)">确认支付</button>
+        <text class="payment-note">支付完成后，微信回调会自动确认设备订单。</text>
       </view>
     </view>
   </view>
@@ -191,6 +191,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
+import { createBusinessPayment, requestWechatPayment } from '../../../utils/wechat-payment';
 
 interface DeviceConfig {
   id: number;
@@ -424,8 +425,29 @@ function closePaymentPanel() {
   paymentPanel.visible = false;
 }
 
-function showPaymentUnavailable() {
-  uni.showToast({ title: '还没有开通支付功能', icon: 'none' });
+async function payOrder(order?: DeviceOrder) {
+  if (!order) {
+    uni.showToast({ title: '缺少订单信息', icon: 'none' });
+    return;
+  }
+  if (features.value.mockPaymentEnabled) {
+    await mockPay(order.orderNo);
+    closePaymentPanel();
+    return;
+  }
+  payingOrderNo.value = order.orderNo;
+  try {
+    const result = await createBusinessPayment(`/devices/orders/${order.orderNo}/payment`);
+    await requestWechatPayment(result.payPayload);
+    closePaymentPanel();
+    lastOrderText.value = '支付已提交，微信回调确认后会自动更新设备订单状态。';
+    uni.showToast({ title: '支付已提交', icon: 'success' });
+    await loadOrders();
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '设备支付失败', icon: 'none' });
+  } finally {
+    payingOrderNo.value = '';
+  }
 }
 
 function returnBanquetDetail() {

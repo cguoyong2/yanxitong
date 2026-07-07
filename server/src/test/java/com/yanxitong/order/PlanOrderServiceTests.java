@@ -20,6 +20,7 @@ import com.yanxitong.order.dto.CreatePlanOrderRequest;
 import com.yanxitong.order.dto.PlanEntitlementResult;
 import com.yanxitong.order.entity.PlanOrder;
 import com.yanxitong.order.mapper.PlanOrderMapper;
+import com.yanxitong.payment.PaymentService;
 import com.yanxitong.tenant.TenantContext;
 import java.math.BigDecimal;
 import java.util.List;
@@ -136,7 +137,8 @@ class PlanOrderServiceTests {
                 planRightMapper,
                 planOrderMapper,
                 orderNoGenerator,
-                mock(OperationLogService.class)
+                mock(OperationLogService.class),
+                mock(PaymentService.class)
         );
     }
 

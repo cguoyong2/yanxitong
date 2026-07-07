@@ -9,9 +9,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.yanxitong.device.DeviceOrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yanxitong.gift.GiftService;
 import com.yanxitong.operationlog.OperationLogService;
+import com.yanxitong.order.PlanOrderService;
 import com.yanxitong.payment.entity.PaymentCallbackLog;
 import com.yanxitong.payment.entity.PaymentOrder;
 import com.yanxitong.payment.mapper.PaymentCallbackLogMapper;
@@ -155,6 +157,60 @@ class PaymentCallbackServiceTests {
         verify(giftService, never()).fulfillPaidPaymentOrder(any());
     }
 
+    @Test
+    void planOrderCallbackFulfillsPlanOrder() {
+        PaymentOrderMapper orderMapper = mock(PaymentOrderMapper.class);
+        PaymentOrder order = unpaidOrder("GP-PLAN");
+        order.scene = PaymentScene.PLAN_ORDER.name();
+        order.bizOrderNo = "PO-1";
+        when(orderMapper.selectOne(any(Wrapper.class))).thenReturn(order);
+        PaymentCallbackLogMapper callbackLogMapper = callbackLogMapper(7L);
+        when(callbackLogMapper.selectCount(any(Wrapper.class))).thenReturn(0L);
+        GiftService giftService = mock(GiftService.class);
+        PlanOrderService planOrderService = mock(PlanOrderService.class);
+        PaymentCallbackService service = service(
+                orderMapper,
+                callbackLogMapper,
+                giftService,
+                planOrderService,
+                mock(DeviceOrderService.class),
+                callbackResult("GP-PLAN", "WX-PLAN", true, "event-plan")
+        );
+
+        PaymentCallbackLog log = service.handleProviderCallback(envelope());
+
+        assertEquals("SUCCESS", log.processStatus);
+        verify(planOrderService).fulfillPaidPaymentOrder(order);
+        verify(giftService, never()).fulfillPaidPaymentOrder(any());
+    }
+
+    @Test
+    void deviceOrderCallbackFulfillsDeviceOrder() {
+        PaymentOrderMapper orderMapper = mock(PaymentOrderMapper.class);
+        PaymentOrder order = unpaidOrder("GP-DEVICE");
+        order.scene = PaymentScene.DEVICE_ORDER.name();
+        order.bizOrderNo = "DO-1";
+        when(orderMapper.selectOne(any(Wrapper.class))).thenReturn(order);
+        PaymentCallbackLogMapper callbackLogMapper = callbackLogMapper(8L);
+        when(callbackLogMapper.selectCount(any(Wrapper.class))).thenReturn(0L);
+        GiftService giftService = mock(GiftService.class);
+        DeviceOrderService deviceOrderService = mock(DeviceOrderService.class);
+        PaymentCallbackService service = service(
+                orderMapper,
+                callbackLogMapper,
+                giftService,
+                mock(PlanOrderService.class),
+                deviceOrderService,
+                callbackResult("GP-DEVICE", "WX-DEVICE", true, "event-device")
+        );
+
+        PaymentCallbackLog log = service.handleProviderCallback(envelope());
+
+        assertEquals("SUCCESS", log.processStatus);
+        verify(deviceOrderService).fulfillPaidPaymentOrder(order);
+        verify(giftService, never()).fulfillPaidPaymentOrder(any());
+    }
+
     private PaymentCallbackService service(
             PaymentOrderMapper orderMapper,
             PaymentCallbackLogMapper callbackLogMapper,
@@ -182,6 +238,44 @@ class PaymentCallbackServiceTests {
                 callbackLogMapper,
                 new PaymentAdapterRegistry(List.of(adapter)),
                 giftService,
+                mock(PlanOrderService.class),
+                mock(DeviceOrderService.class),
+                mock(OperationLogService.class),
+                new ObjectMapper()
+        );
+    }
+
+    private PaymentCallbackService service(
+            PaymentOrderMapper orderMapper,
+            PaymentCallbackLogMapper callbackLogMapper,
+            GiftService giftService,
+            PlanOrderService planOrderService,
+            DeviceOrderService deviceOrderService,
+            PaymentCallbackResult callbackResult
+    ) {
+        PaymentAdapter adapter = new PaymentAdapter() {
+            @Override
+            public PaymentProvider provider() {
+                return PaymentProvider.MOCK;
+            }
+
+            @Override
+            public PaymentCreateResult createPayment(PaymentCreateCommand command) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public PaymentCallbackResult verifyAndParseCallback(PaymentCallbackEnvelope envelope) {
+                return callbackResult;
+            }
+        };
+        return new PaymentCallbackService(
+                orderMapper,
+                callbackLogMapper,
+                new PaymentAdapterRegistry(List.of(adapter)),
+                giftService,
+                planOrderService,
+                deviceOrderService,
                 mock(OperationLogService.class),
                 new ObjectMapper()
         );
@@ -214,6 +308,8 @@ class PaymentCallbackServiceTests {
                 callbackLogMapper,
                 new PaymentAdapterRegistry(List.of(adapter)),
                 giftService,
+                mock(PlanOrderService.class),
+                mock(DeviceOrderService.class),
                 mock(OperationLogService.class),
                 new ObjectMapper()
         );

@@ -213,7 +213,7 @@
         </view>
         <view class="detail-actions">
           <button class="detail-button ghost" @tap="openOrderSource()">查看订单页</button>
-          <button v-if="!orderDetail.row?.paid" class="detail-button primary" @tap="showPaymentUnavailable()">确认支付</button>
+          <button v-if="!orderDetail.row?.paid" class="detail-button primary" @tap="continueOrderPayment()">确认支付</button>
           <button v-else class="detail-button primary" @tap="closeOrderDetail()">已完成</button>
         </view>
       </view>
@@ -413,13 +413,22 @@ function openOrderSource() {
   handleAction(row.action);
 }
 
-function showPaymentUnavailable() {
-  uni.showModal({
-    title: '还没有开通支付功能',
-    content: '当前仅展示订单支付确认流程，正式微信支付配置完成后即可从这里完成付款。',
-    showCancel: false,
-    confirmText: '知道了'
-  });
+function continueOrderPayment() {
+  const row = orderDetail.value.row;
+  if (!row) {
+    uni.showToast({ title: '缺少订单信息', icon: 'none' });
+    return;
+  }
+  closeOrderDetail();
+  if (row.action === 'plan') {
+    openPlanOrders(row.highlightOrderNo);
+    return;
+  }
+  if (row.action === 'device') {
+    openDeviceOrders(row.highlightOrderNo);
+    return;
+  }
+  uni.showToast({ title: '请到订单页继续支付', icon: 'none' });
 }
 
 function openLatestBanquet() {

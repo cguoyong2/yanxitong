@@ -8,6 +8,8 @@ import com.yanxitong.order.dto.PlanEntitlementResult;
 import com.yanxitong.order.dto.RightsCheckResult;
 import com.yanxitong.order.entity.PlanOrder;
 import com.yanxitong.payment.MockPaymentGuard;
+import com.yanxitong.payment.PaymentOrderCreateResult;
+import com.yanxitong.payment.dto.CreateBusinessPaymentRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,6 +50,14 @@ public class PlanOrderController {
     public ApiResponse<PlanOrder> mockPaymentSuccess(@PathVariable String orderNo) {
         mockPaymentGuard.requireEnabled();
         return ApiResponse.ok(planOrderService.mockPaymentSuccess(orderNo));
+    }
+
+    @PostMapping("/orders/{orderNo}/payment")
+    public ApiResponse<PaymentOrderCreateResult> createPayment(
+            @PathVariable String orderNo,
+            @Valid @RequestBody CreateBusinessPaymentRequest request
+    ) {
+        return ApiResponse.ok(planOrderService.createPaymentOrder(orderNo, request.payerOpenId));
     }
 
     @GetMapping("/{planId}/rights/check")

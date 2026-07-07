@@ -99,6 +99,8 @@ if [[ "${PAYMENT_DEFAULT_PROVIDER}" != "MOCK" ]]; then
     PAYMENT_WECHAT_PRIVATE_KEY_PATH
     PAYMENT_WECHAT_API_V3_KEY
     PAYMENT_WECHAT_NOTIFY_URL
+    WECHAT_MINIAPP_APP_ID
+    WECHAT_MINIAPP_APP_SECRET
   )
   if [[ "${REQUIRE_READINESS_READY}" == "1" ]]; then
     for name in "${wechat_vars[@]}"; do

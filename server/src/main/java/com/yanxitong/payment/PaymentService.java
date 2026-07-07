@@ -50,6 +50,8 @@ public class PaymentService {
         order.provider = defaultProvider.name();
         order.scene = command.scene().name();
         order.entrySource = command.entrySource();
+        order.bizOrderType = normalize(command.bizOrderType());
+        order.bizOrderNo = normalize(command.bizOrderNo());
         order.amount = command.amount();
         order.currency = "CNY";
         order.subject = command.subject();

@@ -39,6 +39,8 @@ Replace or provide all of the following outside Git:
 - `PAYMENT_WECHAT_PRIVATE_KEY_PATH`
 - `PAYMENT_WECHAT_API_V3_KEY`
 - `PAYMENT_WECHAT_NOTIFY_URL`
+- `WECHAT_MINIAPP_APP_ID`
+- `WECHAT_MINIAPP_APP_SECRET`
 - certificate verification material required by `PAYMENT_WECHAT_CERTIFICATE_MODE`
 
 ## Required Runtime Gates
@@ -68,12 +70,15 @@ Before exposing real payment traffic:
 After formal service-provider/sub-merchant onboarding:
 
 1. Confirm payer OpenID mode: `sp_openid` or `sub_openid`.
-2. Create one isolated low-value gift payment.
-3. Confirm `payment_order.prepay_id` and `pay_payload` are stored.
-4. Complete payment and receive one successful callback.
-5. Confirm exactly one `gift_record`, one `favor_entry` and related `broadcast_log` are created.
-6. Replay the callback in non-production and confirm duplicate handling becomes `IGNORED`.
-7. Capture one successful callback sample and one failed-verification sample after redaction.
+2. Confirm miniapp `code2session` can return payer openid through `/api/wechat/miniapp/openid`.
+3. Create one isolated low-value gift payment.
+4. Create one low-value paid version order and one low-value device order.
+5. Confirm `payment_order.prepay_id` and `pay_payload` are stored for each payment.
+6. Complete payment and receive successful callbacks.
+7. Confirm gift payment creates exactly one `gift_record`, one `favor_entry` and related `broadcast_log`.
+8. Confirm version/device callbacks mark their source orders paid.
+9. Replay the callback in non-production and confirm duplicate handling becomes `IGNORED`.
+10. Capture one successful callback sample and one failed-verification sample after redaction.
 
 ## Next Command After Secrets Are Ready
 

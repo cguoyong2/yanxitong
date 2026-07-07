@@ -155,8 +155,8 @@
             <text>支付完成后自动开通版本权益</text>
           </view>
         </view>
-        <button class="confirm-pay-button" @tap="showPaymentUnavailable()">确认支付</button>
-        <text class="payment-note">当前仅展示支付确认流程，真实支付接口上线后将从这里完成付款。</text>
+        <button class="confirm-pay-button" :loading="paying" @tap="payOrder(paymentPanel.order)">确认支付</button>
+        <text class="payment-note">支付完成后，微信回调会自动开通版本权益。</text>
       </view>
     </view>
   </view>
@@ -167,6 +167,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
+import { createBusinessPayment, requestWechatPayment } from '../../../utils/wechat-payment';
 
 interface Plan {
   id: number;
@@ -220,7 +221,7 @@ const pendingOrderTip = computed(() => {
   }
   return features.value.mockPaymentEnabled
     ? '体验环境可点“模拟支付”立即开通权益。'
-    : '点击“去支付”可查看支付确认界面，真实支付暂未开通。';
+    : '点击“去支付”后可调起微信支付，成功后等待回调自动开通。';
 });
 const paymentPlanName = computed(() => paymentPanel.plan?.name || planByOrder(paymentPanel.order)?.name || '付费版本');
 
@@ -376,7 +377,7 @@ function planOrderTip(order: PlanOrder) {
   if (features.value.mockPaymentEnabled) {
     return '待支付，体验环境可模拟支付完成开通。';
   }
-  return '待支付，真实支付上线后会从这里继续完成付款。';
+  return '待支付，可继续调起微信支付；成功后等待回调自动开通。';
 }
 
 function shouldShowPaymentPanel(plan?: Plan) {
@@ -406,8 +407,28 @@ function closePaymentPanel() {
   paymentPanel.visible = false;
 }
 
-function showPaymentUnavailable() {
-  uni.showToast({ title: '还没有开通支付功能', icon: 'none' });
+async function payOrder(order?: PlanOrder) {
+  if (!order) {
+    uni.showToast({ title: '缺少订单信息', icon: 'none' });
+    return;
+  }
+  if (features.value.mockPaymentEnabled) {
+    await mockPay(order.orderNo);
+    closePaymentPanel();
+    return;
+  }
+  paying.value = true;
+  try {
+    const result = await createBusinessPayment(`/plans/orders/${order.orderNo}/payment`);
+    await requestWechatPayment(result.payPayload);
+    closePaymentPanel();
+    uni.showToast({ title: '支付已提交', icon: 'success' });
+    await loadOrders();
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '版本支付失败', icon: 'none' });
+  } finally {
+    paying.value = false;
+  }
 }
 
 function openDevice() {

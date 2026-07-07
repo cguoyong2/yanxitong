@@ -13,8 +13,14 @@ import com.yanxitong.order.dto.PlanEntitlementResult;
 import com.yanxitong.order.dto.RightsCheckResult;
 import com.yanxitong.order.entity.PlanOrder;
 import com.yanxitong.order.mapper.PlanOrderMapper;
+import com.yanxitong.payment.PaymentOrderCreateCommand;
+import com.yanxitong.payment.PaymentOrderCreateResult;
+import com.yanxitong.payment.PaymentScene;
+import com.yanxitong.payment.PaymentService;
+import com.yanxitong.payment.entity.PaymentOrder;
 import com.yanxitong.tenant.TenantContext;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,19 +33,22 @@ public class PlanOrderService {
     private final PlanOrderMapper planOrderMapper;
     private final OrderNoGenerator orderNoGenerator;
     private final OperationLogService operationLogService;
+    private final PaymentService paymentService;
 
     public PlanOrderService(
             PlanMapper planMapper,
             PlanRightMapper planRightMapper,
             PlanOrderMapper planOrderMapper,
             OrderNoGenerator orderNoGenerator,
-            OperationLogService operationLogService
+            OperationLogService operationLogService,
+            PaymentService paymentService
     ) {
         this.planMapper = planMapper;
         this.planRightMapper = planRightMapper;
         this.planOrderMapper = planOrderMapper;
         this.orderNoGenerator = orderNoGenerator;
         this.operationLogService = operationLogService;
+        this.paymentService = paymentService;
     }
 
     public List<Plan> listActivePlans() {
@@ -99,10 +108,53 @@ public class PlanOrderService {
         return order;
     }
 
+    public PaymentOrderCreateResult createPaymentOrder(String orderNo, String payerOpenId) {
+        PlanOrder order = findByOrderNo(orderNo);
+        if (order == null) {
+            throw new IllegalArgumentException("Plan order not found");
+        }
+        if ("PAID".equals(order.payStatus)) {
+            throw new IllegalArgumentException("Plan order already paid");
+        }
+        if (order.amount == null || BigDecimal.ZERO.compareTo(order.amount) >= 0) {
+            throw new IllegalArgumentException("Free plan order does not need payment");
+        }
+        Plan plan = planMapper.selectById(order.planId);
+        String subject = "宴席通版本订单 " + (plan == null ? order.orderNo : plan.name);
+        return paymentService.createOrder(new PaymentOrderCreateCommand(
+                order.banquetId,
+                PaymentScene.PLAN_ORDER,
+                "PLAN_ORDER",
+                order.amount,
+                subject,
+                null,
+                payerOpenId,
+                null,
+                "plan-order:" + order.orderNo,
+                "PLAN_ORDER",
+                order.orderNo
+        ));
+    }
+
+    public PlanOrder fulfillPaidPaymentOrder(PaymentOrder paymentOrder) {
+        if (!PaymentScene.PLAN_ORDER.name().equals(paymentOrder.scene)) {
+            throw new IllegalArgumentException("Unsupported plan payment scene");
+        }
+        PlanOrder order = findByOrderNo(paymentOrder.bizOrderNo);
+        if (order == null) {
+            throw new IllegalArgumentException("Plan order not found");
+        }
+        if (!"PAID".equals(order.payStatus)) {
+            order.payStatus = "PAID";
+            order.updatedAt = LocalDateTime.now();
+            planOrderMapper.updateById(order);
+            operationLogService.record(OperationModule.PLAN, "PAYMENT_SUCCESS", "plan_order", order.id, "plan payment success");
+        }
+        return order;
+    }
+
     public PlanOrder mockPaymentSuccess(String orderNo) {
-        PlanOrder order = planOrderMapper.selectOne(new QueryWrapper<PlanOrder>()
-                .eq("order_no", orderNo)
-                .last("LIMIT 1"));
+        PlanOrder order = findByOrderNo(orderNo);
         if (order == null) {
             throw new IllegalArgumentException("Plan order not found");
         }
@@ -112,6 +164,20 @@ public class PlanOrderService {
             operationLogService.record(OperationModule.PLAN, "MOCK_PAYMENT_SUCCESS", "plan_order", order.id, "mock plan payment success");
         }
         return order;
+    }
+
+    private PlanOrder findByOrderNo(String orderNo) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return null;
+        }
+        QueryWrapper<PlanOrder> query = new QueryWrapper<PlanOrder>()
+                .eq("order_no", orderNo)
+                .last("LIMIT 1");
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId != null) {
+            query.and(wrapper -> wrapper.eq("tenant_id", tenantId).or().isNull("tenant_id"));
+        }
+        return planOrderMapper.selectOne(query);
     }
 
     public RightsCheckResult checkRight(Long planId, String rightCode) {

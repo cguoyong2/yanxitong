@@ -19,6 +19,7 @@ import com.yanxitong.operationlog.OperationLogService;
 import com.yanxitong.order.OrderNoGenerator;
 import com.yanxitong.order.PlanOrderService;
 import com.yanxitong.order.dto.RightsCheckResult;
+import com.yanxitong.payment.PaymentService;
 import com.yanxitong.tenant.TenantContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -157,7 +158,8 @@ class DeviceOrderServiceTests {
                 orderMapper,
                 orderNoGenerator,
                 mock(OperationLogService.class),
-                planOrderService
+                planOrderService,
+                mock(PaymentService.class)
         );
     }
 

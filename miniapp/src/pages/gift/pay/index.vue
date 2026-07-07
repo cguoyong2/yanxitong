@@ -20,9 +20,9 @@
       </view>
     </view>
 
-    <view v-if="!paymentEntryEnabled" class="notice-card compact">
-      <text class="notice-title">支付功能暂未开通</text>
-      <text class="notice-text">当前先展示{{ activeTheme.onlineGiftLabel }}填写和确认流程，正式微信支付开通后将共用同一套订单与回调能力。</text>
+    <view v-if="features.mockPaymentEnabled" class="notice-card compact">
+      <text class="notice-title">体验支付模式</text>
+      <text class="notice-text">当前可创建模拟支付订单，点击成功页按钮后写入{{ activeTheme.giftRecordLabel }}。</text>
     </view>
 
     <view class="amount-card">
@@ -89,6 +89,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
+import { getWechatOpenId, requestWechatPayment, type PaymentOrderResult } from '../../../utils/wechat-payment';
 
 const eventType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(eventType.value));
@@ -116,7 +117,6 @@ const form = reactive({
   entrySource: 'ONLINE_GIFT'
 });
 const isOnsiteQr = computed(() => form.entrySource === 'ONSITE_QR');
-const paymentEntryEnabled = computed(() => features.value.mockPaymentEnabled);
 const pageTitle = computed(() => isOnsiteQr.value ? `现场扫码${activeTheme.value.giftLabel}` : activeTheme.value.onlineGiftLabel);
 const pageHint = computed(() => isOnsiteQr.value
   ? `现场扫码与${activeTheme.value.onlineGiftLabel}共用同一套在线支付能力。`
@@ -139,16 +139,17 @@ async function submit() {
   if (!validate()) {
     return;
   }
-  if (!paymentEntryEnabled.value) {
-    showPaymentNotice();
-    return;
-  }
   submitting.value = true;
   try {
-    const result = await request<{ order: { orderNo: string } }>('/gifts/payment-orders', {
+    const payerOpenId = features.value.mockPaymentEnabled ? undefined : await getWechatOpenId();
+    const result = await request<PaymentOrderResult>('/gifts/payment-orders', {
       method: 'POST',
-      data: { ...form, banquetId: Number(banquetId.value), clientRequestId: ensureClientRequestId() }
+      data: { ...form, banquetId: Number(banquetId.value), payerOpenId, clientRequestId: ensureClientRequestId() }
     });
+    if (!features.value.mockPaymentEnabled) {
+      await requestWechatPayment(result.payPayload);
+      uni.showToast({ title: '支付已提交', icon: 'success' });
+    }
     const share = shareUrl.value ? `&shareUrl=${encodeURIComponent(shareUrl.value)}` : '';
     safeNavigate(
       `/pages/gift/success/index?orderNo=${result.order.orderNo}&banquetId=${banquetId.value}&amount=${form.amount || 0}&guestName=${encodeURIComponent(form.guestName)}${share}`,
@@ -180,15 +181,6 @@ function validate() {
     return false;
   }
   return true;
-}
-
-function showPaymentNotice() {
-  uni.showModal({
-    title: '还没有开通支付功能',
-    content: `${activeTheme.value.onlineGiftLabel}和现场扫码共用统一支付能力，正式微信支付配置完成后即可从这里完成付款。`,
-    showCancel: false,
-    confirmText: '知道了'
-  });
 }
 
 function backToInvitation() {

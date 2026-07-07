@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.yanxitong.device.DeviceOrderService;
 import com.yanxitong.common.PageResult;
 import com.yanxitong.gift.GiftService;
 import com.yanxitong.gift.entity.GiftRecord;
 import com.yanxitong.operationlog.OperationLogService;
 import com.yanxitong.operationlog.OperationModule;
+import com.yanxitong.order.PlanOrderService;
 import com.yanxitong.payment.dto.ManualSettlePaymentOrderRequest;
 import com.yanxitong.payment.dto.ResolvePaymentCallbackRequest;
 import com.yanxitong.payment.entity.PaymentCallbackLog;
@@ -31,6 +33,8 @@ public class PaymentCallbackService {
     private final PaymentCallbackLogMapper paymentCallbackLogMapper;
     private final PaymentAdapterRegistry paymentAdapterRegistry;
     private final GiftService giftService;
+    private final PlanOrderService planOrderService;
+    private final DeviceOrderService deviceOrderService;
     private final OperationLogService operationLogService;
     private final ObjectMapper objectMapper;
 
@@ -39,6 +43,8 @@ public class PaymentCallbackService {
             PaymentCallbackLogMapper paymentCallbackLogMapper,
             PaymentAdapterRegistry paymentAdapterRegistry,
             GiftService giftService,
+            PlanOrderService planOrderService,
+            DeviceOrderService deviceOrderService,
             OperationLogService operationLogService,
             ObjectMapper objectMapper
     ) {
@@ -46,6 +52,8 @@ public class PaymentCallbackService {
         this.paymentCallbackLogMapper = paymentCallbackLogMapper;
         this.paymentAdapterRegistry = paymentAdapterRegistry;
         this.giftService = giftService;
+        this.planOrderService = planOrderService;
+        this.deviceOrderService = deviceOrderService;
         this.operationLogService = operationLogService;
         this.objectMapper = objectMapper;
     }
@@ -221,7 +229,7 @@ public class PaymentCallbackService {
         callbackLog.processStatus = "SUCCESS";
         paymentCallbackLogMapper.insert(callbackLog);
 
-        GiftRecord giftRecord = giftService.fulfillPaidPaymentOrder(order);
+        GiftRecord giftRecord = fulfill(order);
         operationLogService.record(OperationModule.PAYMENT, "MOCK_PAYMENT_SUCCESS", "payment_order", order.id, "mock gift payment success");
         return giftRecord;
     }
@@ -356,6 +364,14 @@ public class PaymentCallbackService {
     private GiftRecord fulfill(PaymentOrder order) {
         if (PaymentScene.ONLINE_GIFT.name().equals(order.scene)) {
             return giftService.fulfillPaidPaymentOrder(order);
+        }
+        if (PaymentScene.PLAN_ORDER.name().equals(order.scene)) {
+            planOrderService.fulfillPaidPaymentOrder(order);
+            return null;
+        }
+        if (PaymentScene.DEVICE_ORDER.name().equals(order.scene)) {
+            deviceOrderService.fulfillPaidPaymentOrder(order);
+            return null;
         }
         throw new IllegalArgumentException("Unsupported payment scene: " + order.scene);
     }

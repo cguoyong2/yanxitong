@@ -53,6 +53,8 @@ Environment variables:
 - `PAYMENT_WECHAT_PLATFORM_CERTIFICATE_PATH`
 - `PAYMENT_WECHAT_PUBLIC_KEY_ID`
 - `PAYMENT_WECHAT_PUBLIC_KEY_PATH`
+- `WECHAT_MINIAPP_APP_ID`
+- `WECHAT_MINIAPP_APP_SECRET`
 
 The production template is `deploy/.env.production.example`. It is a template only; real secrets should live in the deployment secret manager.
 
@@ -96,6 +98,8 @@ For real WeChat service-provider integration:
 - WeChat Pay Java SDK dependency and SDK config factory are prepared
 - service-provider JSAPI prepay creation is implemented behind `WechatPartnerJsapiClient`
 - `prepayId` and client `payPayload` are written back to `payment_order`
+- miniapp JSAPI payer OpenID is resolved through `POST /api/wechat/miniapp/openid`
+- gift, plan and device payments all create unified `payment_order` rows before calling WeChat payment
 - official WeChat signature verification and resource decryption are implemented behind `WechatNotificationParserClient`
 - callback logs preserve headers, decrypted body, provider event id, event type, resource type and provider serial number when the SDK parser succeeds
 - parsed result should continue returning `PaymentCallbackResult`
@@ -126,6 +130,7 @@ Callback regression tests now cover:
 - non-success provider trade state: `processStatus=IGNORED`
 - duplicate callback for an already paid order: `processStatus=IGNORED`
 - paid order with conflicting provider trade number: `processStatus=FAILED`
+- version and device callbacks dispatch through `PaymentCallbackService` and update their source business orders
 
 Redacted fixture placeholders live under:
 

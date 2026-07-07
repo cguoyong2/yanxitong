@@ -113,16 +113,18 @@ const criticalContracts = [
   },
   {
     file: 'miniapp/src/pages/order/plan/index.vue',
-    name: 'plan order and payment boundary actions',
+    name: 'plan order real payment actions',
     events: [
       '@tap="openPaymentPanel(pendingOrder)"',
-      '@tap="showPaymentUnavailable()"',
+      '@tap="payOrder(paymentPanel.order)"',
       '@tap="returnBanquetDetail()"'
     ],
     markers: [
       'async function createOrder(',
       'function openPaymentPanel(',
-      'function showPaymentUnavailable()',
+      'async function payOrder(',
+      '/plans/orders/${order.orderNo}/payment',
+      'requestWechatPayment',
       'function returnBanquetDetail()',
       '/plans/orders',
       '/pages/banquet/detail/index'
@@ -130,18 +132,20 @@ const criticalContracts = [
   },
   {
     file: 'miniapp/src/pages/device/select/index.vue',
-    name: 'device order and payment boundary actions',
+    name: 'device order real payment actions',
     events: [
       '@tap="refreshOrders()"',
       '@tap="openPaymentPanel(order)"',
-      '@tap="showPaymentUnavailable()"',
+      '@tap="payOrder(paymentPanel.order)"',
       '@tap="returnBanquetDetail()"'
     ],
     markers: [
       'async function createOrder(',
       'async function refreshOrders()',
       'function openPaymentPanel(',
-      'function showPaymentUnavailable()',
+      'async function payOrder(',
+      '/devices/orders/${order.orderNo}/payment',
+      'requestWechatPayment',
       'function returnBanquetDetail()',
       '/devices/orders',
       '/pages/banquet/detail/index'

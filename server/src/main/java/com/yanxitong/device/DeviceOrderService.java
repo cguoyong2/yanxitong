@@ -12,6 +12,11 @@ import com.yanxitong.operationlog.OperationModule;
 import com.yanxitong.order.OrderNoGenerator;
 import com.yanxitong.order.PlanOrderService;
 import com.yanxitong.order.dto.RightsCheckResult;
+import com.yanxitong.payment.PaymentOrderCreateCommand;
+import com.yanxitong.payment.PaymentOrderCreateResult;
+import com.yanxitong.payment.PaymentScene;
+import com.yanxitong.payment.PaymentService;
+import com.yanxitong.payment.entity.PaymentOrder;
 import com.yanxitong.tenant.TenantContext;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,19 +33,22 @@ public class DeviceOrderService {
     private final OrderNoGenerator orderNoGenerator;
     private final OperationLogService operationLogService;
     private final PlanOrderService planOrderService;
+    private final PaymentService paymentService;
 
     public DeviceOrderService(
             DeviceConfigMapper deviceConfigMapper,
             DeviceOrderMapper deviceOrderMapper,
             OrderNoGenerator orderNoGenerator,
             OperationLogService operationLogService,
-            PlanOrderService planOrderService
+            PlanOrderService planOrderService,
+            PaymentService paymentService
     ) {
         this.deviceConfigMapper = deviceConfigMapper;
         this.deviceOrderMapper = deviceOrderMapper;
         this.orderNoGenerator = orderNoGenerator;
         this.operationLogService = operationLogService;
         this.planOrderService = planOrderService;
+        this.paymentService = paymentService;
     }
 
     public List<DeviceConfig> listEnabledConfigs() {
@@ -103,10 +111,52 @@ public class DeviceOrderService {
         return order;
     }
 
+    public PaymentOrderCreateResult createPaymentOrder(String orderNo, String payerOpenId) {
+        DeviceOrder order = findByOrderNo(orderNo);
+        if (order == null) {
+            throw new IllegalArgumentException("Device order not found");
+        }
+        if ("PAID".equals(order.payStatus)) {
+            throw new IllegalArgumentException("Device order already paid");
+        }
+        if (order.price == null || order.price.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Free device order does not need payment");
+        }
+        return paymentService.createOrder(new PaymentOrderCreateCommand(
+                order.banquetId,
+                PaymentScene.DEVICE_ORDER,
+                order.deviceType,
+                order.price,
+                "宴席通设备租赁 " + deviceTypeLabel(order.deviceType),
+                null,
+                payerOpenId,
+                null,
+                "device-order:" + order.orderNo,
+                "DEVICE_ORDER",
+                order.orderNo
+        ));
+    }
+
+    public DeviceOrder fulfillPaidPaymentOrder(PaymentOrder paymentOrder) {
+        if (!PaymentScene.DEVICE_ORDER.name().equals(paymentOrder.scene)) {
+            throw new IllegalArgumentException("Unsupported device payment scene");
+        }
+        DeviceOrder order = findByOrderNo(paymentOrder.bizOrderNo);
+        if (order == null) {
+            throw new IllegalArgumentException("Device order not found");
+        }
+        if (!"PAID".equals(order.payStatus)) {
+            order.payStatus = "PAID";
+            order.orderStatus = "CONFIRMED";
+            order.updatedAt = LocalDateTime.now();
+            deviceOrderMapper.updateById(order);
+            operationLogService.record(OperationModule.DEVICE, "PAYMENT_SUCCESS", "device_order", order.id, "device payment success");
+        }
+        return order;
+    }
+
     public DeviceOrder mockPaymentSuccess(String orderNo) {
-        DeviceOrder order = deviceOrderMapper.selectOne(new QueryWrapper<DeviceOrder>()
-                .eq("order_no", orderNo)
-                .last("LIMIT 1"));
+        DeviceOrder order = findByOrderNo(orderNo);
         if (order == null) {
             throw new IllegalArgumentException("Device order not found");
         }
@@ -118,6 +168,30 @@ public class DeviceOrderService {
             operationLogService.record(OperationModule.DEVICE, "MOCK_PAYMENT_SUCCESS", "device_order", order.id, "mock device payment success");
         }
         return order;
+    }
+
+    private DeviceOrder findByOrderNo(String orderNo) {
+        if (orderNo == null || orderNo.isBlank()) {
+            return null;
+        }
+        QueryWrapper<DeviceOrder> query = new QueryWrapper<DeviceOrder>()
+                .eq("order_no", orderNo)
+                .last("LIMIT 1");
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId != null) {
+            query.eq("tenant_id", tenantId);
+        }
+        return deviceOrderMapper.selectOne(query);
+    }
+
+    private String deviceTypeLabel(String value) {
+        if ("CLOUD_SPEAKER".equals(value)) {
+            return "云喇叭";
+        }
+        if ("CONFIRM_SCREEN".equals(value)) {
+            return "确认屏";
+        }
+        return value == null ? "设备" : value;
     }
 
     public DeviceOrder updateOrderStatus(String orderNo, String orderStatus) {
