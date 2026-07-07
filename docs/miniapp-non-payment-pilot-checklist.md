@@ -2,6 +2,8 @@
 
 This checklist is for the first WeChat Mini Program experience-version test before real WeChat payment is enabled.
 
+For the full code, production and payment-boundary checklist, use `docs/non-payment-mvp-launch-checklist.md`.
+
 ## Build Artifact
 
 Import this directory in WeChat DevTools:
@@ -33,6 +35,8 @@ Run these flows first:
 11. Open confirm-screen bind page from the web deployment and bind with a banquet ID and bind code when needed.
 12. Review admin pages for banquets, business data, broadcast logs and operation logs.
 
+Before sharing the preview QR code, the consolidated local acceptance summary should show `nonPaymentFlow.status = passed`.
+
 ## Payment Entry Expectation
 
 Before real payment launch:
@@ -42,6 +46,8 @@ Before real payment launch:
 - Mock payment-success buttons remain hidden in production.
 
 Do not run real online gift payment or onsite QR payment tests until the WeChat service-provider or payment-institution provider is configured and a low-value payment callback has been validated.
+
+Paid plan and paid device flows should show payment confirmation UI but must stop with a clear "payment not enabled" message before real payment provider launch.
 
 ## Issue Recording
 
@@ -53,4 +59,3 @@ For each issue found during experience-version testing, record:
 - Operation steps.
 - Expected result.
 - Actual result.
-

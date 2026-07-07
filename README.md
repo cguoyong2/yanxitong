@@ -140,13 +140,15 @@ For public entry rate-limit and abuse-protection boundaries, see `docs/public-en
 
 For the minimum production deployment loop, see `docs/production-deployment.md`.
 
+For the non-payment MVP pilot launch checklist, see `docs/non-payment-mvp-launch-checklist.md`.
+
 Run the full local acceptance chain:
 
 ```bash
 bash deploy/scripts/local-acceptance.sh
 ```
 
-This command starts missing local services, runs backend smoke, seeds demo data, runs admin browser smoke, runs confirm-screen desktop/mobile smoke and writes a consolidated `summary.json`.
+This command starts missing local services, runs backend smoke, runs the non-payment MVP API acceptance path, seeds demo data, runs admin browser smoke, runs confirm-screen desktop/mobile smoke and writes a consolidated `summary.json`.
 
 Run the release preflight chain:
 

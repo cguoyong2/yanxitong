@@ -2,7 +2,7 @@
 
 ## Local Acceptance
 
-`local-acceptance.sh` runs the local MVP acceptance chain in one command. It starts Docker infrastructure by default, starts backend/admin/confirm-screen services when they are not already reachable, runs backend smoke, seeds demo data, then runs admin and confirm-screen frontend smoke.
+`local-acceptance.sh` runs the local MVP acceptance chain in one command. It starts Docker infrastructure by default, starts backend/admin/confirm-screen services when they are not already reachable, runs backend smoke, runs the non-payment MVP API acceptance path, seeds demo data, then runs public-invitation, admin and confirm-screen frontend smoke.
 
 ```bash
 bash deploy/scripts/local-acceptance.sh
@@ -25,7 +25,9 @@ Environment variables:
 Coverage:
 
 - backend MVP smoke
+- non-payment MVP API acceptance, including free entitlement, device-right boundary, confirm-screen binding, offline gift, favor ledger and broadcast logs
 - demo data seed for browser acceptance
+- public invitation smoke
 - admin frontend smoke with banquet deep link
 - confirm-screen frontend smoke with desktop/mobile screenshots
 - logs for services started by the script
@@ -137,9 +139,13 @@ Coverage:
 - banquet creation and publish
 - base invitation update and public invitation read
 - RSVP submission and RSVP stats
+- basic free plan entitlement and zero-amount plan order visibility
+- device order blocking before paid device rights
+- confirm-screen bind/status and latest offline gift event
 - offline cash gift and gift list
 - favor contact, favor detail and favor compare data
-- admin RSVP and gift protected read paths
+- cloud-speaker simulated log and confirm-screen offline broadcast log
+- admin RSVP, gift, plan order and broadcast-log protected read paths
 
 ## Production Browser Smoke
 
