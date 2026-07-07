@@ -88,6 +88,7 @@ QR_GUEST="联调扫码_${RUN_ID}"
 CASH_GUEST="联调现金_${RUN_ID}"
 ONLINE_GUEST_Q="$(url_encode "${ONLINE_GUEST}")"
 QR_GUEST_Q="$(url_encode "${QR_GUEST}")"
+CASH_GUEST_Q="$(url_encode "${CASH_GUEST}")"
 
 request theme_create -X POST "${BASE_URL}/api/admin/themes" "${AUTH_HEADER[@]}" \
   -H 'Content-Type: application/json' \

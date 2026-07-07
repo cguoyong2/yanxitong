@@ -19,6 +19,12 @@ request() {
   curl -fsS "$@" > "${WORK_DIR}/${name}.json"
 }
 
+request_status() {
+  local name="$1"
+  shift
+  curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@"
+}
+
 json_get() {
   local file="$1"
   local expr="$2"
@@ -64,6 +70,8 @@ HOST_NAME="非支付验收主办人 ${RUN_ID}"
 RSVP_GUEST="非支付验收到宾 ${RUN_ID}"
 CASH_GUEST="非支付线下记礼 ${RUN_ID}"
 CASH_GUEST_Q="$(url_encode "${CASH_GUEST}")"
+DEVICE_DELIVERY="非支付验收交付 ${RUN_ID}"
+CONFIRM_BIND_CODE="NP-${RUN_ID}"
 
 log "creating banquet"
 request banquet_create -X POST "${BASE_URL}/api/banquets" \
@@ -98,14 +106,59 @@ assert_json rsvp_submit "data.code === 0 && data.data.guestCount === 2 && data.d
 request rsvp_stats "${BASE_URL}/api/rsvp/stats?banquetId=${BANQUET_ID}"
 assert_json rsvp_stats "data.code === 0 && data.data.attendingRecords >= 1 && data.data.totalGuests >= 2" "rsvp stats did not include submitted guest"
 
+log "checking free plan and device entitlement boundary"
+request plan_entitlements_default "${BASE_URL}/api/plans/banquets/${BANQUET_ID}/entitlements"
+assert_json plan_entitlements_default "data.code === 0 && data.data.freeDefault === true && data.data.currentPlan && data.data.currentPlan.planCode === 'BASIC'" "default free plan entitlement failed"
+
+request plans "${BASE_URL}/api/plans"
+assert_json plans "data.code === 0 && data.data.some((item) => item.planCode === 'BASIC' || Number(item.price) === 0)" "basic/free plan missing"
+BASIC_PLAN_ID="$(json_get plans "data.data.find((item) => item.planCode === 'BASIC')?.id || data.data.find((item) => Number(item.price) === 0).id")"
+
+request basic_plan_order -X POST "${BASE_URL}/api/plans/orders" \
+  -H 'Content-Type: application/json' \
+  -d "{\"banquetId\":${BANQUET_ID},\"planId\":${BASIC_PLAN_ID}}"
+BASIC_PLAN_ORDER_NO="$(json_get basic_plan_order "data.data.orderNo")"
+assert_json basic_plan_order "data.code === 0 && data.data.payStatus === 'PAID' && Number(data.data.amount) === 0" "basic plan order should be paid without payment provider"
+
+request plan_orders "${BASE_URL}/api/plans/orders?banquetId=${BANQUET_ID}"
+assert_json plan_orders "data.code === 0 && data.data.some((item) => item.orderNo === '${BASIC_PLAN_ORDER_NO}' && item.payStatus === 'PAID')" "plan order list missing basic order"
+
+request admin_plan_orders "${BASE_URL}/api/admin/orders/plans" "${AUTH_HEADER[@]}"
+assert_json admin_plan_orders "data.code === 0 && (Array.isArray(data.data) ? data.data : data.data.records).some((item) => item.orderNo === '${BASIC_PLAN_ORDER_NO}')" "admin plan order list missing basic order"
+
+request device_config -X POST "${BASE_URL}/api/admin/device-configs" "${AUTH_HEADER[@]}" \
+  -H 'Content-Type: application/json' \
+  -d "{\"deviceType\":\"CONFIRM_SCREEN\",\"name\":\"非支付验收确认屏\",\"price\":99.00,\"priceUnit\":\"场\",\"deliveryMethod\":$(json_escape "${DEVICE_DELIVERY}"),\"enabled\":1}"
+
+BLOCKED_DEVICE_STATUS="$(request_status device_order_blocked -X POST "${BASE_URL}/api/devices/orders" \
+  -H 'Content-Type: application/json' \
+  -d "{\"banquetId\":${BANQUET_ID},\"deviceType\":\"CONFIRM_SCREEN\",\"rentStartAt\":\"2026-10-01T17:00:00\",\"rentEndAt\":\"2026-10-01T22:00:00\",\"deliveryMethod\":$(json_escape "${DEVICE_DELIVERY}")}")"
+if [[ "$BLOCKED_DEVICE_STATUS" != "400" ]]; then
+  echo "expected device order without paid device right to return 400, got ${BLOCKED_DEVICE_STATUS}" >&2
+  exit 1
+fi
+
+log "binding confirm screen before gift event"
+request confirm_bind -X POST "${BASE_URL}/api/confirm-screen/bind" \
+  -H 'Content-Type: application/json' \
+  -d "{\"banquetId\":${BANQUET_ID},\"bindCode\":$(json_escape "${CONFIRM_BIND_CODE}")}"
+assert_json confirm_bind "data.code === 0 && data.data.bindStatus === 'BOUND' && data.data.banquetId === Number('${BANQUET_ID}')" "confirm screen bind failed"
+
+request confirm_status "${BASE_URL}/api/confirm-screen/status/${CONFIRM_BIND_CODE}"
+assert_json confirm_status "data.code === 0 && data.data.bindStatus === 'BOUND' && data.data.deviceType === 'CONFIRM_SCREEN'" "confirm screen status failed"
+
 log "recording offline gift and checking gift/favor data"
 request offline_gift -X POST "${BASE_URL}/api/gifts/offline" \
   -H 'Content-Type: application/json' \
   -d "{\"banquetId\":${BANQUET_ID},\"guestName\":$(json_escape "${CASH_GUEST}"),\"amount\":188.00,\"blessing\":\"非支付验收线下记礼\"}"
 assert_json offline_gift "data.code === 0 && data.data.giftSource === 'CASH' && Number(data.data.amount) === 188" "offline gift failed"
+GIFT_RECORD_ID="$(json_get offline_gift "data.data.id")"
 
 request gifts_list "${BASE_URL}/api/gifts?banquetId=${BANQUET_ID}&source=CASH&keyword=${CASH_GUEST_Q}"
 assert_json gifts_list "data.code === 0 && data.data.length === 1 && data.data[0].guestName === '${CASH_GUEST}'" "gift list missing offline record"
+
+request confirm_latest_event "${BASE_URL}/api/confirm-screen/banquets/${BANQUET_ID}/latest-event"
+assert_json confirm_latest_event "data.code === 0 && data.data.giftRecordId === Number('${GIFT_RECORD_ID}') && data.data.guestName === '${CASH_GUEST}' && Number(data.data.amount) === 188" "confirm screen latest event missing offline gift"
 
 request favor_contacts "${BASE_URL}/api/favor/contacts?banquetId=${BANQUET_ID}&keyword=${CASH_GUEST_Q}"
 assert_json favor_contacts "data.code === 0 && data.data.length === 1 && Number(data.data[0].receivedAmount) === 188" "favor contacts missing offline gift"
@@ -116,6 +169,15 @@ assert_json favor_detail "data.code === 0 && Number(data.data.receivedAmount) ==
 
 request favor_compare "${BASE_URL}/api/favor/compare?contactName=${CASH_GUEST_Q}"
 assert_json favor_compare "data.code === 0 && Number(data.data.receivedAmount) === 188 && data.data.entries.some((item) => item.note === '非支付验收线下记礼')" "favor compare missing gift note"
+
+request broadcast_logs "${BASE_URL}/api/admin/broadcast-logs?banquetId=${BANQUET_ID}" "${AUTH_HEADER[@]}"
+assert_json broadcast_logs "data.code === 0 && (Array.isArray(data.data) ? data.data : data.data.records).filter((item) => item.giftRecordId === Number('${GIFT_RECORD_ID}')).length >= 2" "broadcast logs missing offline gift event"
+
+request cloud_speaker_logs "${BASE_URL}/api/admin/broadcast-logs?banquetId=${BANQUET_ID}&deviceType=CLOUD_SPEAKER" "${AUTH_HEADER[@]}"
+assert_json cloud_speaker_logs "data.code === 0 && (Array.isArray(data.data) ? data.data : data.data.records).some((item) => item.giftRecordId === Number('${GIFT_RECORD_ID}') && item.status === 'SIMULATED')" "cloud speaker simulated log missing"
+
+request confirm_screen_logs "${BASE_URL}/api/admin/broadcast-logs?banquetId=${BANQUET_ID}&deviceType=CONFIRM_SCREEN&status=OFFLINE" "${AUTH_HEADER[@]}"
+assert_json confirm_screen_logs "data.code === 0 && (Array.isArray(data.data) ? data.data : data.data.records).some((item) => item.giftRecordId === Number('${GIFT_RECORD_ID}'))" "confirm screen offline log missing"
 
 log "checking admin protected read paths"
 request admin_rsvp "${BASE_URL}/api/admin/rsvp?banquetId=${BANQUET_ID}" "${AUTH_HEADER[@]}"
@@ -131,10 +193,13 @@ cat > "${WORK_DIR}/summary.json" <<JSON
   "invitationId": ${INVITATION_ID},
   "shareSlug": "${SHARE_SLUG}",
   "rsvpId": ${RSVP_ID},
+  "basicPlanOrderNo": "${BASIC_PLAN_ORDER_NO}",
+  "confirmBindCode": "${CONFIRM_BIND_CODE}",
+  "giftRecordId": ${GIFT_RECORD_ID},
   "favorContactId": ${FAVOR_CONTACT_ID},
   "artifactsDir": "${WORK_DIR}"
 }
 JSON
 
 log "passed. Artifacts: ${WORK_DIR}"
-log "banquetId=${BANQUET_ID}, invitationId=${INVITATION_ID}, shareSlug=${SHARE_SLUG}"
+log "banquetId=${BANQUET_ID}, invitationId=${INVITATION_ID}, shareSlug=${SHARE_SLUG}, bindCode=${CONFIRM_BIND_CODE}"

@@ -38,6 +38,7 @@ write_summary() {
   BACKEND_TEST_STATUS="${BACKEND_TEST_STATUS:-not_run}" \
   ADMIN_BUILD_STATUS="${ADMIN_BUILD_STATUS:-not_run}" \
   CONFIRM_SCREEN_BUILD_STATUS="${CONFIRM_SCREEN_BUILD_STATUS:-not_run}" \
+  ACCEPTANCE_SCRIPT_SYNTAX_STATUS="${ACCEPTANCE_SCRIPT_SYNTAX_STATUS:-not_run}" \
   MINIAPP_ROUTE_STATUS="${MINIAPP_ROUTE_STATUS:-not_run}" \
   MINIAPP_INTERACTION_STATUS="${MINIAPP_INTERACTION_STATUS:-not_run}" \
   MINIAPP_EXPERIENCE_STATUS="${MINIAPP_EXPERIENCE_STATUS:-not_run}" \
@@ -91,6 +92,11 @@ const summary = {
       status: process.env.CONFIRM_SCREEN_BUILD_STATUS,
       log: path.join(artifactsRoot, 'confirm-screen-build.log'),
       tail: tail(path.join(artifactsRoot, 'confirm-screen-build.log'))
+    },
+    acceptanceScriptSyntax: {
+      status: process.env.ACCEPTANCE_SCRIPT_SYNTAX_STATUS,
+      log: path.join(artifactsRoot, 'acceptance-script-syntax.log'),
+      tail: tail(path.join(artifactsRoot, 'acceptance-script-syntax.log'))
     },
     miniappRouteCheck: {
       status: process.env.MINIAPP_ROUTE_STATUS,
@@ -151,6 +157,10 @@ ADMIN_BUILD_STATUS="passed"
 CONFIRM_SCREEN_BUILD_STATUS="running"
 run_step confirm-screen-build bash -lc "cd '${REPO_ROOT}/confirm-screen' && npm run build"
 CONFIRM_SCREEN_BUILD_STATUS="passed"
+
+ACCEPTANCE_SCRIPT_SYNTAX_STATUS="running"
+run_step acceptance-script-syntax bash -lc "bash -n '${SCRIPT_DIR}/smoke-test.sh' && bash -n '${SCRIPT_DIR}/production-api-acceptance.sh' && bash -n '${SCRIPT_DIR}/non-payment-flow-acceptance.sh' && bash -n '${SCRIPT_DIR}/local-acceptance.sh'"
+ACCEPTANCE_SCRIPT_SYNTAX_STATUS="passed"
 
 if [[ "${SKIP_MINIAPP_BUILD}" == "1" ]]; then
   MINIAPP_ROUTE_STATUS="skipped"

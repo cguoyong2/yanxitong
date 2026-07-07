@@ -22,11 +22,13 @@ DB_PORT="${DB_PORT:-$(DB_URL="${DB_URL}" node -e "const url = process.env.DB_URL
 STARTED_PIDS=()
 OVERALL_STATUS="running"
 BACKEND_SMOKE_STATUS="not_run"
+NON_PAYMENT_FLOW_STATUS="not_run"
 SEED_STATUS="not_run"
 ADMIN_SMOKE_STATUS="not_run"
 CONFIRM_SCREEN_SMOKE_STATUS="not_run"
 PUBLIC_INVITATION_SMOKE_STATUS="not_run"
 BACKEND_SMOKE_ARTIFACTS=""
+NON_PAYMENT_FLOW_ARTIFACTS=""
 SEED_ARTIFACTS=""
 ADMIN_SMOKE_ARTIFACTS=""
 CONFIRM_SCREEN_SMOKE_ARTIFACTS=""
@@ -270,6 +272,27 @@ run_backend_smoke() {
   BACKEND_SMOKE_STATUS="passed"
 }
 
+run_non_payment_flow() {
+  log "Running non-payment MVP API acceptance."
+  NON_PAYMENT_FLOW_STATUS="running"
+  set +e
+  (
+    cd "${REPO_ROOT}"
+    BASE_URL="${BASE_URL}" \
+    ADMIN_USERNAME="${ADMIN_USERNAME}" \
+    ADMIN_PASSWORD="${ADMIN_PASSWORD}" \
+    bash deploy/scripts/non-payment-flow-acceptance.sh
+  ) | tee "${ARTIFACTS_ROOT}/non-payment-flow.log"
+  local status=${PIPESTATUS[0]}
+  set -e
+  NON_PAYMENT_FLOW_ARTIFACTS="$(awk -F': ' '/^\[non-payment-flow\] passed\. Artifacts:/ { print $2 } /^Artifacts:/ { print $2 }' "${ARTIFACTS_ROOT}/non-payment-flow.log" | tail -n 1)"
+  if (( status != 0 )); then
+    NON_PAYMENT_FLOW_STATUS="failed"
+    return "${status}"
+  fi
+  NON_PAYMENT_FLOW_STATUS="passed"
+}
+
 run_admin_smoke() {
   log "Running admin frontend smoke."
   ADMIN_SMOKE_STATUS="running"
@@ -326,6 +349,8 @@ write_summary() {
   ARTIFACTS_ROOT="${ARTIFACTS_ROOT}" \
   BACKEND_SMOKE_STATUS="${BACKEND_SMOKE_STATUS}" \
   BACKEND_SMOKE_ARTIFACTS="${BACKEND_SMOKE_ARTIFACTS}" \
+  NON_PAYMENT_FLOW_STATUS="${NON_PAYMENT_FLOW_STATUS}" \
+  NON_PAYMENT_FLOW_ARTIFACTS="${NON_PAYMENT_FLOW_ARTIFACTS}" \
   SEED_STATUS="${SEED_STATUS}" \
   SEED_ARTIFACTS="${SEED_ARTIFACTS}" \
   ADMIN_SMOKE_STATUS="${ADMIN_SMOKE_STATUS}" \
@@ -376,6 +401,7 @@ function screenshotFiles(dir) {
 
 const artifactsRoot = process.env.ARTIFACTS_ROOT;
 const backendLog = path.join(artifactsRoot, 'backend-smoke.log');
+const nonPaymentFlowLog = path.join(artifactsRoot, 'non-payment-flow.log');
 const seedLog = path.join(artifactsRoot, 'seed-demo-data.log');
 const adminLog = path.join(artifactsRoot, 'admin-smoke.log');
 const confirmScreenLog = path.join(artifactsRoot, 'confirm-screen-smoke.log');
@@ -432,6 +458,13 @@ const summary = {
       summary: seedSummary,
       tail: tail(seedLog)
     },
+    nonPaymentFlow: {
+      status: process.env.NON_PAYMENT_FLOW_STATUS,
+      log: nonPaymentFlowLog,
+      artifactsDir: process.env.NON_PAYMENT_FLOW_ARTIFACTS || null,
+      summary: readJson(summaryPath(process.env.NON_PAYMENT_FLOW_ARTIFACTS)),
+      tail: tail(nonPaymentFlowLog)
+    },
     adminSmoke: {
       status: process.env.ADMIN_SMOKE_STATUS,
       log: adminLog,
@@ -473,6 +506,7 @@ main() {
   start_admin_if_needed
   start_confirm_screen_if_needed
   run_backend_smoke
+  run_non_payment_flow
   seed_demo_data
   run_public_invitation_smoke
   run_admin_smoke
