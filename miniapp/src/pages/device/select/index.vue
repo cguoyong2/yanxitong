@@ -308,6 +308,8 @@ async function createOrder(config: DeviceConfig) {
     if (!features.value.mockPaymentEnabled && order.payStatus !== 'PAID') {
       openPaymentPanel(order);
     }
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '设备订单创建失败', icon: 'none' });
   } finally {
     submittingId.value = undefined;
   }
@@ -321,14 +323,20 @@ async function mockPay(orderNo: string) {
     clearCachedOrder(orderNo);
     lastOrderText.value = '设备订单支付状态已确认，可返回管理台查看进度。';
     uni.showToast({ title: '设备订单已确认', icon: 'success' });
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '设备支付确认失败', icon: 'none' });
   } finally {
     payingOrderNo.value = '';
   }
 }
 
 async function refreshOrders() {
-  await loadOrders();
-  uni.showToast({ title: '设备订单已刷新', icon: 'success' });
+  try {
+    await loadOrders();
+    uni.showToast({ title: '设备订单已刷新', icon: 'success' });
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '设备订单刷新失败', icon: 'none' });
+  }
 }
 
 function toLocalDateTime(date: string, time: string) {

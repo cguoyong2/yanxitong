@@ -566,6 +566,8 @@ async function publishBanquet() {
     });
     uni.showToast({ title: '已发布，可发送请柬', icon: 'success' });
     openInvite();
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '发布失败，请稍后重试', icon: 'none' });
   } finally {
     publishing.value = false;
   }

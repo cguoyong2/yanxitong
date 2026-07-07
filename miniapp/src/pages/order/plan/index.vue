@@ -250,8 +250,9 @@ async function loadOrders() {
     return;
   }
   const orders = await request<PlanOrder[]>(`/plans/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
-  planOrders.value = prioritizeHighlightedOrders(mergeOrders(orders, cachedOrders()));
-  pendingOrder.value = orders.find((item) => item.payStatus !== 'PAID');
+  const mergedOrders = prioritizeHighlightedOrders(mergeOrders(orders, cachedOrders()));
+  planOrders.value = mergedOrders;
+  pendingOrder.value = mergedOrders.find((item) => item.payStatus !== 'PAID');
 }
 
 async function createOrder(planId: number) {
@@ -284,6 +285,8 @@ async function createOrder(planId: number) {
     }
     highlightOrderNo.value = order.orderNo;
     planOrders.value = prioritizeHighlightedOrders(mergeOrders([order], planOrders.value));
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '版本订单创建失败', icon: 'none' });
   } finally {
     submittingId.value = undefined;
   }
@@ -297,6 +300,8 @@ async function mockPay(orderNo: string) {
     clearCachedOrder(orderNo);
     await Promise.all([loadEntitlements(), loadOrders()]);
     uni.showToast({ title: '版本已开通', icon: 'success' });
+  } catch (error) {
+    uni.showToast({ title: error instanceof Error ? error.message : '版本支付确认失败', icon: 'none' });
   } finally {
     paying.value = false;
   }
