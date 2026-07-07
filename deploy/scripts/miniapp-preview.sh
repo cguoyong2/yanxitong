@@ -21,6 +21,10 @@ log() {
 }
 
 mkdir -p "${ARTIFACTS_DIR}"
+mkdir -p "$(dirname "${QR_OUTPUT}")" "$(dirname "${INFO_OUTPUT}")"
+
+QR_OUTPUT_ABS="$(QR_OUTPUT="${QR_OUTPUT}" node -e "const path=require('path'); console.log(path.resolve(process.env.QR_OUTPUT));")"
+INFO_OUTPUT_ABS="$(INFO_OUTPUT="${INFO_OUTPUT}" node -e "const path=require('path'); console.log(path.resolve(process.env.INFO_OUTPUT));")"
 
 log "Running miniapp experience check."
 node "${REPO_ROOT}/deploy/scripts/miniapp-experience-check.mjs"
@@ -47,9 +51,9 @@ log "Generating WeChat preview QR."
 "${WECHAT_CLI}" preview \
   --project "${PROJECT_DIR}" \
   --qr-format image \
-  --qr-output "${QR_OUTPUT}" \
-  --info-output "${INFO_OUTPUT}"
+  --qr-output "${QR_OUTPUT_ABS}" \
+  --info-output "${INFO_OUTPUT_ABS}"
 
-log "Preview QR: ${QR_OUTPUT}"
-log "Preview info: ${INFO_OUTPUT}"
+log "Preview QR: ${QR_OUTPUT_ABS}"
+log "Preview info: ${INFO_OUTPUT_ABS}"
 log "Run ID: ${RUN_ID}"
