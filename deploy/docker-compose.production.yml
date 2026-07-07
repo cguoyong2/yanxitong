@@ -39,6 +39,8 @@ services:
       DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/yanxitong?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+    volumes:
+      - ${WECHAT_SECRETS_DIR:-/opt/apps/yanxitong/secrets/wechat}:/run/secrets/wechat:ro
     depends_on:
       mysql:
         condition: service_healthy
