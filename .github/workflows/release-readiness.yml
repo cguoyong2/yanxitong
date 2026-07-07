@@ -49,6 +49,7 @@ jobs:
     env:
       RUN_ID: github-${{ github.run_id }}
       ARTIFACTS_ROOT: .artifacts/release-readiness/github-${{ github.run_id }}
+      ENV_FILE: .artifacts/release-readiness/github-${{ github.run_id }}/ci-production.env
       BASE_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.base_url || 'https://yxt.yqej.cn' }}
       SKIP_REMOTE_CHECKS: "1"
       REQUIRE_READINESS_READY: ${{ github.event_name == 'workflow_dispatch' && inputs.require_readiness_ready && '1' || '0' }}
@@ -90,6 +91,41 @@ jobs:
       - name: Install miniapp dependencies
         working-directory: miniapp
         run: npm ci
+
+      - name: Prepare CI production env
+        run: |
+          mkdir -p "$(dirname "${ENV_FILE}")"
+          cat >"${ENV_FILE}" <<'EOF'
+          APP_ENV=production
+          SPRING_PROFILES_ACTIVE=prod
+          DB_URL=jdbc:mysql://mysql:3306/yanxitong?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+          DB_USERNAME=yanxitong_app
+          DB_PASSWORD=ci-db-password
+          MYSQL_ROOT_PASSWORD=ci-mysql-root-password
+          MYSQL_DATABASE=yanxitong
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_PASSWORD=ci-redis-password
+          REDIS_DATABASE=0
+          PAYMENT_DEFAULT_PROVIDER=WECHAT_SERVICE_PROVIDER
+          PAYMENT_MOCK_SUCCESS_ENABLED=false
+          PAYMENT_MOCK_CALLBACK_SECRET=ci-non-default-mock-callback-secret
+          PAYMENT_WECHAT_SP_ENABLED=true
+          PAYMENT_WECHAT_MERCHANT_ID=ci-service-provider-merchant-id
+          PAYMENT_WECHAT_APP_ID=ci-service-provider-app-id
+          PAYMENT_WECHAT_SERVICE_PROVIDER_ID=ci-service-provider-merchant-id
+          PAYMENT_WECHAT_SUB_MERCHANT_ID=ci-sub-merchant-id
+          PAYMENT_WECHAT_SUB_APP_ID=ci-sub-app-id
+          PAYMENT_WECHAT_CERT_SERIAL_NO=ci-cert-serial-no
+          PAYMENT_WECHAT_PRIVATE_KEY_PATH=/tmp/ci-apiclient-key.pem
+          PAYMENT_WECHAT_API_V3_KEY=ci-api-v3-key
+          PAYMENT_WECHAT_NOTIFY_URL=https://yxt.yqej.cn/api/payments/callbacks/wechat-service-provider
+          EOF
+
+      - name: Prebuild web artifacts for preflight
+        run: |
+          npm --prefix admin run build
+          npm --prefix confirm-screen run build
 
       - name: Run release readiness checks
         run: bash deploy/scripts/production-acceptance-suite.sh
