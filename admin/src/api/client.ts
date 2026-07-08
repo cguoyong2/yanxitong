@@ -49,13 +49,15 @@ http.interceptors.response.use((response) => {
   }
   return response;
 }, (error) => {
+  const body = error.response?.data as ApiResponse<unknown> | undefined;
+  const message = body?.message || error.message || '请求失败';
   if (error.response?.status === 401) {
     clearAuth();
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
     }
   }
-  return Promise.reject(error);
+  return Promise.reject(new Error(message));
 });
 
 export async function login(username: string, password: string): Promise<LoginResult> {
