@@ -28,8 +28,11 @@
         <text class="card-desc">金额：{{ formatMoney(pendingOrder.amount) }} / {{ pendingOrder.priceUnit }}</text>
         <text class="card-desc">{{ pendingOrderTip }}</text>
       </view>
-      <button v-if="features.mockPaymentEnabled" class="small-button primary" :loading="paying" @tap="mockPay(pendingOrder.orderNo)">模拟支付</button>
-      <button v-else class="small-button primary" @tap="openPaymentPanel(pendingOrder)">去支付</button>
+      <view class="pending-actions">
+        <button v-if="features.mockPaymentEnabled" class="small-button primary" :loading="paying" @tap="mockPay(pendingOrder.orderNo)">模拟支付</button>
+        <button v-else class="small-button primary" @tap="openPaymentPanel(pendingOrder)">继续支付</button>
+        <text>订单金额已按后台版本价格生成快照</text>
+      </view>
     </view>
 
     <button v-if="banquetId" class="return-button" @tap="returnBanquetDetail()">返回宴席管理台</button>
@@ -140,6 +143,7 @@
           <text class="amount-label">应付金额</text>
           <text class="amount-value">{{ formatMoney(paymentPanel.order?.amount) }}</text>
           <text class="amount-unit">/{{ paymentPanel.order?.priceUnit || '场' }}</text>
+          <text class="amount-snapshot">以订单创建时后台版本价格为准</text>
         </view>
         <view class="pay-info">
           <view>
@@ -149,6 +153,10 @@
           <view>
             <text>支付方式</text>
             <text>微信支付</text>
+          </view>
+          <view>
+            <text>订单状态</text>
+            <text>{{ orderStatusLabel(paymentPanel.order?.payStatus || 'UNPAID') }}</text>
           </view>
           <view>
             <text>开通说明</text>
@@ -392,7 +400,7 @@ function shouldShowPaymentPanel(plan?: Plan) {
   if (!plan || Number(plan.price) <= 0) {
     return false;
   }
-  return /PRO|PREMIUM|VIP|DIAMOND/i.test(plan.planCode) || /专业|至尊|尊享/.test(plan.name);
+  return true;
 }
 
 function planByOrder(order?: PlanOrder) {
@@ -733,6 +741,21 @@ onMounted(async () => {
 .right-tags text.active {
   background: #ecfdf3;
   color: #138a45;
+}
+
+.pending-actions {
+  display: grid;
+  flex: 0 0 178rpx;
+  justify-items: end;
+  gap: 8rpx;
+}
+
+.pending-actions text {
+  display: block;
+  color: #8a7768;
+  font-size: 21rpx;
+  line-height: 1.35;
+  text-align: right;
 }
 
 .small-button {
@@ -1155,6 +1178,14 @@ onMounted(async () => {
   color: rgba(255, 248, 232, 0.86);
   font-size: 27rpx;
   font-weight: 900;
+}
+
+.amount-snapshot {
+  display: block;
+  margin-top: 12rpx;
+  color: rgba(255, 248, 232, 0.82);
+  font-size: 22rpx;
+  font-weight: 800;
 }
 
 .pay-info {

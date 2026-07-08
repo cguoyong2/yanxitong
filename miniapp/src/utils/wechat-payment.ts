@@ -54,7 +54,7 @@ export async function requestWechatPayment(payPayload?: string | WechatPayPayloa
       signType: payload.signType || 'RSA',
       paySign: payload.paySign,
       success: () => resolve(),
-      fail: (error) => reject(error)
+      fail: (error) => reject(new Error(normalizePaymentError(error)))
     } as unknown as UniApp.RequestPaymentOptions);
   });
 }
@@ -76,6 +76,19 @@ function parsePayPayload(payPayload?: string | WechatPayPayload) {
     return undefined;
   }
   return payload;
+}
+
+function normalizePaymentError(error: unknown) {
+  const message = typeof error === 'object' && error && 'errMsg' in error
+    ? String((error as { errMsg?: string }).errMsg || '')
+    : String(error || '');
+  if (/cancel/i.test(message)) {
+    return '已取消支付';
+  }
+  if (/requestPayment:fail/i.test(message) || /fail/i.test(message)) {
+    return '微信支付未完成，请稍后重试';
+  }
+  return message || '微信支付未完成，请稍后重试';
 }
 
 function loginCode() {
