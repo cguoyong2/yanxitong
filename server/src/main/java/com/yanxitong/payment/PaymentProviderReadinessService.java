@@ -50,7 +50,7 @@ public class PaymentProviderReadinessService {
                 readiness("core-config", "核心商户配置完整", missingItems.isEmpty(), missingItems.isEmpty() ? "无缺失项" : "缺失: " + String.join(", ", missingItems))
         );
         List<PaymentLaunchReadiness.ReadinessItem> callbackItems = List.of(
-                readiness("notify-url", "回调地址已配置", config.hasNotifyUrl(), "notifyUrl must route to /api/payments/callbacks/wechat-service-provider"),
+                readiness("notify-url", "回调地址已配置", config.hasNotifyUrl(), "notifyUrl must route to " + callbackPath(provider)),
                 readiness("callback-security-material", "回调验签材料已配置", callbackSecurityReady(config), callbackSecurityDetail(config))
         );
         List<PaymentLaunchReadiness.ReadinessItem> keyItems = List.of(
@@ -103,13 +103,15 @@ public class PaymentProviderReadinessService {
                 "enabled",
                 "merchantId",
                 "appId",
-                "serviceProviderId",
-                "subMerchantId",
                 "certificateSerialNo",
                 "privateKeyPath",
                 "apiV3Key",
                 "notifyUrl"
         ));
+        if (provider == PaymentProvider.WECHAT_SERVICE_PROVIDER) {
+            items.add("serviceProviderId");
+            items.add("subMerchantId");
+        }
         String mode = certificateMode(config);
         if ("PLATFORM_CERTIFICATE".equals(mode)) {
             items.add("platformCertificatePath");
@@ -132,8 +134,10 @@ public class PaymentProviderReadinessService {
         }
         addMissing(missing, "merchantId", hasText(config.getMerchantId()));
         addMissing(missing, "appId", hasText(config.getAppId()));
-        addMissing(missing, "serviceProviderId", hasText(config.getServiceProviderId()));
-        addMissing(missing, "subMerchantId", hasText(config.getSubMerchantId()));
+        if (provider == PaymentProvider.WECHAT_SERVICE_PROVIDER) {
+            addMissing(missing, "serviceProviderId", hasText(config.getServiceProviderId()));
+            addMissing(missing, "subMerchantId", hasText(config.getSubMerchantId()));
+        }
         addMissing(missing, "certificateSerialNo", hasText(config.getCertificateSerialNo()));
         addMissing(missing, "privateKeyPath", config.hasPrivateKeyPath());
         addMissing(missing, "apiV3Key", config.hasApiV3Key());
@@ -166,8 +170,19 @@ public class PaymentProviderReadinessService {
     }
 
     private List<String> merchantInformation(PaymentProvider provider) {
-        if (provider != PaymentProvider.WECHAT_SERVICE_PROVIDER) {
+        if (provider == PaymentProvider.MOCK) {
             return List.of("mock callback secret for local acceptance");
+        }
+        if (provider == PaymentProvider.WECHAT_DIRECT) {
+            return List.of(
+                    "direct merchant id",
+                    "miniapp app id and OpenID ownership",
+                    "merchant certificate serial number",
+                    "merchant private key file path",
+                    "API v3 key",
+                    "public reachable notify URL",
+                    "certificate mode and platform certificate or WeChat Pay public key material"
+            );
         }
         return List.of(
                 "service provider merchant id",
@@ -197,6 +212,7 @@ public class PaymentProviderReadinessService {
     private List<String> rollbackSteps() {
         return List.of(
                 "set PAYMENT_DEFAULT_PROVIDER=MOCK",
+                "set PAYMENT_WECHAT_DIRECT_ENABLED=false if direct mode was enabled",
                 "set PAYMENT_WECHAT_SP_ENABLED=false",
                 "restart backend services",
                 "run local acceptance smoke",
@@ -235,6 +251,16 @@ public class PaymentProviderReadinessService {
     private String certificateMode(PaymentProviderProperties.ProviderConfig config) {
         String mode = config.getCertificateMode();
         return mode == null || mode.isBlank() ? "AUTO" : mode.trim().toUpperCase();
+    }
+
+    private String callbackPath(PaymentProvider provider) {
+        if (provider == PaymentProvider.WECHAT_DIRECT) {
+            return "/api/payments/callbacks/wechat-direct";
+        }
+        if (provider == PaymentProvider.WECHAT_SERVICE_PROVIDER) {
+            return "/api/payments/callbacks/wechat-service-provider";
+        }
+        return "/api/payments/callbacks";
     }
 
     private void addMissing(List<String> missing, String item, boolean configured) {

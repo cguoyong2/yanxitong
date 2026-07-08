@@ -36,6 +36,19 @@ payment:
     MOCK:
       enabled: true
       callback-secret: ${PAYMENT_MOCK_CALLBACK_SECRET:yanxitong-mock-callback-secret}
+    WECHAT_DIRECT:
+      enabled: ${PAYMENT_WECHAT_DIRECT_ENABLED:false}
+      merchant-id: ${PAYMENT_WECHAT_MERCHANT_ID:}
+      app-id: ${PAYMENT_WECHAT_APP_ID:}
+      certificate-serial-no: ${PAYMENT_WECHAT_CERT_SERIAL_NO:}
+      callback-secret: ${PAYMENT_WECHAT_CALLBACK_SECRET:}
+      private-key-path: ${PAYMENT_WECHAT_PRIVATE_KEY_PATH:}
+      api-v3-key: ${PAYMENT_WECHAT_API_V3_KEY:}
+      notify-url: ${PAYMENT_WECHAT_NOTIFY_URL:}
+      certificate-mode: ${PAYMENT_WECHAT_CERTIFICATE_MODE:AUTO}
+      platform-certificate-path: ${PAYMENT_WECHAT_PLATFORM_CERTIFICATE_PATH:}
+      wechat-pay-public-key-id: ${PAYMENT_WECHAT_PUBLIC_KEY_ID:}
+      wechat-pay-public-key-path: ${PAYMENT_WECHAT_PUBLIC_KEY_PATH:}
     WECHAT_SERVICE_PROVIDER:
       enabled: ${PAYMENT_WECHAT_SP_ENABLED:false}
       merchant-id: ${PAYMENT_WECHAT_MERCHANT_ID:}

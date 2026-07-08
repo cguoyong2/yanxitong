@@ -53,4 +53,29 @@ class AdminPaymentControllerTests {
         assertTrue(readiness.blockers().isEmpty());
         assertTrue(readiness.groups().stream().allMatch(PaymentLaunchReadiness.ReadinessGroup::ready));
     }
+
+    @Test
+    void launchReadinessPassesForDirectMerchantWithoutSubMerchantConfiguration() {
+        PaymentProviderProperties properties = new PaymentProviderProperties();
+        PaymentProviderProperties.ProviderConfig config = new PaymentProviderProperties.ProviderConfig();
+        config.setEnabled(true);
+        config.setMerchantId("direct-merchant");
+        config.setAppId("wx-direct-app");
+        config.setCertificateSerialNo("cert-serial");
+        config.setPrivateKeyPath("/run/secrets/wechat/apiclient_key.pem");
+        config.setApiV3Key("api-v3-key");
+        config.setNotifyUrl("https://pay.example.com/api/payments/callbacks/wechat-direct");
+        properties.setDefaultProvider(PaymentProvider.WECHAT_DIRECT);
+        properties.setProviders(Map.of(PaymentProvider.WECHAT_DIRECT, config));
+        AdminPaymentController controller = new AdminPaymentController(
+                mock(PaymentCallbackService.class),
+                new PaymentProviderReadinessService(properties)
+        );
+
+        PaymentLaunchReadiness readiness = controller.launchReadiness(PaymentProvider.WECHAT_DIRECT).data();
+
+        assertTrue(readiness.ready());
+        assertTrue(readiness.blockers().isEmpty());
+        assertTrue(readiness.groups().stream().allMatch(PaymentLaunchReadiness.ReadinessGroup::ready));
+    }
 }

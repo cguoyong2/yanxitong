@@ -90,11 +90,8 @@ is_placeholder() {
 
 if [[ "${PAYMENT_DEFAULT_PROVIDER}" != "MOCK" ]]; then
   wechat_vars=(
-    PAYMENT_WECHAT_SP_ENABLED
     PAYMENT_WECHAT_MERCHANT_ID
     PAYMENT_WECHAT_APP_ID
-    PAYMENT_WECHAT_SERVICE_PROVIDER_ID
-    PAYMENT_WECHAT_SUB_MERCHANT_ID
     PAYMENT_WECHAT_CERT_SERIAL_NO
     PAYMENT_WECHAT_PRIVATE_KEY_PATH
     PAYMENT_WECHAT_API_V3_KEY
@@ -108,7 +105,18 @@ if [[ "${PAYMENT_DEFAULT_PROVIDER}" != "MOCK" ]]; then
       [[ -n "${value}" ]] || fail "${name} is required when PAYMENT_DEFAULT_PROVIDER=${PAYMENT_DEFAULT_PROVIDER}"
       [[ "${value}" != *"replace-with"* ]] || fail "${name} still contains placeholder value"
     done
-    [[ "${PAYMENT_WECHAT_SP_ENABLED}" == "true" ]] || fail "PAYMENT_WECHAT_SP_ENABLED must be true for real provider default"
+    if [[ "${PAYMENT_DEFAULT_PROVIDER}" == "WECHAT_DIRECT" ]]; then
+      [[ "${PAYMENT_WECHAT_DIRECT_ENABLED:-}" == "true" ]] || fail "PAYMENT_WECHAT_DIRECT_ENABLED must be true for WECHAT_DIRECT"
+    elif [[ "${PAYMENT_DEFAULT_PROVIDER}" == "WECHAT_SERVICE_PROVIDER" ]]; then
+      [[ "${PAYMENT_WECHAT_SP_ENABLED:-}" == "true" ]] || fail "PAYMENT_WECHAT_SP_ENABLED must be true for WECHAT_SERVICE_PROVIDER"
+      for name in PAYMENT_WECHAT_SERVICE_PROVIDER_ID PAYMENT_WECHAT_SUB_MERCHANT_ID; do
+        value="${!name:-}"
+        [[ -n "${value}" ]] || fail "${name} is required when PAYMENT_DEFAULT_PROVIDER=${PAYMENT_DEFAULT_PROVIDER}"
+        [[ "${value}" != *"replace-with"* ]] || fail "${name} still contains placeholder value"
+      done
+    else
+      fail "Unsupported PAYMENT_DEFAULT_PROVIDER=${PAYMENT_DEFAULT_PROVIDER}"
+    fi
     [[ "${PAYMENT_WECHAT_NOTIFY_URL}" == https://* ]] || fail "PAYMENT_WECHAT_NOTIFY_URL must be public HTTPS"
   else
     incomplete_wechat_vars=()

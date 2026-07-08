@@ -44,6 +44,21 @@ public class PaymentCallbackController {
         return ApiResponse.ok(paymentCallbackService.handleProviderCallback(envelope));
     }
 
+    @PostMapping("/callbacks/wechat-direct")
+    public ApiResponse<PaymentCallbackLog> wechatDirectCallback(
+            @RequestBody String rawBody,
+            @RequestHeader Map<String, String> headers
+    ) {
+        PaymentCallbackEnvelope envelope = new PaymentCallbackEnvelope(
+                PaymentProvider.WECHAT_DIRECT,
+                rawBody,
+                headers,
+                firstPresent(headers, "Wechatpay-Signature"),
+                firstPresent(headers, "Wechatpay-Request-Id")
+        );
+        return ApiResponse.ok(paymentCallbackService.handleProviderCallback(envelope));
+    }
+
     private String firstPresent(Map<String, String> headers, String name) {
         if (headers == null || headers.isEmpty()) {
             return "";

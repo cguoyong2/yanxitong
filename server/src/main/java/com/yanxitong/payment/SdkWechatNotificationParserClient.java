@@ -20,7 +20,7 @@ public class SdkWechatNotificationParserClient implements WechatNotificationPars
 
     @Override
     public WechatCallbackParseResult parse(PaymentCallbackEnvelope envelope) {
-        NotificationParser parser = clientFactory.prepare().notificationParser();
+        NotificationParser parser = clientFactory.prepare(envelope.provider()).notificationParser();
         if (parser == null) {
             throw new IllegalStateException("Wechat notification parser is not configured");
         }

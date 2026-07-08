@@ -9,5 +9,6 @@ class YanxitongApplicationTests {
     @Test
     void paymentProviderEnumIsAvailable() {
         assertNotNull(PaymentProvider.WECHAT_SERVICE_PROVIDER);
+        assertNotNull(PaymentProvider.WECHAT_DIRECT);
     }
 }

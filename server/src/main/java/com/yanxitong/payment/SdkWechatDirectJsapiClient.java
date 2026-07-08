@@ -2,32 +2,32 @@ package com.yanxitong.payment;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wechat.pay.java.service.partnerpayments.jsapi.JsapiServiceExtension;
-import com.wechat.pay.java.service.partnerpayments.jsapi.model.PrepayRequest;
-import com.wechat.pay.java.service.partnerpayments.jsapi.model.PrepayWithRequestPaymentResponse;
+import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
+import com.wechat.pay.java.service.payments.jsapi.model.PrepayRequest;
+import com.wechat.pay.java.service.payments.jsapi.model.PrepayWithRequestPaymentResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SdkWechatPartnerJsapiClient implements WechatPartnerJsapiClient {
+public class SdkWechatDirectJsapiClient implements WechatDirectJsapiClient {
     private static final String PREPAY_PREFIX = "prepay_id=";
 
     private final WechatPayClientFactory clientFactory;
     private final ObjectMapper objectMapper;
 
-    public SdkWechatPartnerJsapiClient(WechatPayClientFactory clientFactory, ObjectMapper objectMapper) {
+    public SdkWechatDirectJsapiClient(WechatPayClientFactory clientFactory, ObjectMapper objectMapper) {
         this.clientFactory = clientFactory;
         this.objectMapper = objectMapper;
     }
 
     @Override
-    public WechatPrepayResult prepay(PrepayRequest request, String subMerchantId) {
-        WechatPayClientFactory.PreparedWechatPayClient prepared = clientFactory.prepare(PaymentProvider.WECHAT_SERVICE_PROVIDER);
+    public WechatPrepayResult prepay(PrepayRequest request) {
+        WechatPayClientFactory.PreparedWechatPayClient prepared = clientFactory.prepare(PaymentProvider.WECHAT_DIRECT);
         JsapiServiceExtension service = new JsapiServiceExtension.Builder()
                 .config(prepared.config())
                 .build();
-        PrepayWithRequestPaymentResponse response = service.prepayWithRequestPayment(request, subMerchantId);
+        PrepayWithRequestPaymentResponse response = service.prepayWithRequestPayment(request);
         String payPayload = toPayPayload(response);
         return new WechatPrepayResult(extractPrepayId(response.getPackageVal()), payPayload);
     }

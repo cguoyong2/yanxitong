@@ -18,8 +18,8 @@ public class WechatPayClientFactory {
         this.properties = properties;
     }
 
-    public PreparedWechatPayClient prepare() {
-        PaymentProviderProperties.ProviderConfig config = properties.provider(PaymentProvider.WECHAT_SERVICE_PROVIDER);
+    public PreparedWechatPayClient prepare(PaymentProvider provider) {
+        PaymentProviderProperties.ProviderConfig config = properties.provider(provider);
         validateEnabled(config);
         validateRequired(config);
         String mode = certificateMode(config);
