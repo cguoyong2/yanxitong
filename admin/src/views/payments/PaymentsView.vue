@@ -19,8 +19,42 @@
       </div>
     </section>
 
+    <section class="payment-command">
+      <div class="command-main">
+        <span class="command-eyebrow">Payment Command Center</span>
+        <h2>支付运营工作台</h2>
+        <p>先确认通道可用，再跟踪订单状态，最后集中处理回调异常和人工补偿。</p>
+      </div>
+      <div class="command-steps">
+        <button class="command-step" type="button" :class="{ active: activeTab === 'config' }" @click="activeTab = 'config'">
+          <span>01</span>
+          <strong>配置检查</strong>
+          <small>{{ paymentBlockerCount > 0 ? `${paymentBlockerCount} 个阻塞` : '生产可用' }}</small>
+        </button>
+        <button class="command-step" type="button" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'">
+          <span>02</span>
+          <strong>订单跟踪</strong>
+          <small>{{ orderSummary.count }} 笔订单</small>
+        </button>
+        <button class="command-step" type="button" :class="{ active: activeTab === 'callbacks', danger: callbackSummary.failed > 0 }" @click="activeTab = 'callbacks'">
+          <span>03</span>
+          <strong>异常处理</strong>
+          <small>{{ callbackSummary.failed > 0 ? `${callbackSummary.failed} 个失败` : '暂无异常' }}</small>
+        </button>
+      </div>
+    </section>
+
     <el-tabs v-model="activeTab">
       <el-tab-pane label="支付配置" name="config">
+        <section class="tab-intro">
+          <div>
+            <span>配置检查</span>
+            <h2>确认真实支付通道是否可以上线</h2>
+            <p>这里用于核对生产安全、微信支付配置、证书和回调地址。状态为可进入真实联调后，再做小额支付验证。</p>
+          </div>
+          <el-button type="primary" @click="load">重新检查</el-button>
+        </section>
+
         <section class="launch-gate-grid">
           <article class="launch-gate" :class="{ danger: systemBlockerCount > 0, warning: systemBlockerCount === 0 && systemWarningCount > 0 }">
             <span>系统安全阻塞</span>
@@ -170,6 +204,18 @@
       </el-tab-pane>
 
       <el-tab-pane label="支付订单" name="orders">
+        <section class="tab-intro">
+          <div>
+            <span>支付订单</span>
+            <h2>跟踪用户发起的每一笔支付</h2>
+            <p>订单列表用于核对支付状态、金额、机构交易号和履约情况；待支付或状态异常时，再进入回调异常或人工核销。</p>
+          </div>
+          <div class="tab-actions">
+            <el-button @click="showFailures">查看异常回调</el-button>
+            <el-button type="primary" @click="load">刷新订单</el-button>
+          </div>
+        </section>
+
         <section class="filters">
           <el-input v-model="orderFilters.banquetId" clearable placeholder="宴席 ID" @change="load" />
           <el-input v-model="orderFilters.orderNo" clearable placeholder="订单号" @change="load" />
@@ -258,6 +304,18 @@
       </el-tab-pane>
 
       <el-tab-pane label="回调与异常" name="callbacks">
+        <section class="tab-intro danger-intro">
+          <div>
+            <span>回调与异常</span>
+            <h2>集中处理支付回调失败、验签异常和人工补偿</h2>
+            <p>优先处理验签失败、金额不一致、订单不存在和交易号冲突。每次处理必须填写备注，便于后续审计。</p>
+          </div>
+          <div class="tab-actions">
+            <el-button @click="showFailures">只看异常</el-button>
+            <el-button type="primary" @click="load">刷新回调</el-button>
+          </div>
+        </section>
+
         <section class="filters">
           <el-input v-model="orderFilters.banquetId" clearable placeholder="宴席 ID" @change="load" />
           <el-select v-model="processStatus" clearable placeholder="处理状态" @change="load">
@@ -759,6 +817,134 @@ h1 {
   font-size: 20px;
 }
 
+.payment-command {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(520px, 1.4fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 18px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(127, 29, 29, 0.9)),
+    #111827;
+  color: #fff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+}
+
+.command-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.command-eyebrow,
+.tab-intro span {
+  color: #fed7aa;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.command-main h2,
+.tab-intro h2 {
+  margin: 6px 0 8px;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.command-main p,
+.tab-intro p {
+  max-width: 620px;
+  margin: 0;
+  line-height: 1.65;
+}
+
+.command-main p {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.command-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.command-step {
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+}
+
+.command-step:hover,
+.command-step.active {
+  border-color: #fed7aa;
+  background: rgba(255, 247, 237, 0.16);
+}
+
+.command-step.danger {
+  border-color: rgba(252, 165, 165, 0.8);
+}
+
+.command-step span {
+  color: #fdba74;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.command-step strong {
+  font-size: 18px;
+}
+
+.command-step small {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tab-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 14px;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+
+.tab-intro span {
+  color: #b91c1c;
+}
+
+.tab-intro h2 {
+  color: #0f172a;
+  font-size: 20px;
+}
+
+.tab-intro p {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.danger-intro {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #fffafa 0%, #fff 100%);
+}
+
+.tab-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .context-panel {
   display: flex;
   justify-content: space-between;
@@ -1126,6 +1312,18 @@ h1 {
 }
 
 @media (max-width: 860px) {
+  .payment-command {
+    grid-template-columns: 1fr;
+  }
+
+  .command-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-intro {
+    display: grid;
+  }
+
   .context-panel,
   .filters {
     grid-template-columns: 1fr;
