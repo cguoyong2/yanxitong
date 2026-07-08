@@ -176,6 +176,14 @@ interface Plan {
   price: number;
   priceUnit: string;
   recommended?: number;
+  rights?: PlanRight[];
+  rightNames?: string[];
+}
+
+interface PlanRight {
+  rightCode: string;
+  rightName: string;
+  rightValue?: string;
 }
 
 interface PlanOrder {
@@ -473,6 +481,12 @@ function planDesc(plan: Plan) {
 }
 
 function rightsPreview(plan: Plan) {
+  const configuredRights = (plan.rightNames || [])
+    .filter(Boolean)
+    .slice(0, 4);
+  if (configuredRights.length) {
+    return configuredRights;
+  }
   if (Number(plan.price) === 0) return ['创建宴席', '基础请柬', '回执管理'];
   if (/PREMIUM|VIP|DIAMOND/i.test(plan.planCode)) return ['包含设备租赁', '数据导出权益', '高级配置预留'];
   if (/STANDARD|PRO/i.test(plan.planCode)) return [activeTheme.value.giftRecordLabel, '设备租赁', '人情账本'];

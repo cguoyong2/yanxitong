@@ -1,5 +1,13 @@
 <template>
   <div>
+    <el-alert
+      class="plan-tip"
+      title="版本价格说明"
+      type="info"
+      show-icon
+      :closable="false"
+      description="这里维护的版本名称、价格、单位、上下架和排序会实时影响小程序选择版本页；用户创建版本订单时，订单金额会按当时后台价格写入订单快照。"
+    />
     <ResourceTable
       title="版本配置"
       endpoint="/admin/plans"
@@ -45,3 +53,9 @@ const rightFields: ResourceField[] = [
   { prop: 'rightValue', label: '权益值' }
 ];
 </script>
+
+<style scoped>
+.plan-tip {
+  margin-bottom: 16px;
+}
+</style>

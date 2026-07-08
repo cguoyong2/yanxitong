@@ -1,10 +1,10 @@
 package com.yanxitong.order.controller;
 
 import com.yanxitong.common.ApiResponse;
-import com.yanxitong.config.entity.Plan;
 import com.yanxitong.order.PlanOrderService;
 import com.yanxitong.order.dto.CreatePlanOrderRequest;
 import com.yanxitong.order.dto.PlanEntitlementResult;
+import com.yanxitong.order.dto.PlanOption;
 import com.yanxitong.order.dto.RightsCheckResult;
 import com.yanxitong.order.entity.PlanOrder;
 import com.yanxitong.payment.MockPaymentGuard;
@@ -32,8 +32,8 @@ public class PlanOrderController {
     }
 
     @GetMapping
-    public ApiResponse<List<Plan>> listPlans() {
-        return ApiResponse.ok(planOrderService.listActivePlans());
+    public ApiResponse<List<PlanOption>> listPlans() {
+        return ApiResponse.ok(planOrderService.listActivePlanOptions());
     }
 
     @PostMapping("/orders")

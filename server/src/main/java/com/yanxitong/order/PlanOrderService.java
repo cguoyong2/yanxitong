@@ -10,6 +10,7 @@ import com.yanxitong.operationlog.OperationLogService;
 import com.yanxitong.operationlog.OperationModule;
 import com.yanxitong.order.dto.CreatePlanOrderRequest;
 import com.yanxitong.order.dto.PlanEntitlementResult;
+import com.yanxitong.order.dto.PlanOption;
 import com.yanxitong.order.dto.RightsCheckResult;
 import com.yanxitong.order.entity.PlanOrder;
 import com.yanxitong.order.mapper.PlanOrderMapper;
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -55,6 +57,38 @@ public class PlanOrderService {
         return planMapper.selectList(new QueryWrapper<Plan>()
                 .eq("status", "ACTIVE")
                 .orderByAsc("sort_order"));
+    }
+
+    public List<PlanOption> listActivePlanOptions() {
+        List<Plan> plans = listActivePlans();
+        if (plans.isEmpty()) {
+            return List.of();
+        }
+        List<Long> planIds = plans.stream().map(plan -> plan.id).toList();
+        Map<Long, List<PlanRight>> rightsByPlan = planRightMapper.selectList(new QueryWrapper<PlanRight>()
+                        .in("plan_id", planIds)
+                        .orderByAsc("plan_id")
+                        .orderByAsc("right_code"))
+                .stream()
+                .collect(Collectors.groupingBy(right -> right.planId, LinkedHashMap::new, Collectors.toList()));
+        return plans.stream()
+                .map(plan -> toPlanOption(plan, rightsByPlan.getOrDefault(plan.id, List.of())))
+                .toList();
+    }
+
+    private PlanOption toPlanOption(Plan plan, List<PlanRight> rights) {
+        return new PlanOption(
+                plan.id,
+                plan.planCode,
+                plan.name,
+                plan.price,
+                plan.priceUnit,
+                plan.recommended,
+                plan.sortOrder,
+                plan.status,
+                rights,
+                rights.stream().map(right -> right.rightName).filter(name -> name != null && !name.isBlank()).toList()
+        );
     }
 
     public PageResult<PlanOrder> listOrders(Integer page, Integer pageSize) {

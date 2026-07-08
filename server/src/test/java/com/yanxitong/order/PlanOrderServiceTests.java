@@ -18,6 +18,7 @@ import com.yanxitong.config.mapper.PlanRightMapper;
 import com.yanxitong.operationlog.OperationLogService;
 import com.yanxitong.order.dto.CreatePlanOrderRequest;
 import com.yanxitong.order.dto.PlanEntitlementResult;
+import com.yanxitong.order.dto.PlanOption;
 import com.yanxitong.order.entity.PlanOrder;
 import com.yanxitong.order.mapper.PlanOrderMapper;
 import com.yanxitong.payment.PaymentService;
@@ -98,6 +99,49 @@ class PlanOrderServiceTests {
         assertSame(order, result);
         assertEquals("PAID", order.payStatus);
         verify(planOrderMapper).updateById(order);
+    }
+
+    @Test
+    void listActivePlanOptionsIncludesConfiguredRights() {
+        PlanMapper planMapper = mock(PlanMapper.class);
+        PlanRightMapper planRightMapper = mock(PlanRightMapper.class);
+        PlanOrderMapper planOrderMapper = mock(PlanOrderMapper.class);
+        Plan pro = plan("PRO", new BigDecimal("299.00"));
+        pro.id = 20L;
+        when(planMapper.selectList(any(Wrapper.class))).thenReturn(List.of(pro));
+        PlanRight device = right("DEVICE_RENTAL", "INCLUDED");
+        device.planId = 20L;
+        device.rightName = "设备租赁";
+        PlanRight export = right("EXCEL_EXPORT", "P1_RESERVED");
+        export.planId = 20L;
+        export.rightName = "Excel 导出";
+        when(planRightMapper.selectList(any(Wrapper.class))).thenReturn(List.of(device, export));
+        PlanOrderService service = service(planMapper, planRightMapper, planOrderMapper, mock(OrderNoGenerator.class));
+
+        List<PlanOption> result = service.listActivePlanOptions();
+
+        assertEquals(1, result.size());
+        assertEquals("PRO", result.get(0).planCode());
+        assertEquals(new BigDecimal("299.00"), result.get(0).price());
+        assertEquals(List.of("设备租赁", "Excel 导出"), result.get(0).rightNames());
+    }
+
+    @Test
+    void listActivePlanOptionsHandlesPlansWithoutRights() {
+        PlanMapper planMapper = mock(PlanMapper.class);
+        PlanRightMapper planRightMapper = mock(PlanRightMapper.class);
+        PlanOrderMapper planOrderMapper = mock(PlanOrderMapper.class);
+        Plan basic = plan("BASIC", BigDecimal.ZERO);
+        basic.id = 10L;
+        when(planMapper.selectList(any(Wrapper.class))).thenReturn(List.of(basic));
+        when(planRightMapper.selectList(any(Wrapper.class))).thenReturn(List.of());
+        PlanOrderService service = service(planMapper, planRightMapper, planOrderMapper, mock(OrderNoGenerator.class));
+
+        List<PlanOption> result = service.listActivePlanOptions();
+
+        assertEquals(1, result.size());
+        assertTrue(result.get(0).rights().isEmpty());
+        assertTrue(result.get(0).rightNames().isEmpty());
     }
 
     @Test
