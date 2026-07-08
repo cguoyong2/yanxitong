@@ -167,8 +167,10 @@ public class SecurityReadinessService {
         }
         addMissing(missing, "merchantId", hasText(config.getMerchantId()));
         addMissing(missing, "appId", hasText(config.getAppId()));
-        addMissing(missing, "serviceProviderId", hasText(config.getServiceProviderId()));
-        addMissing(missing, "subMerchantId", hasText(config.getSubMerchantId()));
+        if (provider == PaymentProvider.WECHAT_SERVICE_PROVIDER) {
+            addMissing(missing, "serviceProviderId", hasText(config.getServiceProviderId()));
+            addMissing(missing, "subMerchantId", hasText(config.getSubMerchantId()));
+        }
         addMissing(missing, "certificateSerialNo", hasText(config.getCertificateSerialNo()));
         addMissing(missing, "privateKeyPath", config.hasPrivateKeyPath());
         addMissing(missing, "apiV3Key", config.hasApiV3Key());

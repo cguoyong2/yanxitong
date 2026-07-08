@@ -69,6 +69,23 @@ class SecurityReadinessServiceTests {
         assertTrue(result.warnings().isEmpty());
     }
 
+    @Test
+    void directWechatProductionConfigurationDoesNotRequireServiceProviderFields() {
+        SecurityReadinessService service = new SecurityReadinessService(
+                environment("production")
+                        .withProperty("spring.datasource.password", "strong-db-password")
+                        .withProperty("spring.data.redis.password", "strong-redis-password"),
+                directWechatPaymentProperties(),
+                adminMapper(null)
+        );
+
+        SecurityReadinessResult result = service.check();
+
+        assertEquals("READY", result.status());
+        assertTrue(result.productionReady());
+        assertTrue(result.blockers().isEmpty());
+    }
+
     private MockEnvironment environment(String appEnv) {
         return new MockEnvironment()
                 .withProperty("APP_ENV", appEnv)
@@ -102,6 +119,23 @@ class SecurityReadinessServiceTests {
         properties.setProviders(Map.of(
                 PaymentProvider.MOCK, properties.provider(PaymentProvider.MOCK),
                 PaymentProvider.WECHAT_SERVICE_PROVIDER, wechatConfig
+        ));
+        return properties;
+    }
+
+    private PaymentProviderProperties directWechatPaymentProperties() {
+        PaymentProviderProperties properties = paymentProperties(false, PaymentProvider.WECHAT_DIRECT, "strong-mock-secret");
+        PaymentProviderProperties.ProviderConfig wechatConfig = new PaymentProviderProperties.ProviderConfig();
+        wechatConfig.setEnabled(true);
+        wechatConfig.setMerchantId("direct-merchant");
+        wechatConfig.setAppId("direct-app");
+        wechatConfig.setCertificateSerialNo("cert-serial");
+        wechatConfig.setPrivateKeyPath("/run/secrets/wechat/apiclient_key.pem");
+        wechatConfig.setApiV3Key("api-v3-key");
+        wechatConfig.setNotifyUrl("https://pay.example.com/api/payments/callbacks/wechat-direct");
+        properties.setProviders(Map.of(
+                PaymentProvider.MOCK, properties.provider(PaymentProvider.MOCK),
+                PaymentProvider.WECHAT_DIRECT, wechatConfig
         ));
         return properties;
     }
