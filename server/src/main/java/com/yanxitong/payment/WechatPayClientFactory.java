@@ -21,7 +21,7 @@ public class WechatPayClientFactory {
     public PreparedWechatPayClient prepare(PaymentProvider provider) {
         PaymentProviderProperties.ProviderConfig config = properties.provider(provider);
         validateEnabled(config);
-        validateRequired(config);
+        validateRequired(provider, config);
         String mode = certificateMode(config);
         Config sdkConfig = buildConfig(config, mode);
         NotificationParser notificationParser = buildNotificationParser(config, mode);
@@ -35,9 +35,16 @@ public class WechatPayClientFactory {
     }
 
     public void validateRequired(PaymentProviderProperties.ProviderConfig config) {
+        validateRequired(PaymentProvider.WECHAT_SERVICE_PROVIDER, config);
+    }
+
+    public void validateRequired(PaymentProvider provider, PaymentProviderProperties.ProviderConfig config) {
         require(config.getMerchantId(), "Wechat merchant-id is required");
         require(config.getAppId(), "Wechat app-id is required");
-        require(config.getServiceProviderId(), "Wechat service-provider-id is required");
+        if (provider == PaymentProvider.WECHAT_SERVICE_PROVIDER) {
+            require(config.getServiceProviderId(), "Wechat service-provider-id is required");
+            require(config.getSubMerchantId(), "Wechat sub-merchant-id is required");
+        }
         require(config.getCertificateSerialNo(), "Wechat certificate-serial-no is required");
         require(config.getPrivateKeyPath(), "Wechat private-key-path is required");
         require(config.getApiV3Key(), "Wechat api-v3-key is required");

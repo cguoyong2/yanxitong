@@ -32,7 +32,24 @@ class WechatPayClientFactoryTests {
         config.setCertificateMode("AUTO");
         WechatPayClientFactory factory = new WechatPayClientFactory(properties(config));
 
-        assertDoesNotThrow(() -> factory.validateRequired(config));
+        assertDoesNotThrow(() -> factory.validateRequired(PaymentProvider.WECHAT_SERVICE_PROVIDER, config));
+    }
+
+    @Test
+    void validateRequiredAcceptsDirectProviderWithoutServiceProviderFields() {
+        PaymentProviderProperties.ProviderConfig config = completeDirectConfig();
+        WechatPayClientFactory factory = new WechatPayClientFactory(properties(PaymentProvider.WECHAT_DIRECT, config));
+
+        assertDoesNotThrow(() -> factory.validateRequired(PaymentProvider.WECHAT_DIRECT, config));
+    }
+
+    @Test
+    void validateRequiredRejectsServiceProviderWithoutSubMerchantId() {
+        PaymentProviderProperties.ProviderConfig config = completeConfig();
+        config.setSubMerchantId("");
+        WechatPayClientFactory factory = new WechatPayClientFactory(properties(config));
+
+        assertThrows(IllegalArgumentException.class, () -> factory.validateRequired(PaymentProvider.WECHAT_SERVICE_PROVIDER, config));
     }
 
     @Test
@@ -41,7 +58,7 @@ class WechatPayClientFactoryTests {
         config.setCertificateMode("PUBLIC_KEY");
         WechatPayClientFactory factory = new WechatPayClientFactory(properties(config));
 
-        assertThrows(IllegalArgumentException.class, () -> factory.validateRequired(config));
+        assertThrows(IllegalArgumentException.class, () -> factory.validateRequired(PaymentProvider.WECHAT_SERVICE_PROVIDER, config));
     }
 
     private PaymentProviderProperties.ProviderConfig factoryConfig(PaymentProviderProperties properties) {
@@ -55,8 +72,12 @@ class WechatPayClientFactoryTests {
     }
 
     private PaymentProviderProperties properties(PaymentProviderProperties.ProviderConfig config) {
+        return properties(PaymentProvider.WECHAT_SERVICE_PROVIDER, config);
+    }
+
+    private PaymentProviderProperties properties(PaymentProvider provider, PaymentProviderProperties.ProviderConfig config) {
         PaymentProviderProperties properties = new PaymentProviderProperties();
-        properties.setProviders(Map.of(PaymentProvider.WECHAT_SERVICE_PROVIDER, config));
+        properties.setProviders(Map.of(provider, config));
         return properties;
     }
 
@@ -66,10 +87,19 @@ class WechatPayClientFactoryTests {
         config.setMerchantId("1900000000");
         config.setAppId("wx-app");
         config.setServiceProviderId("1900000000");
+        config.setSubMerchantId("1900000001");
         config.setCertificateSerialNo("SERIAL");
         config.setPrivateKeyPath("/tmp/apiclient_key.pem");
         config.setApiV3Key("12345678901234567890123456789012");
         config.setNotifyUrl("https://example.com/api/payments/callbacks/wechat-service-provider");
+        return config;
+    }
+
+    private PaymentProviderProperties.ProviderConfig completeDirectConfig() {
+        PaymentProviderProperties.ProviderConfig config = completeConfig();
+        config.setServiceProviderId("");
+        config.setSubMerchantId("");
+        config.setNotifyUrl("https://example.com/api/payments/callbacks/wechat-direct");
         return config;
     }
 }
