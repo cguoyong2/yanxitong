@@ -7,7 +7,7 @@
       </view>
       <view class="topbar">
         <view class="brand-row">
-          <text class="brand">宴席通</text>
+          <text class="brand">情礼记</text>
           <text class="hello">{{ activeTheme.mineText }}</text>
         </view>
         <view class="top-actions">
@@ -28,7 +28,7 @@
         <swiper-item v-for="banner in banners" :key="banner.title">
           <view class="theme-banner" @tap="handleBanner(banner.action)">
             <view>
-              <text class="banner-eyebrow">宴席通</text>
+              <text class="banner-eyebrow">情礼记</text>
               <text class="banner-title">{{ banner.title }}</text>
               <text class="banner-desc">{{ banner.desc }}</text>
               <view class="banner-tags">
@@ -47,7 +47,7 @@
         <image class="avatar" src="/static/mine/avatar_user.png" mode="aspectFill" />
         <view class="profile-main">
           <view class="name-line">
-            <text class="user-name">宴席通用户</text>
+            <text class="user-name">情礼记用户</text>
             <text class="real-badge">已实名</text>
           </view>
           <text class="phone">登录后展示手机号</text>

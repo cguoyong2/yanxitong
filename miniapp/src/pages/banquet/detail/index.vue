@@ -7,7 +7,7 @@
       </view>
       <view class="hero-top">
         <view>
-          <text class="hero-label">宴席通</text>
+          <text class="hero-label">情礼记</text>
           <text class="hero-title">{{ detail.banquet.name }}</text>
         </view>
         <view class="hero-actions">

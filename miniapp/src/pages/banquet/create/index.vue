@@ -4,7 +4,7 @@
       <view class="hero-art">
         <text class="hero-mark">{{ currentDesign.mark }}</text>
       </view>
-      <text class="hero-brand">宴席通</text>
+      <text class="hero-brand">情礼记</text>
       <text class="hero-title">{{ currentDesign.title }}</text>
       <text class="hero-desc">{{ currentDesign.desc }}</text>
       <view class="hero-tags">
@@ -402,7 +402,7 @@ function fillSampleData() {
   form.name = defaultBanquetName();
   commitDateTime('2026-10-01', '18:00');
   form.location = '体验宴会厅';
-  displayForm.hostName = '宴席通用户';
+  displayForm.hostName = '情礼记用户';
   displayForm.phone = '13800000000';
 }
 

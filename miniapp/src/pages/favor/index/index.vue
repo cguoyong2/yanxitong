@@ -7,7 +7,7 @@
       </view>
       <view class="topbar">
         <view class="brand-row">
-          <text class="brand">宴席通</text>
+          <text class="brand">情礼记</text>
           <text class="hello">{{ activeTheme.favorText }}</text>
         </view>
         <view class="top-actions">

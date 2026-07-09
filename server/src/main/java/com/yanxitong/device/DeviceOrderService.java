@@ -127,7 +127,7 @@ public class DeviceOrderService {
                 PaymentScene.DEVICE_ORDER,
                 order.deviceType,
                 order.price,
-                "宴席通设备租赁 " + deviceTypeLabel(order.deviceType),
+                "情礼记设备租赁 " + deviceTypeLabel(order.deviceType),
                 null,
                 payerOpenId,
                 null,

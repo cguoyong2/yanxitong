@@ -10,7 +10,7 @@
   <view class="page" v-else-if="data" :class="[templateClass, eventTone]" :style="pageStyle">
     <view class="invite-shell">
       <view class="topbar">
-        <text class="brand">宴席通</text>
+        <text class="brand">情礼记</text>
         <button class="share-button" open-type="share">分享请柬</button>
       </view>
 

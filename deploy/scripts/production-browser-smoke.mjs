@@ -15,7 +15,7 @@ const runId = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
 const artifactsDir = process.env.ARTIFACTS_DIR || path.join(os.tmpdir(), `yanxitong-production-browser-smoke-${runId}`);
 
 const adminRoutes = [
-  { path: '/dashboard', name: 'dashboard', text: '宴席通运营后台' },
+  { path: '/dashboard', name: 'dashboard', text: '情礼记运营后台' },
   { path: '/config', name: 'config', text: '配置' },
   { path: '/event-types', name: 'event-types', text: '宴席' },
   { path: '/themes', name: 'themes', text: '主题' },
@@ -172,7 +172,7 @@ async function main() {
     ]);
     await waitForSettledPage(page);
     const loginSnapshot = await pageSnapshot(page);
-    results.push(result('admin-login', loginSnapshot, pageFailures(loginSnapshot, '宴席通运营后台')));
+    results.push(result('admin-login', loginSnapshot, pageFailures(loginSnapshot, '情礼记运营后台')));
 
     for (const route of adminRoutes) {
       await page.goto(`${baseUrl}${route.path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });

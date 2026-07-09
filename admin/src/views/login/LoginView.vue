@@ -1,7 +1,7 @@
 <template>
   <main class="login-page">
     <section class="login-panel">
-      <p class="eyebrow">宴席通运营后台</p>
+      <p class="eyebrow">情礼记运营后台</p>
       <h1>平台管理员登录</h1>
       <el-form class="login-form" label-position="top" @submit.prevent="submit">
         <el-form-item label="账号">

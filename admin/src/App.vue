@@ -3,9 +3,9 @@
   <div v-else class="admin-shell">
     <aside class="sidebar">
       <RouterLink class="brand" to="/dashboard">
-        <span class="brand-mark">宴</span>
+        <span class="brand-mark">礼</span>
         <span>
-          <strong>宴席通</strong>
+          <strong>情礼记</strong>
           <small>运营后台</small>
         </span>
       </RouterLink>

@@ -3,7 +3,7 @@
     <view class="hero-card">
       <view class="coin coin-a">¥</view>
       <view class="coin coin-b">{{ activeTheme.mark }}</view>
-      <text class="hero-label">宴席通</text>
+      <text class="hero-label">情礼记</text>
       <text class="hero-title">{{ activeTheme.offlineGiftLabel }}</text>
       <text class="hero-desc">{{ activeTheme.giftLabel }}、转账备注和现场补录统一登记</text>
       <view class="hero-tags">

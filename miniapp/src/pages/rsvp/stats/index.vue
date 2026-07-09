@@ -4,7 +4,7 @@
       <view class="hero-art">
         <text class="hero-knot">{{ activeTheme.mark }}</text>
       </view>
-      <text class="hero-label">宴席通</text>
+      <text class="hero-label">情礼记</text>
       <text class="hero-title">回执统计</text>
       <text class="hero-desc">{{ activeTheme.rsvpSubtitle }}，出席、用餐、住宿数据实时汇总</text>
       <view class="hero-main">

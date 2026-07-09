@@ -4,7 +4,7 @@
       <view class="hero-art">
         <text class="hero-symbol">{{ activeTheme.mark }}</text>
       </view>
-      <text class="hero-label">宴席通设备服务</text>
+      <text class="hero-label">情礼记设备服务</text>
       <text class="hero-title">设备租赁</text>
       <text class="hero-desc">确认屏、云喇叭按后台配置展示价格、单位与交付方式。</text>
       <view class="right-pill" :class="{ blocked: !hasDeviceRight }">

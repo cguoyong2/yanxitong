@@ -4,7 +4,7 @@
       <view class="hero-art">
         <text class="hero-symbol">礼</text>
       </view>
-      <text class="hero-label">宴席通</text>
+      <text class="hero-label">情礼记</text>
       <text class="hero-title">{{ pageTitle }}</text>
       <text class="hero-desc">{{ pageHint }}</text>
       <view class="entry-switch">

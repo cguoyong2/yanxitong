@@ -4,7 +4,7 @@
       <view class="hero-art">
         <text class="hero-symbol">{{ activeTheme.mark }}</text>
       </view>
-      <text class="hero-label">宴席通权益中心</text>
+      <text class="hero-label">情礼记权益中心</text>
       <text class="hero-title">选择版本</text>
       <text class="hero-desc">价格、单位和权益均由后台配置，开通后立即影响设备、导出和业务入口。</text>
     </view>

@@ -7,7 +7,7 @@
         <span></span>
       </div>
       <p class="eyebrow">礼金到账</p>
-      <p class="brand">宴席通</p>
+      <p class="brand">情礼记</p>
       <h1 class="guest">{{ event.guestName || '来宾' }}</h1>
       <p class="gift-label">随礼</p>
       <div class="amount">¥{{ formatAmount(event.amount) }}</div>

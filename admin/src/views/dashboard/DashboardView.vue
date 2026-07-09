@@ -3,7 +3,7 @@
     <section class="hero">
       <div>
         <p class="eyebrow">运营总览</p>
-        <h2>宴席通运营后台</h2>
+        <h2>情礼记运营后台</h2>
         <p class="hero-copy">集中管理宴席配置、版本权益、业务数据、设备订单和支付异常。</p>
       </div>
       <div class="hero-actions">

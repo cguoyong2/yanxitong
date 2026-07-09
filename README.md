@@ -1,6 +1,6 @@
 # Yanxitong
 
-宴席通 MVP 多目录单仓库。
+情礼记 MVP 多目录单仓库。
 
 ## Repository
 

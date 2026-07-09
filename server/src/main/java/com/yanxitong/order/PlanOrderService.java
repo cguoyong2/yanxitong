@@ -154,7 +154,7 @@ public class PlanOrderService {
             throw new IllegalArgumentException("Free plan order does not need payment");
         }
         Plan plan = planMapper.selectById(order.planId);
-        String subject = "宴席通版本订单 " + (plan == null ? order.orderNo : plan.name);
+        String subject = "情礼记版本订单 " + (plan == null ? order.orderNo : plan.name);
         return paymentService.createOrder(new PaymentOrderCreateCommand(
                 order.banquetId,
                 PaymentScene.PLAN_ORDER,

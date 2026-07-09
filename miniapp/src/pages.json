@@ -1,6 +1,6 @@
 {
   "pages": [
-    { "path": "pages/home/index/index", "style": { "navigationStyle": "custom", "navigationBarTitleText": "宴席通" } },
+    { "path": "pages/home/index/index", "style": { "navigationStyle": "custom", "navigationBarTitleText": "情礼记" } },
     { "path": "pages/banquet/create/index", "style": { "navigationBarTitleText": "创建宴席" } },
     { "path": "pages/banquet/detail/index", "style": { "navigationBarTitleText": "宴席管理台" } },
     { "path": "pages/invite/public/index", "style": { "navigationBarTitleText": "请柬" } },

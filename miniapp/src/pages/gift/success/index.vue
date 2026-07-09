@@ -3,7 +3,7 @@
     <view class="success-card">
       <view class="lantern">{{ activeTheme.mark }}</view>
       <view class="flower"></view>
-      <text class="brand">宴席通</text>
+      <text class="brand">情礼记</text>
       <text class="success-title">{{ features.mockPaymentEnabled ? '模拟支付完成' : '支付成功' }}</text>
       <text class="guest-name">{{ guestName || '宾客' }}</text>
       <text class="gift-label">{{ activeTheme.giftLabel }}</text>
