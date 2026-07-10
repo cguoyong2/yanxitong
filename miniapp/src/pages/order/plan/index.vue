@@ -175,7 +175,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
-import { createBusinessPayment, requestWechatPayment } from '../../../utils/wechat-payment';
+import { createBusinessPayment, normalizePaymentFlowError, requestWechatPayment } from '../../../utils/wechat-payment';
 
 interface Plan {
   id: number;
@@ -441,7 +441,7 @@ async function payOrder(order?: PlanOrder) {
     uni.showToast({ title: '支付已提交', icon: 'success' });
     await loadOrders();
   } catch (error) {
-    uni.showToast({ title: error instanceof Error ? error.message : '版本支付失败', icon: 'none' });
+    uni.showToast({ title: normalizePaymentFlowError(error, '版本支付失败'), icon: 'none' });
   } finally {
     paying.value = false;
   }

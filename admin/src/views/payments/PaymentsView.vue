@@ -158,18 +158,18 @@
             </div>
             <dl class="provider-fields">
               <div>
-                <dt>商户号</dt>
+                <dt>{{ isDirectProvider(provider) ? '直连商户号' : '商户号' }}</dt>
                 <dd>{{ provider.merchantId || '-' }}</dd>
               </div>
               <div>
-                <dt>AppID</dt>
+                <dt>{{ isDirectProvider(provider) ? '小程序 AppID' : 'AppID' }}</dt>
                 <dd>{{ provider.appId || '-' }}</dd>
               </div>
-              <div>
+              <div v-if="isServiceProvider(provider)">
                 <dt>服务商号</dt>
                 <dd>{{ provider.serviceProviderId || '-' }}</dd>
               </div>
-              <div>
+              <div v-if="isServiceProvider(provider)">
                 <dt>子商户号</dt>
                 <dd>{{ provider.subMerchantId || '-' }}</dd>
               </div>
@@ -479,6 +479,15 @@ const orderFilters = ref({
 });
 const contextBanquet = computed(() => banquetOptions.value.find((item) => String(item.id) === String(orderFilters.value.banquetId)));
 const contextBanquetTitle = computed(() => contextBanquet.value ? `${contextBanquet.value.id} · ${contextBanquet.value.name}` : `宴席 ID ${orderFilters.value.banquetId}`);
+
+function isDirectProvider(provider: Record<string, any>) {
+  return provider.provider === 'WECHAT_DIRECT';
+}
+
+function isServiceProvider(provider: Record<string, any>) {
+  return provider.provider === 'WECHAT_SERVICE_PROVIDER';
+}
+
 const displayedOrders = computed(() => {
   return orders.value.filter((item) => {
     if (orderFilters.value.banquetId && Number(item.banquetId) !== Number(orderFilters.value.banquetId)) {

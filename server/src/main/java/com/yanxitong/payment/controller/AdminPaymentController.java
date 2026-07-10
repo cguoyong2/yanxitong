@@ -54,7 +54,7 @@ public class AdminPaymentController {
 
     @GetMapping("/launch-readiness")
     public ApiResponse<PaymentLaunchReadiness> launchReadiness(
-            @RequestParam(defaultValue = "WECHAT_SERVICE_PROVIDER") PaymentProvider provider
+            @RequestParam(defaultValue = "WECHAT_DIRECT") PaymentProvider provider
     ) {
         return ApiResponse.ok(readinessService.launchReadiness(provider));
     }

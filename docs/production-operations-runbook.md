@@ -9,7 +9,7 @@ This runbook defines the production-preparation workflow for Yanxitong after loc
 Current boundary:
 
 - The MVP business loop is accepted locally.
-- Real WeChat service-provider/sub-merchant onboarding can happen later.
+- Real WeChat direct merchant credentials and low-value payment validation can happen later.
 - Production deployment must still close configuration, readiness and payment incident handling gates before real money collection.
 
 ## Required Files
@@ -30,7 +30,7 @@ Current boundary:
 4. Replace default admin password before exposing admin.
 5. Use non-default DB and Redis passwords.
 6. Set `APP_ENV=production` or activate the `prod` Spring profile.
-7. Configure `PAYMENT_DEFAULT_PROVIDER=WECHAT_SERVICE_PROVIDER` only after provider credentials are complete.
+7. Configure `PAYMENT_DEFAULT_PROVIDER=WECHAT_DIRECT` only after provider credentials are complete.
 8. Fill `PAYMENT_WECHAT_NOTIFY_URL` with the public HTTPS callback URL.
 9. Mount WeChat private key and certificate/public-key files as secrets, not as committed files.
 10. Run strict readiness:
@@ -125,10 +125,10 @@ Current readiness blockers include:
 
 ## Payment Provider Rollout
 
-When service-provider/sub-merchant credentials are ready:
+When direct merchant credentials are ready:
 
-1. Deploy with `PAYMENT_WECHAT_SP_ENABLED=true`.
-2. Set `PAYMENT_DEFAULT_PROVIDER=WECHAT_SERVICE_PROVIDER`.
+1. Deploy with `PAYMENT_WECHAT_DIRECT_ENABLED=true`.
+2. Set `PAYMENT_DEFAULT_PROVIDER=WECHAT_DIRECT`.
 3. Open admin payment configuration and confirm system safety blockers, payment configuration blockers and operational incident blockers are all zero.
 4. Confirm admin payment provider status reports no missing items.
 5. Confirm `/api/admin/payments/launch-readiness` has no blockers.

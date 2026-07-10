@@ -53,11 +53,11 @@ Required production safety values:
 - non-empty `REDIS_PASSWORD`
 - non-default `PAYMENT_MOCK_CALLBACK_SECRET`
 
-When real payment is enabled:
+When real payment is enabled in direct merchant mode:
 
-- `PAYMENT_DEFAULT_PROVIDER=WECHAT_SERVICE_PROVIDER`
-- `PAYMENT_WECHAT_SP_ENABLED=true`
-- `PAYMENT_WECHAT_NOTIFY_URL=https://<public-domain>/api/payments/callbacks/wechat-service-provider`
+- `PAYMENT_DEFAULT_PROVIDER=WECHAT_DIRECT`
+- `PAYMENT_WECHAT_DIRECT_ENABLED=true`
+- `PAYMENT_WECHAT_NOTIFY_URL=https://<public-domain>/api/payments/callbacks/wechat-direct`
 - WeChat private key/certificate/public-key files are mounted as secrets.
 
 ## Preflight
@@ -96,7 +96,7 @@ RUN_OPS_CHECK=1 \
 bash deploy/scripts/production-acceptance-suite.sh
 ```
 
-For formal real-money launch, add `REQUIRE_READINESS_READY=1` after WeChat service-provider credentials and callback verification are complete.
+For formal real-money launch, add `REQUIRE_READINESS_READY=1` after WeChat direct merchant credentials and callback verification are complete.
 
 ## Start
 

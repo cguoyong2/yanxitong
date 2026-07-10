@@ -6,7 +6,7 @@ This review freezes the payment launch-readiness state after P1-A8.
 
 - Unified payment creation through `PaymentService`.
 - Provider-specific logic isolated behind `PaymentAdapter`.
-- WeChat service-provider JSAPI prepay through the official WeChat Pay Java SDK.
+- WeChat direct-merchant JSAPI prepay through the official WeChat Pay Java SDK.
 - WeChat notification signature verification and resource decryption through SDK `NotificationParser`.
 - Callback logs retain raw body, headers, decrypted body, provider event id, event type, resource type and provider serial number.
 - Duplicate callbacks and duplicate fulfillment are guarded by service checks and database unique constraints.
@@ -20,10 +20,10 @@ This review freezes the payment launch-readiness state after P1-A8.
 The payment flow is not production-ready until all of these are true:
 
 1. `GET /api/admin/payments/launch-readiness` returns `ready=true`.
-2. `GET /api/admin/payments/providers` returns `WECHAT_SERVICE_PROVIDER.productionReady=true`.
+2. `GET /api/admin/payments/providers` returns `WECHAT_DIRECT.productionReady=true`.
 3. `GET /api/health/readiness` returns `READY` in production-like deployment.
 4. The admin payment page shows zero system safety blockers, zero payment configuration blockers and zero failed callback blockers.
-5. The public notify URL is reachable by WeChat Pay and points to `/api/payments/callbacks/wechat-service-provider`.
+5. The public notify URL is reachable by WeChat Pay and points to `/api/payments/callbacks/wechat-direct`.
 6. At least one real low-value payment has completed successfully.
 7. At least one callback replay has been verified in a non-production environment.
 8. A failed verification sample has been captured without storing secrets.
@@ -47,11 +47,9 @@ Launch-readiness groups:
 
 Collect these before real integration:
 
-- service provider merchant id
-- service provider app id
-- sub-merchant id
-- sub-merchant app id
-- confirmation of whether payer OpenID belongs to service-provider app or sub-merchant app
+- direct merchant id
+- miniapp app id bound to the merchant
+- confirmation that payer OpenID belongs to the bound miniapp app id
 - merchant certificate serial number
 - merchant private key file path or secret mount path
 - API v3 key
@@ -73,7 +71,7 @@ Collect these before real integration:
 1. Deploy with WeChat provider configuration present.
 2. Keep `PAYMENT_DEFAULT_PROVIDER=MOCK` until provider status is inspected.
 3. Confirm `/api/admin/payments/launch-readiness` has no unexpected blocker except default-provider switching.
-4. Switch `PAYMENT_DEFAULT_PROVIDER=WECHAT_SERVICE_PROVIDER`.
+4. Switch `PAYMENT_DEFAULT_PROVIDER=WECHAT_DIRECT`.
 5. Restart backend services.
 6. Confirm launch-readiness is `ready=true`.
 7. Create one online gift payment order from the isolated test banquet.
@@ -113,7 +111,7 @@ Admin suggested actions:
 ## Rollback
 
 1. Set `PAYMENT_DEFAULT_PROVIDER=MOCK`.
-2. Set `PAYMENT_WECHAT_SP_ENABLED=false`.
+2. Set `PAYMENT_WECHAT_DIRECT_ENABLED=false`.
 3. Restart backend services.
 4. Run `bash deploy/scripts/local-acceptance.sh`.
 5. Keep all payment orders and callback logs for audit.

@@ -411,8 +411,8 @@ Formal production payment launch requires:
 - `GET /api/health/readiness` returns `READY`.
 - `GET /api/admin/payments/launch-readiness` returns `ready=true`.
 - `PAYMENT_MOCK_SUCCESS_ENABLED=false`.
-- `PAYMENT_DEFAULT_PROVIDER=WECHAT_SERVICE_PROVIDER`.
-- WeChat service-provider/sub-merchant config and callback verification material are complete.
+- `PAYMENT_DEFAULT_PROVIDER=WECHAT_DIRECT`.
+- WeChat direct merchant config and callback verification material are complete.
 - One isolated low-value payment and callback is verified end to end.
 
 ## Rollback
@@ -500,7 +500,7 @@ Verify restore on a separate environment before relying on backups for formal pi
 
 ## Known Boundaries
 
-- Real WeChat service-provider/sub-merchant production payment is not enabled yet.
+- Real WeChat direct merchant production payment still needs a successful low-value end-to-end validation.
 - The readiness page is expected to remain `BLOCKED` until real payment provider configuration is complete.
 - This server hosts other unrelated containers. Do not stop or prune Docker globally.
 - Avoid `docker system prune`, broad volume deletion, or deleting `/opt/apps/yanxitong/releases` without a tested backup and rollback plan.

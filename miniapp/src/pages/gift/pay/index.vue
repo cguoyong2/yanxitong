@@ -89,7 +89,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { loadRuntimeFeatures, request, type RuntimeFeatures } from '../../../api/client';
 import { requireBanquetToast, resolveBanquetId } from '../../../utils/banquet';
 import { eventThemeFor, fetchBanquetEventType, readActiveEventType, writeActiveEventType } from '../../../utils/event-theme';
-import { getWechatOpenId, requestWechatPayment, type PaymentOrderResult } from '../../../utils/wechat-payment';
+import { getWechatOpenId, normalizePaymentFlowError, requestWechatPayment, type PaymentOrderResult } from '../../../utils/wechat-payment';
 
 const eventType = ref(readActiveEventType());
 const activeTheme = computed(() => eventThemeFor(eventType.value));
@@ -155,6 +155,8 @@ async function submit() {
       `/pages/gift/success/index?orderNo=${result.order.orderNo}&banquetId=${banquetId.value}&amount=${form.amount || 0}&guestName=${encodeURIComponent(form.guestName)}${share}`,
       `${activeTheme.value.giftLabel}成功页打开失败`
     );
+  } catch (error) {
+    uni.showToast({ title: normalizePaymentFlowError(error, `${activeTheme.value.giftLabel}支付失败`), icon: 'none' });
   } finally {
     submitting.value = false;
   }

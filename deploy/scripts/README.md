@@ -88,7 +88,7 @@ Environment variables:
 
 The generated `summary.json` records each step status, log path and the last lines of failed logs.
 
-The default suite passes `REQUIRE_READINESS_READY=0` to preflight, so incomplete WeChat service-provider credentials are reported as deferred instead of blocking local technical validation. Formal real-money launch must set `REQUIRE_READINESS_READY=1`.
+The default suite passes `REQUIRE_READINESS_READY=0` to preflight, so incomplete WeChat direct merchant credentials are reported as deferred instead of blocking local technical validation. Formal real-money launch must set `REQUIRE_READINESS_READY=1`.
 
 ## Production API Acceptance
 

@@ -32,9 +32,6 @@ Replace or provide all of the following outside Git:
 - `PAYMENT_MOCK_CALLBACK_SECRET`
 - `PAYMENT_WECHAT_MERCHANT_ID`
 - `PAYMENT_WECHAT_APP_ID`
-- `PAYMENT_WECHAT_SERVICE_PROVIDER_ID`
-- `PAYMENT_WECHAT_SUB_MERCHANT_ID`
-- `PAYMENT_WECHAT_SUB_APP_ID`, if the selected WeChat flow uses sub-merchant app OpenID
 - `PAYMENT_WECHAT_CERT_SERIAL_NO`
 - `PAYMENT_WECHAT_PRIVATE_KEY_PATH`
 - `PAYMENT_WECHAT_API_V3_KEY`
@@ -49,8 +46,8 @@ Before exposing real payment traffic:
 
 - `APP_ENV=production` or active `prod` profile.
 - `PAYMENT_MOCK_SUCCESS_ENABLED=false`.
-- `PAYMENT_DEFAULT_PROVIDER=WECHAT_SERVICE_PROVIDER`.
-- `PAYMENT_WECHAT_SP_ENABLED=true`.
+- `PAYMENT_DEFAULT_PROVIDER=WECHAT_DIRECT`.
+- `PAYMENT_WECHAT_DIRECT_ENABLED=true`.
 - Admin default password replaced before public/admin exposure.
 - `GET /api/health/readiness` returns `READY`.
 - `GET /api/admin/payments/launch-readiness` returns `ready=true`.
@@ -59,7 +56,7 @@ Before exposing real payment traffic:
 ## Required External Infrastructure
 
 - Public HTTPS domain for admin/backend/confirm-screen.
-- Public HTTPS WeChat callback URL routed to `/api/payments/callbacks/wechat-service-provider`.
+- Public HTTPS WeChat callback URL routed to `/api/payments/callbacks/wechat-direct`.
 - Nginx, CDN or WAF rate limits on public invitation, RSVP, gift payment and offline gift endpoints.
 - Redis reachable from backend for public-entry rate limits.
 - Database backup and restore procedure.
@@ -67,9 +64,9 @@ Before exposing real payment traffic:
 
 ## Required WeChat Validation
 
-After formal service-provider/sub-merchant onboarding:
+After direct merchant payment credentials are complete:
 
-1. Confirm payer OpenID mode: `sp_openid` or `sub_openid`.
+1. Confirm payer OpenID belongs to the miniapp AppID bound to the merchant.
 2. Confirm miniapp `code2session` can return payer openid through `/api/wechat/miniapp/openid`.
 3. Create one isolated low-value gift payment.
 4. Create one low-value paid version order and one low-value device order.
