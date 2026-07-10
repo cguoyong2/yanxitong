@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.yanxitong.auth.entity.AdminUser;
 import com.yanxitong.auth.mapper.AdminUserMapper;
 import com.yanxitong.payment.PaymentProvider;
+import com.yanxitong.payment.PaymentPrivateKeyValidator;
 import com.yanxitong.payment.PaymentProviderProperties;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -173,6 +174,9 @@ public class SecurityReadinessService {
         }
         addMissing(missing, "certificateSerialNo", hasText(config.getCertificateSerialNo()));
         addMissing(missing, "privateKeyPath", config.hasPrivateKeyPath());
+        if (config.hasPrivateKeyPath() && !PaymentPrivateKeyValidator.validate(config.getPrivateKeyPath()).valid()) {
+            missing.add("privateKeyReadable");
+        }
         addMissing(missing, "apiV3Key", config.hasApiV3Key());
         addMissing(missing, "notifyUrl", config.hasNotifyUrl());
         String mode = config.getCertificateMode() == null || config.getCertificateMode().isBlank()

@@ -24,7 +24,7 @@ public class PaymentProviderReadinessService {
                 provider.name(),
                 provider == properties.getDefaultProvider(),
                 config.isEnabled(),
-                config.isEnabled() && missingItems.isEmpty(),
+                providerProductionReady(provider, config, missingItems),
                 config.hasCallbackSecret(),
                 config.hasApiV3Key(),
                 config.hasPrivateKeyPath(),
@@ -44,6 +44,7 @@ public class PaymentProviderReadinessService {
     public PaymentLaunchReadiness launchReadiness(PaymentProvider provider) {
         PaymentProviderProperties.ProviderConfig config = properties.provider(provider);
         List<String> missingItems = missingItems(provider, config);
+        PaymentPrivateKeyValidator.ValidationResult privateKey = privateKeyValidation(provider, config);
         List<PaymentLaunchReadiness.ReadinessItem> providerItems = List.of(
                 readiness("provider-enabled", "支付通道已启用", config.isEnabled(), "payment.providers." + provider + ".enabled"),
                 readiness("default-provider", "默认通道已切换", provider == properties.getDefaultProvider(), "PAYMENT_DEFAULT_PROVIDER=" + provider),
@@ -54,7 +55,7 @@ public class PaymentProviderReadinessService {
                 readiness("callback-security-material", "回调验签材料已配置", callbackSecurityReady(config), callbackSecurityDetail(config))
         );
         List<PaymentLaunchReadiness.ReadinessItem> keyItems = List.of(
-                readiness("private-key", "私钥路径已配置", config.hasPrivateKeyPath(), "privateKeyPath uses filesystem or secret mounted path"),
+                readiness("private-key", "私钥文件可读取并可解析", privateKey.valid(), privateKey.detail()),
                 readiness("api-v3-key", "API v3 Key 已配置", config.hasApiV3Key(), "apiV3Key only visible through configured boolean status")
         );
         List<PaymentLaunchReadiness.ReadinessGroup> groups = List.of(
@@ -91,6 +92,13 @@ public class PaymentProviderReadinessService {
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
                     "支付通道配置未就绪: " + String.join(", ", missing)
+            );
+        }
+        PaymentPrivateKeyValidator.ValidationResult privateKey = privateKeyValidation(provider, config);
+        if (!privateKey.valid()) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "支付通道密钥未就绪: " + privateKey.detail()
             );
         }
     }
@@ -140,6 +148,9 @@ public class PaymentProviderReadinessService {
         }
         addMissing(missing, "certificateSerialNo", hasText(config.getCertificateSerialNo()));
         addMissing(missing, "privateKeyPath", config.hasPrivateKeyPath());
+        if (config.hasPrivateKeyPath() && !PaymentPrivateKeyValidator.validate(config.getPrivateKeyPath()).valid()) {
+            missing.add("privateKeyReadable");
+        }
         addMissing(missing, "apiV3Key", config.hasApiV3Key());
         addMissing(missing, "notifyUrl", config.hasNotifyUrl());
         String mode = certificateMode(config);
@@ -155,6 +166,27 @@ public class PaymentProviderReadinessService {
 
     private PaymentLaunchReadiness.ReadinessItem readiness(String code, String label, boolean passed, String detail) {
         return new PaymentLaunchReadiness.ReadinessItem(code, label, passed, detail);
+    }
+
+    private boolean providerProductionReady(
+            PaymentProvider provider,
+            PaymentProviderProperties.ProviderConfig config,
+            List<String> missingItems
+    ) {
+        if (provider == PaymentProvider.MOCK) {
+            return config.isEnabled() && missingItems.isEmpty();
+        }
+        return config.isEnabled() && missingItems.isEmpty() && privateKeyValidation(provider, config).valid();
+    }
+
+    private PaymentPrivateKeyValidator.ValidationResult privateKeyValidation(
+            PaymentProvider provider,
+            PaymentProviderProperties.ProviderConfig config
+    ) {
+        if (provider == PaymentProvider.MOCK) {
+            return new PaymentPrivateKeyValidator.ValidationResult(true, "MOCK does not require merchant private key");
+        }
+        return PaymentPrivateKeyValidator.validate(config.getPrivateKeyPath());
     }
 
     private PaymentLaunchReadiness.ReadinessGroup group(
