@@ -67,7 +67,7 @@ Before exposing real payment traffic:
 After direct merchant payment credentials are complete:
 
 1. Confirm payer OpenID belongs to the miniapp AppID bound to the merchant.
-2. Confirm miniapp `code2session` can return payer openid through `/api/wechat/miniapp/openid`.
+2. Confirm miniapp `code2session` can create an authenticated session through `/api/wechat/miniapp/login` and return the payer OpenID.
 3. Create one isolated low-value gift payment.
 4. Create one low-value paid version order and one low-value device order.
 5. Confirm `payment_order.prepay_id` and `pay_payload` are stored for each payment.

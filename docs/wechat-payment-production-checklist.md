@@ -33,7 +33,7 @@ Do not configure private keys, API v3 keys, or platform certificates through adm
 
 ## Prepay Checks
 
-1. Confirm `POST /api/wechat/miniapp/openid` succeeds from the miniapp login code path.
+1. Confirm `POST /api/wechat/miniapp/login` succeeds and the returned miniapp session contains the payer OpenID.
 2. Create a gift payment order from the online gift entry.
 3. Confirm `payment_order.provider=WECHAT_DIRECT`.
 4. Confirm `payment_order.prepay_id` is not empty.

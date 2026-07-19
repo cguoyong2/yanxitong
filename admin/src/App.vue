@@ -57,7 +57,8 @@ import {
   Operation,
   Setting,
   Tickets,
-  Tools
+  Tools,
+  User
 } from '@element-plus/icons-vue';
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -81,7 +82,8 @@ const navItems = [
   { path: '/business', label: '业务数据', icon: DataAnalysis },
   { path: '/payments', label: '支付管理', icon: Money },
   { path: '/broadcast-logs', label: '播报日志', icon: Bell },
-  { path: '/operation-logs', label: '操作日志', icon: Document }
+  { path: '/operation-logs', label: '操作日志', icon: Document },
+  { path: '/miniapp-users', label: '小程序用户', icon: User }
 ];
 
 const isLoginPage = computed(() => route.path === '/login');

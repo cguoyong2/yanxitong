@@ -1,8 +1,4 @@
-import { request } from '../api/client';
-
-interface OpenIdResult {
-  openId: string;
-}
+import { getMiniappSession, request } from '../api/client';
 
 export interface PaymentOrderResult {
   order: {
@@ -21,23 +17,12 @@ interface WechatPayPayload {
   paySign?: string;
 }
 
-const OPEN_ID_CACHE_KEY = 'wechat-miniapp-openid';
-
 export async function getWechatOpenId() {
-  const cached = uni.getStorageSync(OPEN_ID_CACHE_KEY);
-  if (cached) {
-    return String(cached);
-  }
-  const code = await loginCode();
-  const result = await request<OpenIdResult>('/wechat/miniapp/openid', {
-    method: 'POST',
-    data: { code }
-  });
-  if (!result.openId) {
+  const session = await getMiniappSession();
+  if (!session.openId) {
     throw new Error('微信 openid 获取失败');
   }
-  uni.setStorageSync(OPEN_ID_CACHE_KEY, result.openId);
-  return result.openId;
+  return session.openId;
 }
 
 export async function requestWechatPayment(payPayload?: string | WechatPayPayload) {
@@ -102,20 +87,4 @@ function parsePayPayload(payPayload?: string | WechatPayPayload) {
 
 function normalizePaymentError(error: unknown) {
   return normalizePaymentFlowError(error, '微信支付未完成，请稍后重试');
-}
-
-function loginCode() {
-  return new Promise<string>((resolve, reject) => {
-    uni.login({
-      provider: 'weixin',
-      success: (result) => {
-        if (result.code) {
-          resolve(result.code);
-        } else {
-          reject(new Error('微信登录 code 为空'));
-        }
-      },
-      fail: (error) => reject(error)
-    });
-  });
 }

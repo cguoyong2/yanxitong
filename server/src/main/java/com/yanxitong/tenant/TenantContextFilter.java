@@ -13,16 +13,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class TenantContextFilter extends OncePerRequestFilter {
-    private static final String TENANT_HEADER = "X-Tenant-Id";
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            String tenantId = request.getHeader(TENANT_HEADER);
-            if (tenantId != null && !tenantId.isBlank()) {
-                TenantContext.setTenantId(Long.parseLong(tenantId));
-            }
             filterChain.doFilter(request, response);
         } finally {
             TenantContext.clear();

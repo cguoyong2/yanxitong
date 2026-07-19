@@ -1,4 +1,4 @@
-package com.yanxitong.favor.entity;
+package com.yanxitong.miniapp.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -6,20 +6,19 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 
-@TableName("favor_family_member")
-public class FavorFamilyMember {
+@TableName("miniapp_user")
+public class MiniappUser {
     @TableId(type = IdType.AUTO)
     public Long id;
     public Long tenantId;
-    public Long familyBookId;
-    public Long userId;
-    public String memberName;
+    public String openId;
+    public String unionId;
+    public String nickname;
+    public String avatarUrl;
     public String phone;
-    public String relationship;
-    public String role;
-    public String permissions;
-    public String inviteStatus;
-    public LocalDateTime joinedAt;
+    public String roleCode;
+    public String status;
+    public LocalDateTime lastLoginAt;
     public LocalDateTime createdAt;
     public LocalDateTime updatedAt;
     @TableLogic

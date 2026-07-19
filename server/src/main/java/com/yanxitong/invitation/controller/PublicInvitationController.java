@@ -2,6 +2,7 @@ package com.yanxitong.invitation.controller;
 
 import com.yanxitong.banquet.entity.Banquet;
 import com.yanxitong.banquet.mapper.BanquetMapper;
+import com.yanxitong.banquet.BanquetAccessService;
 import com.yanxitong.common.ApiResponse;
 import com.yanxitong.invitation.InvitationService;
 import com.yanxitong.invitation.TemplatePresentationService;
@@ -9,9 +10,11 @@ import com.yanxitong.invitation.dto.InvitationBasicResult;
 import com.yanxitong.invitation.dto.PublicInvitationResult;
 import com.yanxitong.invitation.dto.UpdateInvitationBasicRequest;
 import com.yanxitong.invitation.entity.Invitation;
+import com.yanxitong.miniapp.MiniappAuthenticated;
 import com.yanxitong.security.PublicRateLimitService;
 import com.yanxitong.template.entity.InvitationTemplate;
 import com.yanxitong.template.mapper.InvitationTemplateMapper;
+import com.yanxitong.tenant.TenantContext;
 import com.yanxitong.theme.ThemeResolutionService;
 import com.yanxitong.theme.entity.Theme;
 import com.yanxitong.theme.mapper.ThemeMapper;
@@ -39,6 +42,7 @@ public class PublicInvitationController {
     private final ThemeResolutionService themeResolutionService;
     private final TemplatePresentationService templatePresentationService;
     private final PublicRateLimitService publicRateLimitService;
+    private final BanquetAccessService banquetAccessService;
 
     public PublicInvitationController(
             InvitationService invitationService,
@@ -47,7 +51,8 @@ public class PublicInvitationController {
             ThemeMapper themeMapper,
             ThemeResolutionService themeResolutionService,
             TemplatePresentationService templatePresentationService,
-            PublicRateLimitService publicRateLimitService
+            PublicRateLimitService publicRateLimitService,
+            BanquetAccessService banquetAccessService
     ) {
         this.invitationService = invitationService;
         this.banquetMapper = banquetMapper;
@@ -56,6 +61,7 @@ public class PublicInvitationController {
         this.themeResolutionService = themeResolutionService;
         this.templatePresentationService = templatePresentationService;
         this.publicRateLimitService = publicRateLimitService;
+        this.banquetAccessService = banquetAccessService;
     }
 
     @GetMapping("/public/{shareSlug}")
@@ -63,16 +69,23 @@ public class PublicInvitationController {
         publicRateLimitService.check(request, "invitation-public-view", 120, Duration.ofMinutes(1), shareSlug);
         Invitation invitation;
         try {
-            invitation = invitationService.requireByShareSlug(shareSlug);
+            invitation = invitationService.findByShareSlug(shareSlug);
+            if (invitation == null) {
+                throw new IllegalArgumentException("Invitation not found");
+            }
         } catch (IllegalArgumentException ex) {
             publicRateLimitService.check(request, "invitation-public-missing", 12, Duration.ofMinutes(5), shareSlug);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "请柬不存在或已失效");
         }
-        invitationService.recordVisit(invitation, request);
         Banquet banquet = banquetMapper.selectById(invitation.banquetId);
         if (banquet == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "宴席不存在或已失效");
         }
+        if (!"PUBLISHED".equals(banquet.status) && !banquetAccessService.currentUserCanAccess(banquet)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "请柬尚未发布");
+        }
+        TenantContext.setTenantId(banquet.tenantId);
+        invitationService.recordVisit(invitation, request);
         Theme theme = themeMapper.selectOne(new QueryWrapper<Theme>()
                 .eq("theme_code", banquet.themeCode)
                 .last("LIMIT 1"));
@@ -105,6 +118,7 @@ public class PublicInvitationController {
     }
 
     @GetMapping("/{id}")
+    @MiniappAuthenticated
     public ApiResponse<InvitationBasicResult> detail(@PathVariable Long id) {
         Invitation invitation = invitationService.requireById(id);
         return ApiResponse.ok(new InvitationBasicResult(
@@ -115,6 +129,7 @@ public class PublicInvitationController {
     }
 
     @PutMapping("/{id}/basic")
+    @MiniappAuthenticated
     public ApiResponse<Invitation> updateBasic(@PathVariable Long id, @Valid @RequestBody UpdateInvitationBasicRequest request) {
         return ApiResponse.ok(invitationService.updateBasic(id, request));
     }

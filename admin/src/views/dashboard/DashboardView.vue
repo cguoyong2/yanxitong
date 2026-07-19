@@ -157,6 +157,7 @@ const configItems = [
 ];
 
 const operationItems = [
+  { path: '/miniapp-users', title: '小程序用户', desc: '用户登录状态与历史数据归属迁移' },
   { path: '/invitations', title: '请柬管理', desc: '请柬实例、模板引用、分享路径和访问数据' },
   { path: '/banquets', title: '宴席管理', desc: '宴席列表、主题编码和公开请柬入口' },
   { path: '/business', title: '业务数据', desc: 'RSVP、礼金记录和人情账本管理' },

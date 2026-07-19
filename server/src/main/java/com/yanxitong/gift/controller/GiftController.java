@@ -1,6 +1,8 @@
 package com.yanxitong.gift.controller;
 
 import com.yanxitong.common.ApiResponse;
+import com.yanxitong.banquet.BanquetAccessService;
+import com.yanxitong.miniapp.MiniappAuthenticated;
 import com.yanxitong.gift.GiftService;
 import com.yanxitong.gift.dto.CreateGiftPaymentRequest;
 import com.yanxitong.gift.dto.GiftPaymentOrderResult;
@@ -10,6 +12,7 @@ import com.yanxitong.gift.entity.GiftRecord;
 import com.yanxitong.payment.MockPaymentGuard;
 import com.yanxitong.payment.PaymentCallbackService;
 import com.yanxitong.security.PublicRateLimitService;
+import com.yanxitong.tenant.TenantContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.Duration;
@@ -29,30 +32,37 @@ public class GiftController {
     private final PaymentCallbackService paymentCallbackService;
     private final MockPaymentGuard mockPaymentGuard;
     private final PublicRateLimitService publicRateLimitService;
+    private final BanquetAccessService banquetAccessService;
 
     public GiftController(
             GiftService giftService,
             PaymentCallbackService paymentCallbackService,
             MockPaymentGuard mockPaymentGuard,
-            PublicRateLimitService publicRateLimitService
+            PublicRateLimitService publicRateLimitService,
+            BanquetAccessService banquetAccessService
     ) {
         this.giftService = giftService;
         this.paymentCallbackService = paymentCallbackService;
         this.mockPaymentGuard = mockPaymentGuard;
         this.publicRateLimitService = publicRateLimitService;
+        this.banquetAccessService = banquetAccessService;
     }
 
     @GetMapping
+    @MiniappAuthenticated
     public ApiResponse<List<GiftRecord>> list(
             @RequestParam Long banquetId,
             @RequestParam(required = false) String source,
             @RequestParam(required = false) String keyword
     ) {
+        banquetAccessService.requireAccessible(banquetId);
         return ApiResponse.ok(giftService.list(banquetId, source, keyword));
     }
 
     @GetMapping("/summary")
+    @MiniappAuthenticated
     public ApiResponse<GiftSummaryResult> summary(@RequestParam Long banquetId) {
+        banquetAccessService.requireAccessible(banquetId);
         return ApiResponse.ok(giftService.summary(banquetId));
     }
 
@@ -61,6 +71,7 @@ public class GiftController {
             @Valid @RequestBody CreateGiftPaymentRequest request,
             HttpServletRequest httpRequest
     ) {
+        TenantContext.setTenantId(banquetAccessService.requirePublished(request.banquetId).tenantId);
         publicRateLimitService.check(
                 httpRequest,
                 "gift-payment-order-create",
@@ -80,7 +91,9 @@ public class GiftController {
     }
 
     @PostMapping("/offline")
+    @MiniappAuthenticated
     public ApiResponse<GiftRecord> offline(@Valid @RequestBody OfflineGiftRequest request, HttpServletRequest httpRequest) {
+        banquetAccessService.requireAccessible(request.banquetId);
         publicRateLimitService.check(
                 httpRequest,
                 "gift-offline-create",

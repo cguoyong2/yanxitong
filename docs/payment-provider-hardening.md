@@ -98,7 +98,7 @@ For real WeChat service-provider integration:
 - WeChat Pay Java SDK dependency and SDK config factory are prepared
 - service-provider JSAPI prepay creation is implemented behind `WechatPartnerJsapiClient`
 - `prepayId` and client `payPayload` are written back to `payment_order`
-- miniapp JSAPI payer OpenID is resolved through `POST /api/wechat/miniapp/openid`
+- miniapp JSAPI payer OpenID is resolved once through `POST /api/wechat/miniapp/login` and reused from the authenticated session
 - gift, plan and device payments all create unified `payment_order` rows before calling WeChat payment
 - official WeChat signature verification and resource decryption are implemented behind `WechatNotificationParserClient`
 - callback logs preserve headers, decrypted body, provider event id, event type, resource type and provider serial number when the SDK parser succeeds

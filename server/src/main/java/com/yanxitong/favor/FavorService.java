@@ -11,6 +11,7 @@ import com.yanxitong.favor.entity.FavorEntry;
 import com.yanxitong.favor.mapper.FavorContactMapper;
 import com.yanxitong.favor.mapper.FavorEntryMapper;
 import com.yanxitong.gift.entity.GiftRecord;
+import com.yanxitong.miniapp.MiniappPrincipalContext;
 import com.yanxitong.operationlog.OperationLogService;
 import com.yanxitong.operationlog.OperationModule;
 import com.yanxitong.tenant.TenantContext;
@@ -39,9 +40,12 @@ public class FavorService {
     }
 
     public FavorEntry recordReceivedGift(GiftRecord giftRecord) {
-        FavorContact contact = findOrCreateContact(giftRecord.guestName, null);
+        Banquet banquet = banquetMapper.selectById(giftRecord.banquetId);
+        Long ownerUserId = banquet == null ? null : banquet.ownerUserId;
+        Long tenantId = banquet == null ? giftRecord.tenantId : banquet.tenantId;
+        FavorContact contact = findOrCreateContact(giftRecord.guestName, null, ownerUserId, tenantId);
         FavorEntry entry = new FavorEntry();
-        entry.tenantId = TenantContext.getTenantId();
+        entry.tenantId = tenantId;
         entry.contactId = contact.id;
         entry.banquetId = giftRecord.banquetId;
         entry.giftRecordId = giftRecord.id;
@@ -60,7 +64,12 @@ public class FavorService {
         if (!"RECEIVED".equals(request.direction) && !"GIVEN".equals(request.direction)) {
             throw new IllegalArgumentException("Unsupported favor direction");
         }
-        FavorContact contact = findOrCreateContact(request.contactName, request.phone);
+        FavorContact contact = findOrCreateContact(
+                request.contactName,
+                request.phone,
+                MiniappPrincipalContext.currentUserId(),
+                TenantContext.getTenantId()
+        );
         FavorEntry entry = new FavorEntry();
         entry.tenantId = TenantContext.getTenantId();
         entry.contactId = contact.id;
@@ -95,6 +104,10 @@ public class FavorService {
 
     public List<FavorContactSummary> contacts(String keyword, Long banquetId) {
         QueryWrapper<FavorContact> query = new QueryWrapper<FavorContact>();
+        Long ownerUserId = MiniappPrincipalContext.currentUserId();
+        if (ownerUserId != null) {
+            query.eq("owner_user_id", ownerUserId);
+        }
         Long tenantId = TenantContext.getTenantId();
         if (tenantId != null) {
             query.and(wrapper -> wrapper.eq("tenant_id", tenantId).or().isNull("tenant_id"));
@@ -119,7 +132,7 @@ public class FavorService {
 
     public FavorDetailResult detail(Long contactId) {
         FavorContact contact = favorContactMapper.selectById(contactId);
-        if (contact == null) {
+        if (contact == null || !canAccess(contact)) {
             throw new IllegalArgumentException("Favor contact not found");
         }
         List<FavorEntry> entries = entries(contactId);
@@ -130,9 +143,14 @@ public class FavorService {
 
     public FavorDetailResult compareByName(String contactName) {
         contactName = trimToNull(contactName);
-        FavorContact contact = favorContactMapper.selectOne(new QueryWrapper<FavorContact>()
+        QueryWrapper<FavorContact> query = new QueryWrapper<FavorContact>()
                 .eq("contact_name", contactName)
-                .last("LIMIT 1"));
+                .last("LIMIT 1");
+        Long ownerUserId = MiniappPrincipalContext.currentUserId();
+        if (ownerUserId != null) {
+            query.eq("owner_user_id", ownerUserId);
+        }
+        FavorContact contact = favorContactMapper.selectOne(query);
         if (contact == null) {
             throw new IllegalArgumentException("Favor contact not found");
         }
@@ -140,12 +158,20 @@ public class FavorService {
     }
 
     private FavorContact findOrCreateContact(String contactName, String phone) {
+        return findOrCreateContact(contactName, phone, MiniappPrincipalContext.currentUserId(), TenantContext.getTenantId());
+    }
+
+    private FavorContact findOrCreateContact(String contactName, String phone, Long ownerUserId, Long tenantId) {
         contactName = trimToNull(contactName);
         phone = trimToNull(phone);
         QueryWrapper<FavorContact> query = new QueryWrapper<FavorContact>()
                 .eq("contact_name", contactName)
                 .last("LIMIT 1");
-        Long tenantId = TenantContext.getTenantId();
+        if (ownerUserId == null) {
+            query.isNull("owner_user_id");
+        } else {
+            query.eq("owner_user_id", ownerUserId);
+        }
         if (tenantId != null) {
             query.and(wrapper -> wrapper.eq("tenant_id", tenantId).or().isNull("tenant_id"));
         }
@@ -154,7 +180,8 @@ public class FavorService {
             return contact;
         }
         FavorContact created = new FavorContact();
-        created.tenantId = TenantContext.getTenantId();
+        created.tenantId = tenantId;
+        created.ownerUserId = ownerUserId;
         created.contactName = contactName;
         created.phone = phone;
         favorContactMapper.insert(created);
@@ -193,5 +220,10 @@ public class FavorService {
                 .filter(entry -> direction.equals(entry.direction))
                 .map(entry -> entry.amount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private boolean canAccess(FavorContact contact) {
+        Long userId = MiniappPrincipalContext.currentUserId();
+        return userId == null || userId.equals(contact.ownerUserId);
     }
 }

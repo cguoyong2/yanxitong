@@ -162,8 +162,9 @@ public class GiftService {
     }
 
     private GiftRecord createGiftRecord(Long banquetId, Long paymentOrderId, String source, String guestName, java.math.BigDecimal amount, String blessing) {
+        Banquet banquet = banquetMapper.selectById(banquetId);
         GiftRecord giftRecord = new GiftRecord();
-        giftRecord.tenantId = TenantContext.getTenantId();
+        giftRecord.tenantId = banquet == null ? TenantContext.getTenantId() : banquet.tenantId;
         giftRecord.banquetId = banquetId;
         giftRecord.paymentOrderId = paymentOrderId;
         giftRecord.giftSource = source;

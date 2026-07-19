@@ -20,7 +20,8 @@ export const router = createRouter({
     { path: '/banquets', component: () => import('../views/banquets/BanquetsView.vue') },
     { path: '/business', component: () => import('../views/business/BusinessView.vue') },
     { path: '/broadcast-logs', component: () => import('../views/broadcast/BroadcastLogsView.vue') },
-    { path: '/operation-logs', component: () => import('../views/operation-logs/OperationLogsView.vue') }
+    { path: '/operation-logs', component: () => import('../views/operation-logs/OperationLogsView.vue') },
+    { path: '/miniapp-users', component: () => import('../views/miniapp-users/MiniappUsersView.vue') }
   ]
 });
 

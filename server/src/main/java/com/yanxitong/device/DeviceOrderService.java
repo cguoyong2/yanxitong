@@ -184,6 +184,14 @@ public class DeviceOrderService {
         return deviceOrderMapper.selectOne(query);
     }
 
+    public Long requireOrderBanquetId(String orderNo) {
+        DeviceOrder order = findByOrderNo(orderNo);
+        if (order == null) {
+            throw new IllegalArgumentException("Device order not found");
+        }
+        return order.banquetId;
+    }
+
     private String deviceTypeLabel(String value) {
         if ("CLOUD_SPEAKER".equals(value)) {
             return "云喇叭";

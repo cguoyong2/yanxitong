@@ -214,6 +214,14 @@ public class PlanOrderService {
         return planOrderMapper.selectOne(query);
     }
 
+    public Long requireOrderBanquetId(String orderNo) {
+        PlanOrder order = findByOrderNo(orderNo);
+        if (order == null) {
+            throw new IllegalArgumentException("Plan order not found");
+        }
+        return order.banquetId;
+    }
+
     public RightsCheckResult checkRight(Long planId, String rightCode) {
         PlanRight right = planRightMapper.selectOne(new QueryWrapper<PlanRight>()
                 .eq("plan_id", planId)

@@ -1,6 +1,7 @@
 package com.yanxitong.favor.controller;
 
 import com.yanxitong.common.ApiResponse;
+import com.yanxitong.banquet.BanquetAccessService;
 import com.yanxitong.favor.FamilyFavorService;
 import com.yanxitong.favor.dto.CreateFamilyBookRequest;
 import com.yanxitong.favor.dto.FamilyBookSummary;
@@ -10,6 +11,7 @@ import com.yanxitong.favor.dto.FavorDetailResult;
 import com.yanxitong.favor.dto.InviteFamilyMemberRequest;
 import com.yanxitong.favor.entity.FavorEntry;
 import com.yanxitong.favor.entity.FavorFamilyMember;
+import com.yanxitong.miniapp.MiniappAuthenticated;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,11 +24,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/favor/family-books")
+@MiniappAuthenticated
 public class FamilyFavorController {
     private final FamilyFavorService familyFavorService;
+    private final BanquetAccessService banquetAccessService;
 
-    public FamilyFavorController(FamilyFavorService familyFavorService) {
+    public FamilyFavorController(FamilyFavorService familyFavorService, BanquetAccessService banquetAccessService) {
         this.familyFavorService = familyFavorService;
+        this.banquetAccessService = banquetAccessService;
     }
 
     @GetMapping
@@ -72,6 +77,9 @@ public class FamilyFavorController {
     public ApiResponse<FavorEntry> manual(
             @PathVariable Long id,
             @Valid @RequestBody FamilyFavorManualEntryRequest request) {
+        if (request.banquetId != null) {
+            banquetAccessService.requireAccessible(request.banquetId);
+        }
         return ApiResponse.ok(familyFavorService.manualEntry(id, request));
     }
 }

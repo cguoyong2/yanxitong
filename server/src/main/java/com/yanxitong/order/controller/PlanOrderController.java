@@ -1,6 +1,8 @@
 package com.yanxitong.order.controller;
 
 import com.yanxitong.common.ApiResponse;
+import com.yanxitong.banquet.BanquetAccessService;
+import com.yanxitong.miniapp.MiniappAuthenticated;
 import com.yanxitong.order.PlanOrderService;
 import com.yanxitong.order.dto.CreatePlanOrderRequest;
 import com.yanxitong.order.dto.PlanEntitlementResult;
@@ -25,10 +27,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class PlanOrderController {
     private final PlanOrderService planOrderService;
     private final MockPaymentGuard mockPaymentGuard;
+    private final BanquetAccessService banquetAccessService;
 
-    public PlanOrderController(PlanOrderService planOrderService, MockPaymentGuard mockPaymentGuard) {
+    public PlanOrderController(
+            PlanOrderService planOrderService,
+            MockPaymentGuard mockPaymentGuard,
+            BanquetAccessService banquetAccessService
+    ) {
         this.planOrderService = planOrderService;
         this.mockPaymentGuard = mockPaymentGuard;
+        this.banquetAccessService = banquetAccessService;
     }
 
     @GetMapping
@@ -37,26 +45,34 @@ public class PlanOrderController {
     }
 
     @PostMapping("/orders")
+    @MiniappAuthenticated
     public ApiResponse<PlanOrder> createOrder(@Valid @RequestBody CreatePlanOrderRequest request) {
+        banquetAccessService.requireAccessible(request.banquetId);
         return ApiResponse.ok(planOrderService.create(request));
     }
 
     @GetMapping("/orders")
+    @MiniappAuthenticated
     public ApiResponse<List<PlanOrder>> orders(@RequestParam Long banquetId) {
+        banquetAccessService.requireAccessible(banquetId);
         return ApiResponse.ok(planOrderService.listOrdersByBanquet(banquetId));
     }
 
     @PostMapping("/orders/{orderNo}/mock-success")
+    @MiniappAuthenticated
     public ApiResponse<PlanOrder> mockPaymentSuccess(@PathVariable String orderNo) {
+        banquetAccessService.requireAccessible(planOrderService.requireOrderBanquetId(orderNo));
         mockPaymentGuard.requireEnabled();
         return ApiResponse.ok(planOrderService.mockPaymentSuccess(orderNo));
     }
 
     @PostMapping("/orders/{orderNo}/payment")
+    @MiniappAuthenticated
     public ApiResponse<PaymentOrderCreateResult> createPayment(
             @PathVariable String orderNo,
             @Valid @RequestBody CreateBusinessPaymentRequest request
     ) {
+        banquetAccessService.requireAccessible(planOrderService.requireOrderBanquetId(orderNo));
         return ApiResponse.ok(planOrderService.createPaymentOrder(orderNo, request.payerOpenId));
     }
 
@@ -66,12 +82,16 @@ public class PlanOrderController {
     }
 
     @GetMapping("/banquets/{banquetId}/entitlements")
+    @MiniappAuthenticated
     public ApiResponse<PlanEntitlementResult> banquetEntitlements(@PathVariable Long banquetId) {
+        banquetAccessService.requireAccessible(banquetId);
         return ApiResponse.ok(planOrderService.getBanquetEntitlements(banquetId));
     }
 
     @GetMapping("/banquets/{banquetId}/rights/check")
+    @MiniappAuthenticated
     public ApiResponse<RightsCheckResult> checkBanquetRight(@PathVariable Long banquetId, @RequestParam String rightCode) {
+        banquetAccessService.requireAccessible(banquetId);
         return ApiResponse.ok(planOrderService.checkBanquetRight(banquetId, rightCode));
     }
 }

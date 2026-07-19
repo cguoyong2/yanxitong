@@ -17,6 +17,7 @@ import com.yanxitong.favor.mapper.FavorFamilyBookMapper;
 import com.yanxitong.favor.mapper.FavorFamilyMemberMapper;
 import com.yanxitong.operationlog.OperationLogService;
 import com.yanxitong.operationlog.OperationModule;
+import com.yanxitong.miniapp.MiniappPrincipalContext;
 import com.yanxitong.tenant.TenantContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -50,6 +51,7 @@ public class FamilyFavorService {
     public FamilyBookSummary create(CreateFamilyBookRequest request) {
         FavorFamilyBook book = new FavorFamilyBook();
         book.tenantId = TenantContext.getTenantId();
+        book.creatorUserId = MiniappPrincipalContext.currentUserId();
         book.bookName = request.bookName.trim();
         book.description = trimToNull(request.description);
         book.status = "ACTIVE";
@@ -58,6 +60,7 @@ public class FamilyFavorService {
         FavorFamilyMember owner = new FavorFamilyMember();
         owner.tenantId = TenantContext.getTenantId();
         owner.familyBookId = book.id;
+        owner.userId = MiniappPrincipalContext.currentUserId();
         owner.memberName = trimToNull(request.ownerName) == null ? "我" : request.ownerName.trim();
         owner.phone = trimToNull(request.ownerPhone);
         owner.relationship = "户主";
@@ -76,6 +79,22 @@ public class FamilyFavorService {
         QueryWrapper<FavorFamilyBook> query = tenantScoped(new QueryWrapper<FavorFamilyBook>())
                 .eq("status", "ACTIVE")
                 .orderByDesc("updated_at");
+        Long userId = MiniappPrincipalContext.currentUserId();
+        if (userId != null) {
+            List<Long> joinedBookIds = familyMemberMapper.selectList(tenantScoped(new QueryWrapper<FavorFamilyMember>())
+                            .eq("user_id", userId)
+                            .eq("invite_status", "JOINED"))
+                    .stream()
+                    .map(member -> member.familyBookId)
+                    .distinct()
+                    .toList();
+            query.and(wrapper -> {
+                wrapper.eq("creator_user_id", userId);
+                if (!joinedBookIds.isEmpty()) {
+                    wrapper.or().in("id", joinedBookIds);
+                }
+            });
+        }
         return familyBookMapper.selectList(query).stream()
                 .map(book -> summary(book.id))
                 .toList();
@@ -186,7 +205,9 @@ public class FamilyFavorService {
 
     private FavorFamilyBook requireBook(Long familyBookId) {
         FavorFamilyBook book = familyBookMapper.selectById(familyBookId);
-        if (book == null || !"ACTIVE".equals(book.status)) {
+        Long userId = MiniappPrincipalContext.currentUserId();
+        if (book == null || !"ACTIVE".equals(book.status)
+                || (userId != null && !userId.equals(book.creatorUserId) && !isJoinedMember(familyBookId, userId))) {
             throw new IllegalArgumentException("Family favor book not found");
         }
         return book;
@@ -196,6 +217,13 @@ public class FamilyFavorService {
         return familyMemberMapper.selectList(tenantScoped(new QueryWrapper<FavorFamilyMember>())
                 .eq("family_book_id", familyBookId)
                 .orderByAsc("id"));
+    }
+
+    private boolean isJoinedMember(Long familyBookId, Long userId) {
+        return familyMemberMapper.selectCount(tenantScoped(new QueryWrapper<FavorFamilyMember>())
+                .eq("family_book_id", familyBookId)
+                .eq("user_id", userId)
+                .eq("invite_status", "JOINED")) > 0;
     }
 
     private FavorContact findOrCreateContact(String contactName, String phone) {

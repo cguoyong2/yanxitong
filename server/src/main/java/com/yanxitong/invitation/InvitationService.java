@@ -12,6 +12,7 @@ import com.yanxitong.invitation.entity.InvitationVisitLog;
 import com.yanxitong.invitation.mapper.InvitationMapper;
 import com.yanxitong.invitation.mapper.InvitationShareMapper;
 import com.yanxitong.invitation.mapper.InvitationVisitLogMapper;
+import com.yanxitong.banquet.BanquetAccessService;
 import com.yanxitong.operationlog.OperationLogService;
 import com.yanxitong.operationlog.OperationModule;
 import com.yanxitong.tenant.TenantContext;
@@ -29,19 +30,22 @@ public class InvitationService {
     private final InvitationVisitLogMapper invitationVisitLogMapper;
     private final ObjectMapper objectMapper;
     private final OperationLogService operationLogService;
+    private final BanquetAccessService banquetAccessService;
 
     public InvitationService(
             InvitationMapper invitationMapper,
             InvitationShareMapper invitationShareMapper,
             InvitationVisitLogMapper invitationVisitLogMapper,
             ObjectMapper objectMapper,
-            OperationLogService operationLogService
+            OperationLogService operationLogService,
+            BanquetAccessService banquetAccessService
     ) {
         this.invitationMapper = invitationMapper;
         this.invitationShareMapper = invitationShareMapper;
         this.invitationVisitLogMapper = invitationVisitLogMapper;
         this.objectMapper = objectMapper;
         this.operationLogService = operationLogService;
+        this.banquetAccessService = banquetAccessService;
     }
 
     public Invitation createBaseInvitation(Banquet banquet, Long templateId) {
@@ -52,7 +56,7 @@ public class InvitationService {
         invitation.title = banquet.name;
         invitation.basicFields = toBasicFields("", "", "", "", "诚邀您拨冗赴宴，共同见证这份重要时刻", true, true);
         invitation.shareSlug = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-        invitation.status = "ACTIVE";
+        invitation.status = "DRAFT";
         invitationMapper.insert(invitation);
 
         InvitationShare share = new InvitationShare();
@@ -75,7 +79,14 @@ public class InvitationService {
         if (invitation == null) {
             throw new IllegalArgumentException("Invitation not found");
         }
+        banquetAccessService.requireAccessible(invitation.banquetId);
         return invitation;
+    }
+
+    public Invitation findByShareSlug(String shareSlug) {
+        return invitationMapper.selectOne(new QueryWrapper<Invitation>()
+                .eq("share_slug", shareSlug)
+                .last("LIMIT 1"));
     }
 
     public Invitation requireByShareSlug(String shareSlug) {
@@ -90,10 +101,7 @@ public class InvitationService {
     }
 
     public Invitation updateBasic(Long id, UpdateInvitationBasicRequest request) {
-        Invitation invitation = invitationMapper.selectById(id);
-        if (invitation == null) {
-            throw new IllegalArgumentException("Invitation not found");
-        }
+        Invitation invitation = requireById(id);
         invitation.title = request.title;
         invitation.coverUrl = request.coverUrl;
         invitation.basicFields = toBasicFields(
@@ -108,6 +116,14 @@ public class InvitationService {
         invitationMapper.updateById(invitation);
         operationLogService.record(OperationModule.INVITATION, "UPDATE_BASIC", "invitation", invitation.id, "update invitation basic fields");
         return invitation;
+    }
+
+    public void activateByBanquetId(Long banquetId) {
+        Invitation invitation = findByBanquetId(banquetId);
+        if (invitation != null && !"ACTIVE".equals(invitation.status)) {
+            invitation.status = "ACTIVE";
+            invitationMapper.updateById(invitation);
+        }
     }
 
     public void recordVisit(Invitation invitation, HttpServletRequest request) {

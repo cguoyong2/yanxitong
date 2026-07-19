@@ -6,6 +6,7 @@ import com.yanxitong.banquet.dto.BanquetDetailResult;
 import com.yanxitong.banquet.dto.CreateBanquetRequest;
 import com.yanxitong.banquet.entity.Banquet;
 import com.yanxitong.common.ApiResponse;
+import com.yanxitong.miniapp.MiniappAuthenticated;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/banquets")
+@MiniappAuthenticated
 public class BanquetController {
     private final BanquetService banquetService;
 

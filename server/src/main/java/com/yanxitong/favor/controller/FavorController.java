@@ -1,11 +1,13 @@
 package com.yanxitong.favor.controller;
 
 import com.yanxitong.common.ApiResponse;
+import com.yanxitong.banquet.BanquetAccessService;
 import com.yanxitong.favor.FavorService;
 import com.yanxitong.favor.dto.FavorContactSummary;
 import com.yanxitong.favor.dto.FavorDetailResult;
 import com.yanxitong.favor.dto.FavorManualEntryRequest;
 import com.yanxitong.favor.entity.FavorEntry;
+import com.yanxitong.miniapp.MiniappAuthenticated;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,11 +20,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/favor")
+@MiniappAuthenticated
 public class FavorController {
     private final FavorService favorService;
+    private final BanquetAccessService banquetAccessService;
 
-    public FavorController(FavorService favorService) {
+    public FavorController(FavorService favorService, BanquetAccessService banquetAccessService) {
         this.favorService = favorService;
+        this.banquetAccessService = banquetAccessService;
     }
 
     @GetMapping("/contacts")
@@ -44,6 +49,9 @@ public class FavorController {
 
     @PostMapping("/manual")
     public ApiResponse<FavorEntry> manual(@Valid @RequestBody FavorManualEntryRequest request) {
+        if (request.banquetId != null) {
+            banquetAccessService.requireAccessible(request.banquetId);
+        }
         return ApiResponse.ok(favorService.manualEntry(request));
     }
 }
