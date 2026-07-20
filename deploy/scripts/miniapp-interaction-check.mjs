@@ -179,7 +179,8 @@ const criticalContracts = [
       '@tap="openPlanOrders()"',
       '@tap="openDeviceOrders()"',
       '@tap="openRecentOrder(item)"',
-      '@tap="openOrderSource()"'
+      '@tap="openOrderSource()"',
+      '@tap="openCustomerService()"'
     ],
     markers: [
       'async function refreshOrderSummary()',
@@ -187,8 +188,10 @@ const criticalContracts = [
       'function openDeviceOrders(',
       'function openRecentOrder(',
       'function openOrderSource()',
+      'function openCustomerService()',
       '/pages/order/plan/index',
-      '/pages/device/select/index'
+      '/pages/device/select/index',
+      '/pages/support/customer-service/index'
     ]
   }
 ];

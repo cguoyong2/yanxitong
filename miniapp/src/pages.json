@@ -17,7 +17,8 @@
     { "path": "pages/favor/detail/index", "style": { "navigationBarTitleText": "人情详情" } },
     { "path": "pages/favor/family/index", "style": { "navigationBarTitleText": "家庭人情簿" } },
     { "path": "pages/invitation/index/index", "style": { "navigationStyle": "custom", "navigationBarTitleText": "请柬" } },
-    { "path": "pages/mine/index/index", "style": { "navigationStyle": "custom", "navigationBarTitleText": "我的" } }
+    { "path": "pages/mine/index/index", "style": { "navigationStyle": "custom", "navigationBarTitleText": "我的" } },
+    { "path": "pages/support/customer-service/index", "style": { "navigationBarTitleText": "专属客服" } }
   ],
   "tabBar": {
     "color": "#7A7F8C",

@@ -11,7 +11,7 @@
           <text class="hello">{{ activeTheme.mineText }}</text>
         </view>
         <view class="top-actions">
-          <view class="top-action" @tap="showComingSoon()">
+          <view class="top-action" @tap="openCustomerService()">
             <text class="top-icon">☊</text>
             <text>客服</text>
           </view>
@@ -175,7 +175,7 @@
             <text>贴心服务</text>
           </view>
         </view>
-        <button class="agent-btn" @tap="showComingSoon()">立即联系</button>
+        <button class="agent-btn" @tap="openCustomerService()">立即联系</button>
       </view>
     </view>
 
@@ -381,6 +381,10 @@ function handleAction(action: string) {
     openDeviceOrders();
     return;
   }
+  if (action === 'service') {
+    openCustomerService();
+    return;
+  }
   showComingSoon();
 }
 
@@ -484,6 +488,10 @@ function safeNavigate(url: string, failTitle: string) {
     url,
     fail: () => uni.showToast({ title: failTitle, icon: 'none' })
   });
+}
+
+function openCustomerService() {
+  safeNavigate('/pages/support/customer-service/index', '专属客服打开失败');
 }
 
 function showComingSoon() {

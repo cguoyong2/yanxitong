@@ -2,6 +2,8 @@ package com.yanxitong.theme.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.yanxitong.common.ApiResponse;
+import com.yanxitong.config.CustomerServiceConfigService;
+import com.yanxitong.config.dto.CustomerServiceConfig;
 import com.yanxitong.invitation.TemplatePresentationService;
 import com.yanxitong.template.dto.InvitationTemplateOption;
 import com.yanxitong.template.entity.InvitationTemplate;
@@ -23,14 +25,17 @@ public class PublicMetaController {
     private final ThemeMapper themeMapper;
     private final InvitationTemplateMapper invitationTemplateMapper;
     private final TemplatePresentationService templatePresentationService;
+    private final CustomerServiceConfigService customerServiceConfigService;
 
     public PublicMetaController(EventTypeMapper eventTypeMapper, ThemeMapper themeMapper,
             InvitationTemplateMapper invitationTemplateMapper,
-            TemplatePresentationService templatePresentationService) {
+            TemplatePresentationService templatePresentationService,
+            CustomerServiceConfigService customerServiceConfigService) {
         this.eventTypeMapper = eventTypeMapper;
         this.themeMapper = themeMapper;
         this.invitationTemplateMapper = invitationTemplateMapper;
         this.templatePresentationService = templatePresentationService;
+        this.customerServiceConfigService = customerServiceConfigService;
     }
 
     @GetMapping("/event-types")
@@ -58,6 +63,11 @@ public class PublicMetaController {
                 template.status,
                 templatePresentationService.resolve(template, null)
         )).toList());
+    }
+
+    @GetMapping("/customer-service")
+    public ApiResponse<CustomerServiceConfig> customerService() {
+        return ApiResponse.ok(customerServiceConfigService.current());
     }
 
     private EventTypeOption toOption(EventType eventType) {
