@@ -193,6 +193,24 @@ const criticalContracts = [
       '/pages/device/select/index',
       '/pages/support/customer-service/index'
     ]
+  },
+  {
+    file: 'miniapp/src/pages/support/customer-service/index.vue',
+    name: 'enterprise wechat acquisition fallback',
+    events: [
+      '@tap="previewQrCode()"',
+      '@tap="copyCustomerServiceLink()"',
+      '@tap="loadCustomerService()"'
+    ],
+    markers: [
+      'function previewQrCode()',
+      'function copyCustomerServiceLink()',
+      'async function loadCustomerService()',
+      "uni.previewImage({",
+      "uni.setClipboardData({",
+      '<customer-service-qr-code',
+      '/meta/customer-service'
+    ]
   }
 ];
 
