@@ -11,11 +11,11 @@
           <text class="hello">{{ activeDesign.homeText }}</text>
         </view>
         <view class="top-actions">
-          <view class="top-action" @tap="showServiceTip()">
+          <view class="top-action" @tap="openCustomerService()">
             <text class="top-icon">☊</text>
             <text>客服</text>
           </view>
-          <view class="top-action" @tap="showServiceTip()">
+          <view class="top-action" @tap="showMessageTip()">
             <text class="top-icon">⋯</text>
             <text>消息</text>
           </view>
@@ -387,6 +387,10 @@ function safeNavigate(url: string, failTitle: string) {
   });
 }
 
+function openCustomerService() {
+  safeNavigate('/pages/support/customer-service/index', '专属客服打开失败');
+}
+
 function handleGuide(action: string) {
   if (action === 'create') {
     createBanquet();
@@ -395,8 +399,12 @@ function handleGuide(action: string) {
   showServiceTip();
 }
 
+function showMessageTip() {
+  uni.showToast({ title: '消息中心将在后续运营版本开放', icon: 'none' });
+}
+
 function showServiceTip() {
-  uni.showToast({ title: '客服和消息中心将在正式运营版开放', icon: 'none' });
+  uni.showToast({ title: '该服务将在后续运营版本开放', icon: 'none' });
 }
 
 onMounted(refresh);

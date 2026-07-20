@@ -172,6 +172,39 @@ const criticalContracts = [
     ]
   },
   {
+    file: 'miniapp/src/pages/home/index/index.vue',
+    name: 'home customer service entry',
+    events: [
+      '@tap="openCustomerService()"'
+    ],
+    markers: [
+      'function openCustomerService()',
+      '/pages/support/customer-service/index'
+    ]
+  },
+  {
+    file: 'miniapp/src/pages/favor/index/index.vue',
+    name: 'favor customer service entry',
+    events: [
+      '@tap="openCustomerService()"'
+    ],
+    markers: [
+      'function openCustomerService()',
+      '/pages/support/customer-service/index'
+    ]
+  },
+  {
+    file: 'miniapp/src/pages/invitation/index/index.vue',
+    name: 'invitation customer service entry',
+    events: [
+      '@tap="openCustomerService()"'
+    ],
+    markers: [
+      'function openCustomerService()',
+      '/pages/support/customer-service/index'
+    ]
+  },
+  {
     file: 'miniapp/src/pages/mine/index/index.vue',
     name: 'mine order and service actions',
     events: [

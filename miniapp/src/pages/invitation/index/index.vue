@@ -11,7 +11,7 @@
           <text class="hello">{{ activeTheme.invitationText }}</text>
         </view>
         <view class="top-actions">
-          <view class="top-action" @tap="showComingSoon()">
+          <view class="top-action" @tap="openCustomerService()">
             <text class="top-icon">☊</text>
             <text>客服</text>
           </view>
@@ -334,6 +334,10 @@ async function publishMyInvitation() {
 
 function showComingSoon() {
   uni.showToast({ title: '定制请柬服务将在后续版本开放', icon: 'none' });
+}
+
+function openCustomerService() {
+  safeNavigate('/pages/support/customer-service/index', '专属客服打开失败');
 }
 
 function selectType(code: string) {

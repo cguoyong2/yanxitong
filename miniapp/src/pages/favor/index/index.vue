@@ -11,7 +11,7 @@
           <text class="hello">{{ activeTheme.favorText }}</text>
         </view>
         <view class="top-actions">
-          <view class="top-action" @tap="showComingSoon()">
+          <view class="top-action" @tap="openCustomerService()">
             <text class="top-icon">☊</text>
             <text>客服</text>
           </view>
@@ -437,6 +437,13 @@ function openDetail(id: number) {
 
 function openFamily() {
   uni.navigateTo({ url: '/pages/favor/family/index' });
+}
+
+function openCustomerService() {
+  uni.navigateTo({
+    url: '/pages/support/customer-service/index',
+    fail: () => uni.showToast({ title: '专属客服打开失败', icon: 'none' })
+  });
 }
 
 function showComingSoon() {
