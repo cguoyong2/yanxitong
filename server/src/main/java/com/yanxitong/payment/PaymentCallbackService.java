@@ -295,6 +295,42 @@ public class PaymentCallbackService {
     }
 
     @Transactional
+    public GiftRecord reconcilePaidOrder(Long orderId, PaymentProvider provider, PaymentQueryResult result) {
+        PaymentOrder order = paymentOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new IllegalArgumentException("Payment order not found");
+        }
+        if (provider == null || !provider.name().equals(order.provider)) {
+            throw new IllegalArgumentException("Payment provider mismatch");
+        }
+        if (result == null || !result.paid()) {
+            throw new IllegalArgumentException("Provider query result is not paid");
+        }
+        if (!order.orderNo.equals(result.orderNo())) {
+            throw new IllegalArgumentException("Provider query order no mismatch");
+        }
+        if (result.paidAmount() != null && order.amount.compareTo(result.paidAmount()) != 0) {
+            throw new IllegalArgumentException("Provider query paid amount mismatch");
+        }
+        if (tradeNoConflicts(order.providerTradeNo, result.providerTradeNo())) {
+            throw new IllegalArgumentException("Paid order provider trade no mismatch");
+        }
+
+        order.providerStatus = result.providerStatus();
+        order.lastQueryError = null;
+        if (!"PAID".equals(order.payStatus)) {
+            markPaid(order, result.providerTradeNo());
+        } else {
+            ensureProviderTradeNo(order, result.providerTradeNo());
+            paymentOrderMapper.updateById(order);
+        }
+        GiftRecord giftRecord = fulfill(order);
+        operationLogService.record(OperationModule.PAYMENT, "QUERY_RECONCILED_PAID", "payment_order", order.id,
+                "provider query reconciled paid order");
+        return giftRecord;
+    }
+
+    @Transactional
     public GiftRecord manualSettleOrder(Long orderId, ManualSettlePaymentOrderRequest request) {
         PaymentOrder order = paymentOrderMapper.selectById(orderId);
         if (order == null) {

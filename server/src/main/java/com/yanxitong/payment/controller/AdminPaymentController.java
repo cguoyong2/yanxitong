@@ -3,6 +3,8 @@ package com.yanxitong.payment.controller;
 import com.yanxitong.common.ApiResponse;
 import com.yanxitong.common.PageResult;
 import com.yanxitong.payment.PaymentCallbackService;
+import com.yanxitong.payment.PaymentMaintenanceRunResult;
+import com.yanxitong.payment.PaymentMaintenanceService;
 import com.yanxitong.payment.PaymentProvider;
 import com.yanxitong.payment.PaymentProviderReadinessService;
 import com.yanxitong.payment.dto.ManualSettlePaymentOrderRequest;
@@ -26,13 +28,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminPaymentController {
     private final PaymentCallbackService paymentCallbackService;
     private final PaymentProviderReadinessService readinessService;
+    private final PaymentMaintenanceService maintenanceService;
 
     public AdminPaymentController(
             PaymentCallbackService paymentCallbackService,
-            PaymentProviderReadinessService readinessService
+            PaymentProviderReadinessService readinessService,
+            PaymentMaintenanceService maintenanceService
     ) {
         this.paymentCallbackService = paymentCallbackService;
         this.readinessService = readinessService;
+        this.maintenanceService = maintenanceService;
     }
 
     @GetMapping("/orders")
@@ -57,6 +62,11 @@ public class AdminPaymentController {
             @RequestParam(defaultValue = "WECHAT_DIRECT") PaymentProvider provider
     ) {
         return ApiResponse.ok(readinessService.launchReadiness(provider));
+    }
+
+    @PostMapping("/maintenance/run")
+    public ApiResponse<PaymentMaintenanceRunResult> runMaintenance() {
+        return ApiResponse.ok(maintenanceService.runOnce());
     }
 
     @GetMapping("/callbacks")

@@ -151,6 +151,24 @@ Use the admin payment page:
 - Compensate fulfillment: use for paid orders whose gift/favor/broadcast side effects need an idempotent rerun.
 - Manual settlement: use only after external provider proof confirms payment success.
 
+## Payment Query Compensation
+
+Production must enable the payment maintenance task:
+
+```bash
+PAYMENT_MAINTENANCE_ENABLED=true
+PAYMENT_MAINTENANCE_QUERY_AFTER=PT1M
+PAYMENT_MAINTENANCE_PENDING_TIMEOUT=PT30M
+PAYMENT_MAINTENANCE_RETRY_DELAY=PT2M
+PAYMENT_MAINTENANCE_BATCH_SIZE=50
+PAYMENT_MAINTENANCE_FIXED_DELAY_MS=60000
+PAYMENT_MAINTENANCE_INITIAL_DELAY_MS=30000
+```
+
+The task queries WeChat for pending non-mock orders, fulfills successful payments through the same callback path, closes unpaid orders after the timeout, and retries temporary provider failures. A closed payment releases its client request id so the user can retry without creating duplicate active orders.
+
+An administrator can trigger one batch manually with `POST /api/admin/payments/maintenance/run`. Review `payment_order.provider_status`, `last_queried_at`, `query_attempt_count`, `last_query_error`, `closed_at`, and `close_reason` when diagnosing an order.
+
 Required operator notes:
 
 - Always enter a handling remark.

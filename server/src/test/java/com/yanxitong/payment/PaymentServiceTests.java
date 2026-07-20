@@ -1,7 +1,9 @@
 package com.yanxitong.payment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -35,7 +37,12 @@ class PaymentServiceTests {
         PaymentOrder existing = order("GP_EXISTING");
         existing.payPayload = "{\"prepay\":\"existing\"}";
         PaymentOrderMapper mapper = mock(PaymentOrderMapper.class);
-        when(mapper.selectOne(any(Wrapper.class))).thenReturn(existing);
+        when(mapper.selectOne(any(Wrapper.class))).thenAnswer(invocation -> {
+            Wrapper<PaymentOrder> query = invocation.getArgument(0);
+            assertTrue(query.getSqlSegment().contains("pay_status"));
+            assertFalse(query.getSqlSegment().contains("idempotency_active"));
+            return existing;
+        });
         CapturingAdapter adapter = new CapturingAdapter();
         PaymentService service = service(mapper, adapter);
 
@@ -85,7 +92,8 @@ class PaymentServiceTests {
                 new OrderNoGenerator(),
                 mock(OperationLogService.class),
                 properties,
-                new PaymentProviderReadinessService(properties)
+                new PaymentProviderReadinessService(properties),
+                new PaymentMaintenanceProperties()
         );
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class, () -> service.createOrder(command("gift-request-3")));
@@ -104,7 +112,8 @@ class PaymentServiceTests {
                 new OrderNoGenerator(),
                 mock(OperationLogService.class),
                 properties,
-                new PaymentProviderReadinessService(properties)
+                new PaymentProviderReadinessService(properties),
+                new PaymentMaintenanceProperties()
         );
     }
 

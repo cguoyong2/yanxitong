@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.yanxitong.payment.controller.AdminPaymentController;
 import com.yanxitong.payment.dto.PaymentLaunchReadiness;
@@ -17,10 +19,26 @@ import org.junit.jupiter.api.Test;
 
 class AdminPaymentControllerTests {
     @Test
+    void manualMaintenanceReturnsRunSummary() {
+        PaymentMaintenanceService maintenanceService = mock(PaymentMaintenanceService.class);
+        PaymentMaintenanceRunResult expected = new PaymentMaintenanceRunResult(3, 1, 1, 1, 0, false);
+        when(maintenanceService.runOnce()).thenReturn(expected);
+        AdminPaymentController controller = new AdminPaymentController(
+                mock(PaymentCallbackService.class),
+                new PaymentProviderReadinessService(new PaymentProviderProperties()),
+                maintenanceService
+        );
+
+        assertEquals(expected, controller.runMaintenance().data());
+        verify(maintenanceService).runOnce();
+    }
+
+    @Test
     void launchReadinessGroupsMissingProviderConfiguration() {
         AdminPaymentController controller = new AdminPaymentController(
                 mock(PaymentCallbackService.class),
-                new PaymentProviderReadinessService(new PaymentProviderProperties())
+                new PaymentProviderReadinessService(new PaymentProviderProperties()),
+                mock(PaymentMaintenanceService.class)
         );
 
         PaymentLaunchReadiness readiness = controller.launchReadiness(PaymentProvider.WECHAT_SERVICE_PROVIDER).data();
@@ -49,7 +67,8 @@ class AdminPaymentControllerTests {
         properties.setProviders(Map.of(PaymentProvider.WECHAT_SERVICE_PROVIDER, config));
         AdminPaymentController controller = new AdminPaymentController(
                 mock(PaymentCallbackService.class),
-                new PaymentProviderReadinessService(properties)
+                new PaymentProviderReadinessService(properties),
+                mock(PaymentMaintenanceService.class)
         );
 
         PaymentLaunchReadiness readiness = controller.launchReadiness(PaymentProvider.WECHAT_SERVICE_PROVIDER).data();
@@ -74,7 +93,8 @@ class AdminPaymentControllerTests {
         properties.setProviders(Map.of(PaymentProvider.WECHAT_DIRECT, config));
         AdminPaymentController controller = new AdminPaymentController(
                 mock(PaymentCallbackService.class),
-                new PaymentProviderReadinessService(properties)
+                new PaymentProviderReadinessService(properties),
+                mock(PaymentMaintenanceService.class)
         );
 
         PaymentLaunchReadiness readiness = controller.launchReadiness(PaymentProvider.WECHAT_DIRECT).data();
@@ -101,7 +121,8 @@ class AdminPaymentControllerTests {
         properties.setProviders(Map.of(PaymentProvider.WECHAT_DIRECT, config));
         AdminPaymentController controller = new AdminPaymentController(
                 mock(PaymentCallbackService.class),
-                new PaymentProviderReadinessService(properties)
+                new PaymentProviderReadinessService(properties),
+                mock(PaymentMaintenanceService.class)
         );
 
         PaymentLaunchReadiness readiness = controller.launchReadiness(PaymentProvider.WECHAT_DIRECT).data();

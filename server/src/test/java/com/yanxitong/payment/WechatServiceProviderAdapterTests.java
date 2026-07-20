@@ -139,6 +139,34 @@ class WechatServiceProviderAdapterTests {
         assertEquals(false, result.success());
     }
 
+    @Test
+    void queryAndCloseUsePartnerMerchantOrderApi() {
+        CapturingJsapiClient client = new CapturingJsapiClient();
+        com.wechat.pay.java.service.partnerpayments.jsapi.model.Transaction transaction =
+                new com.wechat.pay.java.service.partnerpayments.jsapi.model.Transaction();
+        transaction.setOutTradeNo("GP202606220005");
+        transaction.setTransactionId("WX005");
+        transaction.setTradeState(com.wechat.pay.java.service.partnerpayments.jsapi.model.Transaction.TradeStateEnum.SUCCESS);
+        com.wechat.pay.java.service.partnerpayments.model.TransactionAmount amount =
+                new com.wechat.pay.java.service.partnerpayments.model.TransactionAmount();
+        amount.setTotal(1234);
+        amount.setCurrency("CNY");
+        transaction.setAmount(amount);
+        client.queryResult = transaction;
+        WechatServiceProviderAdapter adapter = newAdapter(completeProperties(), client);
+
+        PaymentQueryResult result = adapter.queryPayment("GP202606220005");
+        adapter.closePayment("GP202606220006");
+
+        assertEquals("SUCCESS", result.providerStatus());
+        assertEquals("WX005", result.providerTradeNo());
+        assertEquals(0, new BigDecimal("12.34").compareTo(result.paidAmount()));
+        assertEquals("GP202606220005", client.queriedOrderNo);
+        assertEquals("sp-merchant", client.queriedServiceProviderId);
+        assertEquals("sub-merchant", client.queriedSubMerchantId);
+        assertEquals("GP202606220006", client.closedOrderNo);
+    }
+
     private WechatServiceProviderAdapter newAdapter(
             PaymentProviderProperties properties,
             WechatPartnerJsapiClient client
@@ -202,6 +230,11 @@ class WechatServiceProviderAdapterTests {
         private final WechatPrepayResult result;
         private PrepayRequest request;
         private String subMerchantId;
+        private com.wechat.pay.java.service.partnerpayments.jsapi.model.Transaction queryResult;
+        private String queriedOrderNo;
+        private String queriedServiceProviderId;
+        private String queriedSubMerchantId;
+        private String closedOrderNo;
 
         private CapturingJsapiClient() {
             this(new WechatPrepayResult("prepay", "{}"));
@@ -216,6 +249,25 @@ class WechatServiceProviderAdapterTests {
             this.request = request;
             this.subMerchantId = subMerchantId;
             return result;
+        }
+
+        @Override
+        public com.wechat.pay.java.service.partnerpayments.jsapi.model.Transaction queryOrderByOutTradeNo(
+                String orderNo,
+                String serviceProviderId,
+                String subMerchantId
+        ) {
+            this.queriedOrderNo = orderNo;
+            this.queriedServiceProviderId = serviceProviderId;
+            this.queriedSubMerchantId = subMerchantId;
+            return queryResult;
+        }
+
+        @Override
+        public void closeOrder(String orderNo, String serviceProviderId, String subMerchantId) {
+            this.closedOrderNo = orderNo;
+            this.queriedServiceProviderId = serviceProviderId;
+            this.queriedSubMerchantId = subMerchantId;
         }
     }
 

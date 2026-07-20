@@ -212,9 +212,24 @@
           </div>
           <div class="tab-actions">
             <el-button @click="showFailures">查看异常回调</el-button>
+            <el-button :loading="maintenanceRunning" @click="runMaintenance">立即查单</el-button>
             <el-button type="primary" @click="load">刷新订单</el-button>
           </div>
         </section>
+
+        <el-alert
+          v-if="lastMaintenanceResult"
+          class="maintenance-result"
+          :type="lastMaintenanceResult.failed > 0 ? 'warning' : 'success'"
+          :closable="false"
+          show-icon
+        >
+          <template #title>
+            本次查单处理 {{ lastMaintenanceResult.candidates }} 笔：支付成功 {{ lastMaintenanceResult.paid }} 笔，
+            已关闭 {{ lastMaintenanceResult.closed }} 笔，待支付 {{ lastMaintenanceResult.pending }} 笔，
+            失败 {{ lastMaintenanceResult.failed }} 笔
+          </template>
+        </el-alert>
 
         <section class="filters">
           <el-input v-model="orderFilters.banquetId" clearable placeholder="宴席 ID" @change="load" />
@@ -470,6 +485,8 @@ const verifyStatus = ref(String(route.query.verifyStatus || ''));
 const callbackOrderNo = ref(String(route.query.orderNo || ''));
 const callbackDrawerVisible = ref(false);
 const selectedCallback = ref<Record<string, unknown> | null>(null);
+const maintenanceRunning = ref(false);
+const lastMaintenanceResult = ref<PaymentMaintenanceRunResult | null>(null);
 const orderFilters = ref({
   banquetId: String(route.query.banquetId || ''),
   orderNo: String(route.query.orderNo || ''),
@@ -531,6 +548,15 @@ const systemBlockerCount = computed(() => Number(securityReadiness.value?.blocke
 const systemWarningCount = computed(() => Number(securityReadiness.value?.warnings?.length || 0));
 const paymentBlockerCount = computed(() => Number(launchReadiness.value?.blockers?.length || 0));
 
+interface PaymentMaintenanceRunResult {
+  candidates: number;
+  paid: number;
+  closed: number;
+  pending: number;
+  failed: number;
+  skipped: boolean;
+}
+
 async function load() {
   loading.value = true;
   try {
@@ -585,6 +611,25 @@ async function resolve(id: number, status: 'HANDLED' | 'IGNORED') {
   });
   ElMessage.success(`已标记${label}`);
   await load();
+}
+
+async function runMaintenance() {
+  maintenanceRunning.value = true;
+  try {
+    const response = await http.post<ApiResponse<PaymentMaintenanceRunResult>>('/admin/payments/maintenance/run');
+    const result = response.data.data;
+    lastMaintenanceResult.value = result;
+    if (result.skipped) {
+      ElMessage.warning('支付自动查单任务当前未启用');
+      return;
+    }
+    ElMessage.success(
+      `查单完成：处理 ${result.candidates} 笔，支付成功 ${result.paid} 笔，关闭 ${result.closed} 笔，失败 ${result.failed} 笔`
+    );
+    await load();
+  } finally {
+    maintenanceRunning.value = false;
+  }
 }
 
 async function retryCallback(id: number) {
@@ -952,6 +997,10 @@ h1 {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.maintenance-result {
+  margin-bottom: 14px;
 }
 
 .context-panel {

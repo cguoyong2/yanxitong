@@ -3,8 +3,11 @@ package com.yanxitong.payment;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
+import com.wechat.pay.java.service.payments.jsapi.model.CloseOrderRequest;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayRequest;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayWithRequestPaymentResponse;
+import com.wechat.pay.java.service.payments.jsapi.model.QueryOrderByOutTradeNoRequest;
+import com.wechat.pay.java.service.payments.model.Transaction;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.stereotype.Component;
@@ -23,13 +26,33 @@ public class SdkWechatDirectJsapiClient implements WechatDirectJsapiClient {
 
     @Override
     public WechatPrepayResult prepay(PrepayRequest request) {
-        WechatPayClientFactory.PreparedWechatPayClient prepared = clientFactory.prepare(PaymentProvider.WECHAT_DIRECT);
-        JsapiServiceExtension service = new JsapiServiceExtension.Builder()
-                .config(prepared.config())
-                .build();
+        JsapiServiceExtension service = service();
         PrepayWithRequestPaymentResponse response = service.prepayWithRequestPayment(request);
         String payPayload = toPayPayload(response);
         return new WechatPrepayResult(extractPrepayId(response.getPackageVal()), payPayload);
+    }
+
+    @Override
+    public Transaction queryOrderByOutTradeNo(String orderNo, String merchantId) {
+        QueryOrderByOutTradeNoRequest request = new QueryOrderByOutTradeNoRequest();
+        request.setOutTradeNo(orderNo);
+        request.setMchid(merchantId);
+        return service().queryOrderByOutTradeNo(request);
+    }
+
+    @Override
+    public void closeOrder(String orderNo, String merchantId) {
+        CloseOrderRequest request = new CloseOrderRequest();
+        request.setOutTradeNo(orderNo);
+        request.setMchid(merchantId);
+        service().closeOrder(request);
+    }
+
+    private JsapiServiceExtension service() {
+        WechatPayClientFactory.PreparedWechatPayClient prepared = clientFactory.prepare(PaymentProvider.WECHAT_DIRECT);
+        return new JsapiServiceExtension.Builder()
+                .config(prepared.config())
+                .build();
     }
 
     private String toPayPayload(PrepayWithRequestPaymentResponse response) {

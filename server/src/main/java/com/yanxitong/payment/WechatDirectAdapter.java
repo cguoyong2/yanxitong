@@ -64,6 +64,26 @@ public class WechatDirectAdapter implements PaymentAdapter {
         );
     }
 
+    @Override
+    public PaymentQueryResult queryPayment(String orderNo) {
+        PaymentProviderProperties.ProviderConfig config = properties.provider(provider());
+        validateOrderOperation(config, orderNo);
+        Transaction transaction = jsapiClient.queryOrderByOutTradeNo(orderNo, config.getMerchantId());
+        return new PaymentQueryResult(
+                transaction.getOutTradeNo(),
+                transaction.getTransactionId(),
+                paidAmount(transaction),
+                transaction.getTradeState() == null ? null : transaction.getTradeState().name()
+        );
+    }
+
+    @Override
+    public void closePayment(String orderNo) {
+        PaymentProviderProperties.ProviderConfig config = properties.provider(provider());
+        validateOrderOperation(config, orderNo);
+        jsapiClient.closeOrder(orderNo, config.getMerchantId());
+    }
+
     private PrepayRequest buildPrepayRequest(PaymentProviderProperties.ProviderConfig config, PaymentCreateCommand command) {
         PrepayRequest request = new PrepayRequest();
         request.setAppid(config.getAppId());
@@ -113,6 +133,14 @@ public class WechatDirectAdapter implements PaymentAdapter {
         if (command.amount() == null) {
             throw new IllegalArgumentException("Wechat payment amount is required");
         }
+    }
+
+    private void validateOrderOperation(PaymentProviderProperties.ProviderConfig config, String orderNo) {
+        if (!config.isEnabled()) {
+            throw new UnsupportedOperationException("Wechat direct payment is not enabled");
+        }
+        require(config.getMerchantId(), "Wechat merchant-id is required");
+        require(orderNo, "Wechat order-no is required");
     }
 
     private void require(String value, String message) {

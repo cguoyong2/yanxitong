@@ -89,6 +89,24 @@ class WechatDirectAdapterTests {
         assertEquals("{\"out_trade_no\":\"GP202606220003\"}", result.decryptedBody());
     }
 
+    @Test
+    void queryAndCloseUseDirectMerchantOrderApi() {
+        CapturingDirectJsapiClient client = new CapturingDirectJsapiClient();
+        client.queryResult = transaction("GP202606220005", "WX005", 1234, Transaction.TradeStateEnum.SUCCESS);
+        WechatDirectAdapter adapter = newAdapter(completeProperties(), client);
+
+        PaymentQueryResult result = adapter.queryPayment("GP202606220005");
+        adapter.closePayment("GP202606220006");
+
+        assertEquals("SUCCESS", result.providerStatus());
+        assertEquals("WX005", result.providerTradeNo());
+        assertEquals(0, new BigDecimal("12.34").compareTo(result.paidAmount()));
+        assertEquals("GP202606220005", client.queriedOrderNo);
+        assertEquals("direct-merchant", client.queriedMerchantId);
+        assertEquals("GP202606220006", client.closedOrderNo);
+        assertEquals("direct-merchant", client.closedMerchantId);
+    }
+
     private WechatDirectAdapter newAdapter(
             PaymentProviderProperties properties,
             WechatDirectJsapiClient client
@@ -149,6 +167,11 @@ class WechatDirectAdapterTests {
     private static class CapturingDirectJsapiClient implements WechatDirectJsapiClient {
         private final WechatPrepayResult result;
         private PrepayRequest request;
+        private Transaction queryResult;
+        private String queriedOrderNo;
+        private String queriedMerchantId;
+        private String closedOrderNo;
+        private String closedMerchantId;
 
         private CapturingDirectJsapiClient() {
             this(new WechatPrepayResult("prepay", "{}"));
@@ -162,6 +185,19 @@ class WechatDirectAdapterTests {
         public WechatPrepayResult prepay(PrepayRequest request) {
             this.request = request;
             return result;
+        }
+
+        @Override
+        public Transaction queryOrderByOutTradeNo(String orderNo, String merchantId) {
+            this.queriedOrderNo = orderNo;
+            this.queriedMerchantId = merchantId;
+            return queryResult;
+        }
+
+        @Override
+        public void closeOrder(String orderNo, String merchantId) {
+            this.closedOrderNo = orderNo;
+            this.closedMerchantId = merchantId;
         }
     }
 

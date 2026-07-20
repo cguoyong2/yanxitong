@@ -32,6 +32,14 @@ mybatis-plus:
 payment:
   default-provider: ${PAYMENT_DEFAULT_PROVIDER:MOCK}
   mock-success-enabled: ${PAYMENT_MOCK_SUCCESS_ENABLED:false}
+  maintenance:
+    enabled: ${PAYMENT_MAINTENANCE_ENABLED:false}
+    query-after: ${PAYMENT_MAINTENANCE_QUERY_AFTER:PT1M}
+    pending-timeout: ${PAYMENT_MAINTENANCE_PENDING_TIMEOUT:PT30M}
+    retry-delay: ${PAYMENT_MAINTENANCE_RETRY_DELAY:PT2M}
+    batch-size: ${PAYMENT_MAINTENANCE_BATCH_SIZE:50}
+    fixed-delay-ms: ${PAYMENT_MAINTENANCE_FIXED_DELAY_MS:60000}
+    initial-delay-ms: ${PAYMENT_MAINTENANCE_INITIAL_DELAY_MS:30000}
   providers:
     MOCK:
       enabled: true

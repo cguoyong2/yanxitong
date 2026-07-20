@@ -7,6 +7,8 @@ import com.yanxitong.payment.entity.PaymentOrder;
 import com.yanxitong.payment.mapper.PaymentOrderMapper;
 import com.yanxitong.tenant.TenantContext;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,6 +19,7 @@ public class PaymentService {
     private final OperationLogService operationLogService;
     private final PaymentProviderProperties properties;
     private final PaymentProviderReadinessService readinessService;
+    private final PaymentMaintenanceProperties maintenanceProperties;
 
     public PaymentService(
             PaymentOrderMapper paymentOrderMapper,
@@ -24,7 +27,8 @@ public class PaymentService {
             OrderNoGenerator orderNoGenerator,
             OperationLogService operationLogService,
             PaymentProviderProperties properties,
-            PaymentProviderReadinessService readinessService
+            PaymentProviderReadinessService readinessService,
+            PaymentMaintenanceProperties maintenanceProperties
     ) {
         this.paymentOrderMapper = paymentOrderMapper;
         this.paymentAdapterRegistry = paymentAdapterRegistry;
@@ -32,6 +36,7 @@ public class PaymentService {
         this.operationLogService = operationLogService;
         this.properties = properties;
         this.readinessService = readinessService;
+        this.maintenanceProperties = maintenanceProperties;
     }
 
     public PaymentOrderCreateResult createOrder(PaymentOrderCreateCommand command) {
@@ -47,6 +52,7 @@ public class PaymentService {
         order.banquetId = command.banquetId();
         order.orderNo = orderNoGenerator.next("GP");
         order.clientRequestId = normalize(command.clientRequestId());
+        order.idempotencyActive = order.clientRequestId == null ? null : 1;
         order.provider = defaultProvider.name();
         order.scene = command.scene().name();
         order.entrySource = command.entrySource();
@@ -73,7 +79,13 @@ public class PaymentService {
         order.providerTradeNo = createResult.providerTradeNo();
         order.prepayId = createResult.prepayId();
         order.payPayload = createResult.payPayload();
-        order.expiresAt = createResult.expiresAt();
+        LocalDateTime now = LocalDateTime.now();
+        order.expiresAt = createResult.expiresAt() == null
+                ? now.plus(maintenanceProperties.getPendingTimeout())
+                : createResult.expiresAt();
+        order.nextQueryAt = defaultProvider == PaymentProvider.MOCK
+                ? null
+                : now.plus(maintenanceProperties.getQueryAfter());
         paymentOrderMapper.insert(order);
         operationLogService.record(OperationModule.PAYMENT, "CREATE_ORDER", "payment_order", order.id, "create payment order");
         return new PaymentOrderCreateResult(order, createResult.payPayload());
@@ -86,6 +98,8 @@ public class PaymentService {
         }
         QueryWrapper<PaymentOrder> query = new QueryWrapper<PaymentOrder>()
                 .eq("client_request_id", normalized)
+                .in("pay_status", List.of("CREATED", "PAID"))
+                .orderByDesc("updated_at")
                 .last("LIMIT 1");
         Long tenantId = TenantContext.getTenantId();
         if (tenantId != null) {

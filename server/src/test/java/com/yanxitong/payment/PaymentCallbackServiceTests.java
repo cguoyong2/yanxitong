@@ -211,6 +211,38 @@ class PaymentCallbackServiceTests {
         verify(giftService, never()).fulfillPaidPaymentOrder(any());
     }
 
+    @Test
+    void paidQueryReconciliationUsesPlanFulfillment() {
+        PaymentOrderMapper orderMapper = mock(PaymentOrderMapper.class);
+        PaymentOrder order = unpaidOrder("GP-QUERY-PLAN");
+        order.provider = PaymentProvider.WECHAT_DIRECT.name();
+        order.scene = PaymentScene.PLAN_ORDER.name();
+        order.bizOrderNo = "PO-QUERY-1";
+        when(orderMapper.selectById(order.id)).thenReturn(order);
+        PlanOrderService planOrderService = mock(PlanOrderService.class);
+        PaymentCallbackService service = service(
+                orderMapper,
+                callbackLogMapper(9L),
+                mock(GiftService.class),
+                planOrderService,
+                mock(DeviceOrderService.class),
+                callbackResult("unused", "unused", true, "unused")
+        );
+        PaymentQueryResult queryResult = new PaymentQueryResult(
+                order.orderNo,
+                "WX-QUERY-1",
+                order.amount,
+                "SUCCESS"
+        );
+
+        service.reconcilePaidOrder(order.id, PaymentProvider.WECHAT_DIRECT, queryResult);
+
+        assertEquals("PAID", order.payStatus);
+        assertEquals("WX-QUERY-1", order.providerTradeNo);
+        verify(orderMapper).updateById(order);
+        verify(planOrderService).fulfillPaidPaymentOrder(order);
+    }
+
     private PaymentCallbackService service(
             PaymentOrderMapper orderMapper,
             PaymentCallbackLogMapper callbackLogMapper,

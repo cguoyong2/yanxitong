@@ -15,6 +15,7 @@ public class PaymentOrder {
     public Long banquetId;
     public String orderNo;
     public String clientRequestId;
+    public Integer idempotencyActive;
     public String provider;
     public String scene;
     public String entrySource;
@@ -31,6 +32,12 @@ public class PaymentOrder {
     public String payPayload;
     public String providerStatus;
     public LocalDateTime expiresAt;
+    public LocalDateTime lastQueriedAt;
+    public Integer queryAttemptCount;
+    public LocalDateTime nextQueryAt;
+    public String lastQueryError;
+    public LocalDateTime closedAt;
+    public String closeReason;
     public String notifyUrl;
     public String payStatus;
     public LocalDateTime paidAt;

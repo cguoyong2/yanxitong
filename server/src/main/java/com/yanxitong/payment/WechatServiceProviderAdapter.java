@@ -64,6 +64,27 @@ public class WechatServiceProviderAdapter implements PaymentAdapter {
         );
     }
 
+    @Override
+    public PaymentQueryResult queryPayment(String orderNo) {
+        PaymentProviderProperties.ProviderConfig config = properties.provider(provider());
+        validateOrderOperation(config, orderNo);
+        com.wechat.pay.java.service.partnerpayments.jsapi.model.Transaction transaction =
+                jsapiClient.queryOrderByOutTradeNo(orderNo, config.getServiceProviderId(), config.getSubMerchantId());
+        return new PaymentQueryResult(
+                transaction.getOutTradeNo(),
+                transaction.getTransactionId(),
+                paidAmount(transaction),
+                transaction.getTradeState() == null ? null : transaction.getTradeState().name()
+        );
+    }
+
+    @Override
+    public void closePayment(String orderNo) {
+        PaymentProviderProperties.ProviderConfig config = properties.provider(provider());
+        validateOrderOperation(config, orderNo);
+        jsapiClient.closeOrder(orderNo, config.getServiceProviderId(), config.getSubMerchantId());
+    }
+
     private PrepayRequest buildPrepayRequest(PaymentProviderProperties.ProviderConfig config, PaymentCreateCommand command) {
         PrepayRequest request = new PrepayRequest();
         request.setSpAppid(config.getAppId());
@@ -106,6 +127,13 @@ public class WechatServiceProviderAdapter implements PaymentAdapter {
         return BigDecimal.valueOf(transaction.getAmount().getTotal(), 2);
     }
 
+    private BigDecimal paidAmount(com.wechat.pay.java.service.partnerpayments.jsapi.model.Transaction transaction) {
+        if (transaction.getAmount() == null || transaction.getAmount().getTotal() == null) {
+            return null;
+        }
+        return BigDecimal.valueOf(transaction.getAmount().getTotal(), 2);
+    }
+
     private void validatePrepay(PaymentProviderProperties.ProviderConfig config, PaymentCreateCommand command) {
         if (!config.isEnabled()) {
             throw new UnsupportedOperationException("Wechat service provider is not enabled");
@@ -120,6 +148,15 @@ public class WechatServiceProviderAdapter implements PaymentAdapter {
         if (command.amount() == null) {
             throw new IllegalArgumentException("Wechat payment amount is required");
         }
+    }
+
+    private void validateOrderOperation(PaymentProviderProperties.ProviderConfig config, String orderNo) {
+        if (!config.isEnabled()) {
+            throw new UnsupportedOperationException("Wechat service provider is not enabled");
+        }
+        require(config.getServiceProviderId(), "Wechat service-provider-id is required");
+        require(config.getSubMerchantId(), "Wechat sub-merchant-id is required");
+        require(orderNo, "Wechat order-no is required");
     }
 
     private String blankToNull(String value) {

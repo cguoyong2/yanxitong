@@ -16,6 +16,10 @@ Set these variables before switching production traffic to real payment:
 - `PAYMENT_WECHAT_NOTIFY_URL=https://<public-domain>/api/payments/callbacks/wechat-direct`
 - `WECHAT_MINIAPP_APP_ID`
 - `WECHAT_MINIAPP_APP_SECRET`
+- `PAYMENT_MAINTENANCE_ENABLED=true`
+- `PAYMENT_MAINTENANCE_QUERY_AFTER=PT1M`
+- `PAYMENT_MAINTENANCE_PENDING_TIMEOUT=PT30M`
+- `PAYMENT_MAINTENANCE_RETRY_DELAY=PT2M`
 - `PAYMENT_WECHAT_CERTIFICATE_MODE`
 - `PAYMENT_WECHAT_PLATFORM_CERTIFICATE_PATH` when `PLATFORM_CERTIFICATE`
 - `PAYMENT_WECHAT_PUBLIC_KEY_ID` and `PAYMENT_WECHAT_PUBLIC_KEY_PATH` when `PUBLIC_KEY`
@@ -73,6 +77,10 @@ Do not configure private keys, API v3 keys, or platform certificates through adm
 2. Confirm `favor_entry.gift_record_id` has only one row for the created gift record.
 3. Confirm a paid order cannot be overwritten by a different provider transaction ID.
 4. Confirm duplicate provider events remain visible in callback logs for audit.
+5. Create an unpaid order and confirm the maintenance task records a provider query after one minute.
+6. Confirm an unpaid order is closed locally and at WeChat after the configured timeout.
+7. Confirm a successful payment found by provider query uses the normal fulfillment path exactly once.
+8. Confirm a closed payment can be retried while `CREATED` and `PAID` orders still reuse the original client request id.
 
 ## Compensation Checks
 
