@@ -229,20 +229,17 @@ const criticalContracts = [
   },
   {
     file: 'miniapp/src/pages/support/customer-service/index.vue',
-    name: 'enterprise wechat acquisition fallback',
+    name: 'native customer service and hotline',
     events: [
-      '@tap="previewQrCode()"',
-      '@tap="copyCustomerServiceLink()"',
-      '@tap="loadCustomerService()"'
+      'open-type="contact"',
+      '@tap="callServiceHotline()"'
     ],
     markers: [
-      'function previewQrCode()',
-      'function copyCustomerServiceLink()',
-      'async function loadCustomerService()',
-      "uni.previewImage({",
-      "uni.setClipboardData({",
-      '<customer-service-qr-code',
-      '/meta/customer-service'
+      'function callServiceHotline()',
+      'uni.makePhoneCall({',
+      "const SERVICE_HOTLINE = '4000535836'",
+      '4000-535-836',
+      '添加微信咨询'
     ]
   }
 ];
