@@ -271,7 +271,9 @@ async function loadOrders() {
   loadingOrders.value = true;
   try {
     const remoteOrders = await request<DeviceOrder[]>(`/devices/orders?banquetId=${banquetId.value}`).catch(() => cachedOrders());
-    orders.value = prioritizeHighlightedOrders(mergeOrders(remoteOrders, cachedOrders()));
+    const mergedOrders = prioritizeHighlightedOrders(mergeOrders(remoteOrders, cachedOrders()));
+    orders.value = mergedOrders;
+    syncCachedOrders(mergedOrders);
   } finally {
     loadingOrders.value = false;
   }
@@ -367,13 +369,20 @@ function clearCachedOrder(orderNo: string) {
   uni.setStorageSync(deviceOrderCacheKey(), rows);
 }
 
+function syncCachedOrders(rows: DeviceOrder[]) {
+  if (!banquetId.value) {
+    return;
+  }
+  uni.setStorageSync(deviceOrderCacheKey(), rows);
+}
+
 function deviceOrderCacheKey() {
   return `device-order:${banquetId.value}`;
 }
 
 function mergeOrders(primary: DeviceOrder[], fallback: DeviceOrder[]) {
   const byOrderNo = new Map<string, DeviceOrder>();
-  for (const item of [...primary, ...fallback]) {
+  for (const item of [...fallback, ...primary]) {
     byOrderNo.set(item.orderNo, item);
   }
   return Array.from(byOrderNo.values()).sort((a, b) => String(b.createdAt || b.orderNo).localeCompare(String(a.createdAt || a.orderNo)));
@@ -444,10 +453,23 @@ async function payOrder(order?: DeviceOrder) {
     uni.showToast({ title: '支付已提交', icon: 'success' });
     await loadOrders();
   } catch (error) {
+    if (isAlreadyPaidError(error)) {
+      closePaymentPanel();
+      clearCachedOrder(order.orderNo);
+      await loadOrders();
+      lastOrderText.value = '订单已支付，设备服务已进入后续处理。';
+      uni.showToast({ title: '订单已支付', icon: 'success' });
+      return;
+    }
     uni.showToast({ title: normalizePaymentFlowError(error, '设备支付失败'), icon: 'none' });
   } finally {
     payingOrderNo.value = '';
   }
+}
+
+function isAlreadyPaidError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return /already paid|订单已支付/i.test(message);
 }
 
 function returnBanquetDetail() {

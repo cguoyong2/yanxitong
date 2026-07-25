@@ -570,7 +570,7 @@ function cachedDeviceOrders(): DeviceOrder[] {
 
 function mergeByOrderNo<T extends { orderNo: string }>(primary: T[], fallback: T[]) {
   const rows = new Map<string, T>();
-  for (const item of [...primary, ...fallback]) {
+  for (const item of [...fallback, ...primary]) {
     rows.set(item.orderNo, item);
   }
   return Array.from(rows.values());

@@ -270,6 +270,7 @@ async function loadOrders() {
   const mergedOrders = prioritizeHighlightedOrders(mergeOrders(orders, cachedOrders()));
   planOrders.value = mergedOrders;
   pendingOrder.value = mergedOrders.find((item) => item.payStatus !== 'PAID');
+  syncCachedOrders(mergedOrders);
 }
 
 async function createOrder(planId: number) {
@@ -347,9 +348,16 @@ function clearCachedOrder(orderNo: string) {
   uni.setStorageSync(localOrderKey.value, orders);
 }
 
+function syncCachedOrders(orders: PlanOrder[]) {
+  if (!localOrderKey.value) {
+    return;
+  }
+  uni.setStorageSync(localOrderKey.value, orders);
+}
+
 function mergeOrders(primary: PlanOrder[], fallback: PlanOrder[]) {
   const byOrderNo = new Map<string, PlanOrder>();
-  for (const item of [...primary, ...fallback]) {
+  for (const item of [...fallback, ...primary]) {
     byOrderNo.set(item.orderNo, item);
   }
   return Array.from(byOrderNo.values()).sort((a, b) => String(b.createdAt || b.orderNo).localeCompare(String(a.createdAt || a.orderNo)));
@@ -441,10 +449,22 @@ async function payOrder(order?: PlanOrder) {
     uni.showToast({ title: '支付已提交', icon: 'success' });
     await loadOrders();
   } catch (error) {
+    if (isAlreadyPaidError(error)) {
+      closePaymentPanel();
+      clearCachedOrder(order.orderNo);
+      await Promise.all([loadEntitlements(), loadOrders()]);
+      uni.showToast({ title: '订单已支付，权益已开通', icon: 'success' });
+      return;
+    }
     uni.showToast({ title: normalizePaymentFlowError(error, '版本支付失败'), icon: 'none' });
   } finally {
     paying.value = false;
   }
+}
+
+function isAlreadyPaidError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return /already paid|订单已支付/i.test(message);
 }
 
 function openDevice() {
