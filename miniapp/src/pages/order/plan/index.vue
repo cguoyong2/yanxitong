@@ -317,7 +317,8 @@ async function mockPay(orderNo: string) {
     pendingOrder.value = undefined;
     clearCachedOrder(orderNo);
     await Promise.all([loadEntitlements(), loadOrders()]);
-    uni.showToast({ title: '版本已开通', icon: 'success' });
+    const order = planOrders.value.find((item) => item.orderNo === orderNo);
+    returnAfterPayment(planByOrder(order)?.name || entitlements.currentPlan?.name || '所选版本', true);
   } catch (error) {
     uni.showToast({ title: error instanceof Error ? error.message : '版本支付确认失败', icon: 'none' });
   } finally {
@@ -441,25 +442,92 @@ async function payOrder(order?: PlanOrder) {
     closePaymentPanel();
     return;
   }
+  const selectedPlanName = paymentPlanName.value;
+  let activationLoading = false;
   paying.value = true;
   try {
     const result = await createBusinessPayment(`/plans/orders/${order.orderNo}/payment`);
     await requestWechatPayment(result.payPayload);
+    uni.showLoading({ title: '正在开通版本', mask: true });
+    activationLoading = true;
+    const activated = await waitForPlanActivation(order.orderNo);
+    uni.hideLoading();
+    activationLoading = false;
     closePaymentPanel();
-    uni.showToast({ title: '支付已提交', icon: 'success' });
-    await loadOrders();
+    returnAfterPayment(selectedPlanName, activated);
   } catch (error) {
     if (isAlreadyPaidError(error)) {
       closePaymentPanel();
       clearCachedOrder(order.orderNo);
       await Promise.all([loadEntitlements(), loadOrders()]);
-      uni.showToast({ title: '订单已支付，权益已开通', icon: 'success' });
+      returnAfterPayment(selectedPlanName, true);
       return;
     }
     uni.showToast({ title: normalizePaymentFlowError(error, '版本支付失败'), icon: 'none' });
   } finally {
+    if (activationLoading) {
+      uni.hideLoading();
+    }
     paying.value = false;
   }
+}
+
+async function waitForPlanActivation(orderNo: string) {
+  const maxAttempts = 15;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const remoteOrders = await request<PlanOrder[]>(`/plans/orders?banquetId=${banquetId.value}`);
+      const mergedOrders = prioritizeHighlightedOrders(mergeOrders(remoteOrders, cachedOrders()));
+      planOrders.value = mergedOrders;
+      pendingOrder.value = mergedOrders.find((item) => item.payStatus !== 'PAID');
+      syncCachedOrders(mergedOrders);
+      const paid = mergedOrders.some((item) => item.orderNo === orderNo && item.payStatus === 'PAID');
+      if (paid) {
+        await loadEntitlements();
+        return true;
+      }
+    } catch {
+      // The payment callback can briefly race with the order query. Retry below.
+    }
+    if (attempt < maxAttempts - 1) {
+      await delay(800);
+    }
+  }
+  return false;
+}
+
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function returnAfterPayment(planName: string, activated: boolean) {
+  if (!banquetId.value) {
+    requireBanquetToast();
+    return;
+  }
+  const title = activated ? `${planName}已开通` : '支付成功，版本同步中';
+  const showResult = () => {
+    setTimeout(() => uni.showToast({ title, icon: activated ? 'success' : 'none' }), 250);
+  };
+  const pages = getCurrentPages();
+  const previous = pages[pages.length - 2] as unknown as { route?: string } | undefined;
+  if (previous?.route?.replace(/^\//, '') === 'pages/banquet/detail/index') {
+    uni.navigateBack({
+      delta: 1,
+      success: showResult,
+      fail: () => redirectToBanquetDetail(showResult)
+    });
+    return;
+  }
+  redirectToBanquetDetail(showResult);
+}
+
+function redirectToBanquetDetail(onSuccess?: () => void) {
+  uni.redirectTo({
+    url: `/pages/banquet/detail/index?id=${banquetId.value}`,
+    success: onSuccess,
+    fail: () => uni.showToast({ title: '宴席管理台打开失败', icon: 'none' })
+  });
 }
 
 function isAlreadyPaidError(error: unknown) {
