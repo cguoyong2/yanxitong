@@ -16,21 +16,6 @@ interface Banquet {
   status: string;
 }
 
-interface EventTypeOption {
-  eventTypeCode: string;
-  name: string;
-  defaultThemeCode: string;
-  defaultThemeName: string;
-  primaryColor?: string;
-  defaultCopywriting?: string;
-}
-
-interface InvitationTemplate {
-  id: number;
-  name: string;
-  priceType?: string;
-}
-
 interface BanquetDetail {
   banquet: Banquet;
   invitation?: {
@@ -97,12 +82,8 @@ type FunnelKey = 'visit' | 'rsvp' | 'gift' | 'device';
 const rows = ref<Banquet[]>([]);
 const route = useRoute();
 const router = useRouter();
-const eventTypes = ref<EventTypeOption[]>([]);
-const templates = ref<InvitationTemplate[]>([]);
 const loading = ref(false);
-const creating = ref(false);
 const detailLoading = ref(false);
-const createVisible = ref(false);
 const detailVisible = ref(false);
 const detailActiveTab = ref<DetailTab>(detailTabFromQuery(route.query.focus));
 const detail = ref<BanquetDetail>();
@@ -116,14 +97,6 @@ const aggregate = ref<BanquetAggregate>({
   paymentOrders: [],
   paymentCallbacks: [],
   operationLogs: []
-});
-const form = ref({
-  name: '',
-  eventTypeCode: '',
-  templateId: undefined as number | undefined,
-  banquetTime: '',
-  location: '',
-  customGiftSuccess: ''
 });
 const giftTotal = computed(() => sumAmount(aggregate.value.gifts, 'amount'));
 const favorReceivedTotal = computed(() => sumAmount(aggregate.value.favorContacts, 'receivedAmount'));
@@ -258,59 +231,6 @@ async function load() {
   }
 }
 
-async function loadEventTypes() {
-  const response = await http.get<ApiResponse<EventTypeOption[]>>('/meta/event-types');
-  eventTypes.value = response.data.data || [];
-  if (!form.value.eventTypeCode && eventTypes.value.length > 0) {
-    form.value.eventTypeCode = eventTypes.value[0].eventTypeCode;
-  }
-}
-
-async function loadTemplates() {
-  const response = await http.get<ApiResponse<InvitationTemplate[]>>('/meta/invitation-templates');
-  templates.value = response.data.data || [];
-  if (!form.value.templateId && templates.value.length > 0) {
-    form.value.templateId = templates.value[0].id;
-  }
-}
-
-function openCreate() {
-  form.value = {
-    name: '',
-    eventTypeCode: eventTypes.value[0]?.eventTypeCode || '',
-    templateId: templates.value[0]?.id,
-    banquetTime: '',
-    location: '',
-    customGiftSuccess: ''
-  };
-  createVisible.value = true;
-}
-
-async function createBanquet() {
-  if (!form.value.name || !form.value.eventTypeCode) {
-    ElMessage.warning('请填写宴席名称和类型');
-    return;
-  }
-  creating.value = true;
-  try {
-    await http.post('/banquets', {
-      name: form.value.name,
-      eventTypeCode: form.value.eventTypeCode,
-      banquetTime: form.value.banquetTime || undefined,
-      location: form.value.location,
-      customCopywriting: form.value.customGiftSuccess
-        ? JSON.stringify({ gift_success: form.value.customGiftSuccess, gift_success_speaker_text: form.value.customGiftSuccess })
-        : undefined,
-      templateId: form.value.templateId
-    });
-    ElMessage.success('宴席已创建');
-    createVisible.value = false;
-    await load();
-  } finally {
-    creating.value = false;
-  }
-}
-
 async function openDetail(row: Banquet, focus: DetailTab = detailTabFromQuery(route.query.focus)) {
   detailVisible.value = true;
   detailActiveTab.value = focus;
@@ -335,9 +255,9 @@ async function openDetail(row: Banquet, focus: DetailTab = detailTabFromQuery(ro
       http.get<ApiResponse<RsvpStats>>(`/admin/rsvp/stats?banquetId=${row.id}`),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/gifts?banquetId=${row.id}&pageSize=100`),
       http.get<ApiResponse<Record<string, unknown>[]>>(`/admin/favor/contacts?banquetId=${row.id}`),
-      http.get<ApiResponse<Record<string, unknown>>>(`/plans/banquets/${row.id}/entitlements`),
-      http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/orders/plans?pageSize=100'),
-      http.get<ApiResponse<Record<string, unknown>[]>>(`/devices/orders?banquetId=${row.id}`),
+      http.get<ApiResponse<Record<string, unknown>>>(`/admin/orders/banquets/${row.id}/entitlements`),
+      http.get<ApiResponse<Record<string, unknown>[]>>(`/admin/orders/banquets/${row.id}/plans`),
+      http.get<ApiResponse<Record<string, unknown>[]>>(`/admin/orders/banquets/${row.id}/devices`),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>(`/admin/broadcast-logs?banquetId=${row.id}&pageSize=100`),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/payments/orders?pageSize=100'),
       http.get<ApiResponse<Record<string, unknown>[] | PageResult<Record<string, unknown>>>>('/admin/payments/callbacks?pageSize=100'),
@@ -359,7 +279,7 @@ async function openDetail(row: Banquet, focus: DetailTab = detailTabFromQuery(ro
       gifts: recordsOf(giftResponse.data.data),
       favorContacts: favorResponse.data.data || [],
       entitlements: entitlementResponse.data.data,
-      planOrders: recordsOf(planOrderResponse.data.data).filter((item) => Number(item.banquetId) === row.id),
+      planOrders: planOrderResponse.data.data || [],
       deviceOrders: deviceOrderResponse.data.data || [],
       broadcastLogs: recordsOf(broadcastResponse.data.data),
       paymentOrders,
@@ -464,7 +384,7 @@ function goOperationLog(targetType?: string, targetId?: unknown) {
 }
 
 onMounted(async () => {
-  await Promise.all([load(), loadEventTypes(), loadTemplates()]);
+  await load();
   const queryBanquetId = Number(route.query.banquetId);
   if (Number.isInteger(queryBanquetId)) {
     const target = rows.value.find((item) => item.id === queryBanquetId);
@@ -481,7 +401,6 @@ onMounted(async () => {
       <h1>宴席管理</h1>
       <div class="actions">
         <el-button @click="load">刷新</el-button>
-        <el-button type="primary" @click="openCreate">创建宴席</el-button>
       </div>
     </header>
     <el-table v-loading="loading" :data="rows" border stripe empty-text="暂无宴席">
@@ -505,37 +424,6 @@ onMounted(async () => {
         </template>
       </el-table-column>
     </el-table>
-
-    <el-dialog v-model="createVisible" title="创建宴席" width="640px">
-      <el-form label-width="120px">
-        <el-form-item label="宴席名称" required>
-          <el-input v-model="form.name" />
-        </el-form-item>
-        <el-form-item label="宴席类型" required>
-          <el-select v-model="form.eventTypeCode">
-            <el-option v-for="item in eventTypes" :key="item.eventTypeCode" :label="`${item.name} / ${item.defaultThemeName}`" :value="item.eventTypeCode" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="请柬模板">
-          <el-select v-model="form.templateId" placeholder="请选择请柬模板">
-            <el-option v-for="item in templates" :key="item.id" :label="`${item.name}${item.priceType ? ` / ${item.priceType}` : ''}`" :value="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="宴席时间">
-          <el-input v-model="form.banquetTime" placeholder="2026-10-01T18:00:00" />
-        </el-form-item>
-        <el-form-item label="宴席地点">
-          <el-input v-model="form.location" />
-        </el-form-item>
-        <el-form-item label="收礼文案">
-          <el-input v-model="form.customGiftSuccess" type="textarea" :rows="3" placeholder="宴席自定义收礼成功文案，可选" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="createBanquet">创建</el-button>
-      </template>
-    </el-dialog>
 
     <el-drawer v-model="detailVisible" title="宴席运营视图" size="82%">
       <template v-if="detail">

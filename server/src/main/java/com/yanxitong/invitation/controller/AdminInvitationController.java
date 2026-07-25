@@ -95,13 +95,13 @@ public class AdminInvitationController {
 
     @GetMapping("/{id}")
     public ApiResponse<AdminInvitationSummary> detail(@PathVariable Long id) {
-        Invitation invitation = invitationService.requireById(id);
+        Invitation invitation = requireAdminInvitation(id);
         return ApiResponse.ok(summary(invitation));
     }
 
     @GetMapping("/{id}/analytics")
     public ApiResponse<AdminInvitationAnalytics> analytics(@PathVariable Long id) {
-        Invitation invitation = invitationService.requireById(id);
+        Invitation invitation = requireAdminInvitation(id);
         List<InvitationVisitLog> visits = invitationVisitLogMapper.selectList(new QueryWrapper<InvitationVisitLog>()
                 .eq("invitation_id", invitation.id)
                 .orderByDesc("visited_at"));
@@ -159,11 +159,26 @@ public class AdminInvitationController {
         ));
     }
 
+    private Invitation requireAdminInvitation(Long id) {
+        QueryWrapper<Invitation> query = new QueryWrapper<Invitation>().eq("id", id);
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            query.isNull("tenant_id");
+        } else {
+            query.and(wrapper -> wrapper.eq("tenant_id", tenantId).or().isNull("tenant_id"));
+        }
+        Invitation invitation = invitationMapper.selectOne(query.last("LIMIT 1"));
+        if (invitation == null) {
+            throw new IllegalArgumentException("Invitation not found");
+        }
+        return invitation;
+    }
+
     private QueryWrapper<Invitation> query(Long banquetId, Long templateId, String status, String keyword) {
         QueryWrapper<Invitation> query = new QueryWrapper<>();
         Long tenantId = TenantContext.getTenantId();
         if (tenantId != null) {
-            query.eq("tenant_id", tenantId);
+            query.and(wrapper -> wrapper.eq("tenant_id", tenantId).or().isNull("tenant_id"));
         } else {
             query.isNull("tenant_id");
         }

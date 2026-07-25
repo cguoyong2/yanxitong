@@ -6,8 +6,10 @@ import com.yanxitong.device.DeviceOrderService;
 import com.yanxitong.device.dto.UpdateDeviceOrderStatusRequest;
 import com.yanxitong.device.entity.DeviceOrder;
 import com.yanxitong.order.PlanOrderService;
+import com.yanxitong.order.dto.PlanEntitlementResult;
 import com.yanxitong.order.entity.PlanOrder;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,6 +43,21 @@ public class AdminOrderController {
             @RequestParam(required = false) Integer pageSize
     ) {
         return ApiResponse.ok(deviceOrderService.listOrders(page, pageSize));
+    }
+
+    @GetMapping("/banquets/{banquetId}/entitlements")
+    public ApiResponse<PlanEntitlementResult> banquetEntitlements(@PathVariable Long banquetId) {
+        return ApiResponse.ok(planOrderService.getBanquetEntitlements(banquetId));
+    }
+
+    @GetMapping("/banquets/{banquetId}/plans")
+    public ApiResponse<List<PlanOrder>> banquetPlanOrders(@PathVariable Long banquetId) {
+        return ApiResponse.ok(planOrderService.listOrdersByBanquet(banquetId));
+    }
+
+    @GetMapping("/banquets/{banquetId}/devices")
+    public ApiResponse<List<DeviceOrder>> banquetDeviceOrders(@PathVariable Long banquetId) {
+        return ApiResponse.ok(deviceOrderService.listOrdersByBanquet(banquetId));
     }
 
     @PostMapping("/devices/{orderNo}/status")

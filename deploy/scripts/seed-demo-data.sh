@@ -12,7 +12,18 @@ mkdir -p "$WORK_DIR"
 request() {
   local name="$1"
   shift
-  curl -fsS "$@" > "${WORK_DIR}/${name}.json"
+  local auth_args=()
+  local arg
+  if [[ -n "${MINIAPP_TOKEN:-}" ]]; then
+    for arg in "$@"; do
+      if [[ "${arg}" == Authorization:\ Bearer\ * ]]; then
+        curl -fsS "$@" > "${WORK_DIR}/${name}.json"
+        return
+      fi
+    done
+    auth_args=(-H "Authorization: Bearer ${MINIAPP_TOKEN}")
+  fi
+  curl -fsS "$@" "${auth_args[@]}" > "${WORK_DIR}/${name}.json"
 }
 
 json_get() {
@@ -117,6 +128,7 @@ INVITATION_ID="$(json_get banquet_create "data.data.invitation.id")"
 SHARE_SLUG="$(json_get banquet_create "data.data.invitation.shareSlug")"
 
 api_put invitation_basic_update "/api/invitations/${INVITATION_ID}/basic" "{\"title\":\"演示请柬 ${RUN_ID}\",\"hostName\":\"陈先生 & 林女士\",\"contactPhone\":\"13800008888\",\"coverUrl\":\"https://example.com/demo-cover.jpg\",\"addressDetail\":\"三楼牡丹厅，地铁A口步行5分钟\",\"scheduleText\":\"17:30 来宾签到\\n18:00 仪式开始\\n18:30 宴席开席\",\"greeting\":\"诚邀您参加我们的宴席，共同见证美好时刻。\",\"showGiftEntry\":true,\"showDeviceEntry\":true}"
+api_post banquet_publish "/api/banquets/${BANQUET_ID}/publish" "{}"
 
 api_post rsvp_submit /api/rsvp/submit "{\"banquetId\":${BANQUET_ID},\"guestName\":\"演示来宾-张三\",\"phone\":\"13800000001\",\"attendanceStatus\":\"ATTENDING\",\"mealRequired\":1,\"accommodationRequired\":0,\"guestCount\":2}"
 api_post rsvp_decline /api/rsvp/submit "{\"banquetId\":${BANQUET_ID},\"guestName\":\"演示来宾-李四\",\"phone\":\"13800000002\",\"attendanceStatus\":\"DECLINED\",\"mealRequired\":0,\"accommodationRequired\":0,\"guestCount\":1}"

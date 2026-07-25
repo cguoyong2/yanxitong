@@ -16,13 +16,35 @@ log() {
 request() {
   local name="$1"
   shift
-  curl -fsS "$@" > "${WORK_DIR}/${name}.json"
+  local auth_args=()
+  local arg
+  if [[ -n "${MINIAPP_TOKEN:-}" ]]; then
+    for arg in "$@"; do
+      if [[ "${arg}" == Authorization:\ Bearer\ * ]]; then
+        curl -fsS "$@" > "${WORK_DIR}/${name}.json"
+        return
+      fi
+    done
+    auth_args=(-H "Authorization: Bearer ${MINIAPP_TOKEN}")
+  fi
+  curl -fsS "$@" "${auth_args[@]}" > "${WORK_DIR}/${name}.json"
 }
 
 request_status() {
   local name="$1"
   shift
-  curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@"
+  local auth_args=()
+  local arg
+  if [[ -n "${MINIAPP_TOKEN:-}" ]]; then
+    for arg in "$@"; do
+      if [[ "${arg}" == Authorization:\ Bearer\ * ]]; then
+        curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@"
+        return
+      fi
+    done
+    auth_args=(-H "Authorization: Bearer ${MINIAPP_TOKEN}")
+  fi
+  curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@" "${auth_args[@]}"
 }
 
 json_get() {

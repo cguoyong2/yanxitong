@@ -6,9 +6,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 RUN_ID="$(date +%Y%m%d%H%M%S)"
 ARTIFACTS_ROOT="${ARTIFACTS_ROOT:-${TMPDIR:-/tmp}/yanxitong-local-acceptance-${RUN_ID}}"
 
-BASE_URL="${BASE_URL:-http://127.0.0.1:8080}"
-ADMIN_URL="${ADMIN_URL:-http://127.0.0.1:5173}"
-CONFIRM_SCREEN_URL="${CONFIRM_SCREEN_URL:-http://127.0.0.1:5174/confirm-screen}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:28080}"
+ADMIN_URL="${ADMIN_URL:-http://127.0.0.1:15173}"
+CONFIRM_SCREEN_URL="${CONFIRM_SCREEN_URL:-http://127.0.0.1:15174/confirm-screen}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
 
@@ -18,6 +18,9 @@ DB_PASSWORD="${DB_PASSWORD:-yanxitong}"
 REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
 REDIS_PORT="${REDIS_PORT:-6381}"
 DB_PORT="${DB_PORT:-$(DB_URL="${DB_URL}" node -e "const url = process.env.DB_URL || ''; const match = url.match(/\\/\\/[^:/?#]+:(\\d+)/); console.log(match ? match[1] : '3308');")}"
+BACKEND_PORT="${BACKEND_PORT:-$(BASE_URL="${BASE_URL}" node -e "const url=new URL(process.env.BASE_URL); console.log(url.port || (url.protocol === 'https:' ? '443' : '80'));")}"
+ADMIN_PORT="${ADMIN_PORT:-$(ADMIN_URL="${ADMIN_URL}" node -e "const url=new URL(process.env.ADMIN_URL); console.log(url.port || (url.protocol === 'https:' ? '443' : '80'));")}"
+CONFIRM_SCREEN_PORT="${CONFIRM_SCREEN_PORT:-$(CONFIRM_SCREEN_URL="${CONFIRM_SCREEN_URL}" node -e "const url=new URL(process.env.CONFIRM_SCREEN_URL); console.log(url.port || (url.protocol === 'https:' ? '443' : '80'));")}"
 
 STARTED_PIDS=()
 OVERALL_STATUS="running"
@@ -59,6 +62,10 @@ Common environment variables:
   DB_PASSWORD
   REDIS_HOST
   REDIS_PORT
+  BACKEND_PORT
+  ADMIN_PORT
+  CONFIRM_SCREEN_PORT
+  MINIAPP_TOKEN
   PAYMENT_MOCK_SUCCESS_ENABLED=true is set automatically only when this script starts the backend
   LOCAL_ACCEPTANCE_SKIP_DOCKER=1
 EOF
@@ -151,12 +158,33 @@ start_backend_if_needed() {
     DB_PASSWORD="${DB_PASSWORD}" \
     REDIS_HOST="${REDIS_HOST}" \
     REDIS_PORT="${REDIS_PORT}" \
+    SERVER_PORT="${BACKEND_PORT}" \
     PAYMENT_MOCK_SUCCESS_ENABLED=true \
     java -jar target/server-0.0.1-SNAPSHOT.jar
   ) >"${ARTIFACTS_ROOT}/server.log" 2>&1 &
   STARTED_PIDS+=("$!")
 
   wait_for_url "Backend" "$(health_url)" 90
+}
+
+issue_miniapp_token() {
+  if [[ -n "${MINIAPP_TOKEN:-}" ]]; then
+    log "Using the supplied miniapp acceptance token."
+    export MINIAPP_TOKEN
+    return
+  fi
+  if [[ "${LOCAL_ACCEPTANCE_SKIP_DOCKER:-0}" == "1" ]]; then
+    echo "MINIAPP_TOKEN is required when LOCAL_ACCEPTANCE_SKIP_DOCKER=1." >&2
+    return 1
+  fi
+  log "Issuing a local-only miniapp acceptance token."
+  MINIAPP_TOKEN="$(
+    cd "${REPO_ROOT}"
+    DB_USERNAME="${DB_USERNAME}" \
+    DB_PASSWORD="${DB_PASSWORD}" \
+    bash deploy/scripts/issue-local-miniapp-token.sh
+  )"
+  export MINIAPP_TOKEN
 }
 
 start_admin_if_needed() {
@@ -168,7 +196,8 @@ start_admin_if_needed() {
   log "Admin frontend is not reachable; starting Vite dev server."
   (
     cd "${REPO_ROOT}/admin"
-    npm run dev -- --host 127.0.0.1 --port 5173
+    VITE_PROXY_TARGET="${BASE_URL}" \
+    npm run dev -- --host 127.0.0.1 --port "${ADMIN_PORT}"
   ) >"${ARTIFACTS_ROOT}/admin.log" 2>&1 &
   STARTED_PIDS+=("$!")
 
@@ -184,7 +213,8 @@ start_confirm_screen_if_needed() {
   log "Confirm-screen frontend is not reachable; starting Vite dev server."
   (
     cd "${REPO_ROOT}/confirm-screen"
-    npm run dev -- --host 127.0.0.1 --port 5174
+    VITE_PROXY_TARGET="${BASE_URL}" \
+    npm run dev -- --host 127.0.0.1 --port "${CONFIRM_SCREEN_PORT}"
   ) >"${ARTIFACTS_ROOT}/confirm-screen.log" 2>&1 &
   STARTED_PIDS+=("$!")
 
@@ -503,6 +533,7 @@ main() {
   log "Artifacts: ${ARTIFACTS_ROOT}"
   start_infra
   start_backend_if_needed
+  issue_miniapp_token
   start_admin_if_needed
   start_confirm_screen_if_needed
   run_backend_smoke

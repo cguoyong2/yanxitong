@@ -48,11 +48,21 @@ fi
 }
 
 log "Generating WeChat preview QR."
+rm -f "${QR_OUTPUT_ABS}" "${INFO_OUTPUT_ABS}"
 "${WECHAT_CLI}" preview \
   --project "${PROJECT_DIR}" \
   --qr-format image \
   --qr-output "${QR_OUTPUT_ABS}" \
   --info-output "${INFO_OUTPUT_ABS}"
+
+[[ -s "${QR_OUTPUT_ABS}" ]] || {
+  echo "WeChat preview QR was not generated. Re-login to WeChat DevTools and retry." >&2
+  exit 1
+}
+[[ -s "${INFO_OUTPUT_ABS}" ]] || {
+  echo "WeChat preview info was not generated. Re-login to WeChat DevTools and retry." >&2
+  exit 1
+}
 
 log "Preview QR: ${QR_OUTPUT_ABS}"
 log "Preview info: ${INFO_OUTPUT_ABS}"

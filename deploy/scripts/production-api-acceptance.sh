@@ -13,16 +13,39 @@ if [[ -z "${ADMIN_PASSWORD:-}" ]]; then
   exit 1
 fi
 
+if [[ -z "${MINIAPP_TOKEN:-}" ]]; then
+  echo "MINIAPP_TOKEN from a real production miniapp login is required." >&2
+  exit 1
+fi
+
 request() {
   local name="$1"
   shift
-  curl -fsS "$@" > "${WORK_DIR}/${name}.json"
+  local auth_args=()
+  local arg
+  for arg in "$@"; do
+    if [[ "${arg}" == Authorization:\ Bearer\ * ]]; then
+      curl -fsS "$@" > "${WORK_DIR}/${name}.json"
+      return
+    fi
+  done
+  auth_args=(-H "Authorization: Bearer ${MINIAPP_TOKEN}")
+  curl -fsS "$@" "${auth_args[@]}" > "${WORK_DIR}/${name}.json"
 }
 
 request_status() {
   local name="$1"
   shift
-  curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@"
+  local auth_args=()
+  local arg
+  for arg in "$@"; do
+    if [[ "${arg}" == Authorization:\ Bearer\ * ]]; then
+      curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@"
+      return
+    fi
+  done
+  auth_args=(-H "Authorization: Bearer ${MINIAPP_TOKEN}")
+  curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@" "${auth_args[@]}"
 }
 
 json_get() {
@@ -89,6 +112,9 @@ SHARE_SLUG="$(json_get banquet_create "data.data.invitation.shareSlug")"
 request invitation_update -X PUT "${BASE_URL}/api/invitations/${INVITATION_ID}/basic" \
   -H 'Content-Type: application/json' \
   -d "{\"title\":$(json_escape "生产验收请柬 ${RUN_ID}"),\"hostName\":$(json_escape "${HOST_NAME}"),\"contactPhone\":\"13900000000\",\"addressDetail\":\"生产验收酒店三楼\",\"scheduleText\":\"17:30 签到\\n18:00 开席\",\"greeting\":\"欢迎参加生产验收宴席\",\"showGiftEntry\":true,\"showDeviceEntry\":false}"
+
+request banquet_publish -X POST "${BASE_URL}/api/banquets/${BANQUET_ID}/publish"
+assert_json banquet_publish "data.code === 0 && data.data.banquet.status === 'PUBLISHED'" "banquet publish failed"
 
 request public_invitation "${BASE_URL}/api/invitations/public/${SHARE_SLUG}"
 assert_json public_invitation "data.code === 0 && data.data.invitation.id === Number('${INVITATION_ID}')" "public invitation read failed"

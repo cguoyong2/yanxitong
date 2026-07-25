@@ -11,13 +11,37 @@ mkdir -p "$WORK_DIR"
 request() {
   local name="$1"
   shift
-  curl -fsS "$@" > "${WORK_DIR}/${name}.json"
+  local auth_args=()
+  local arg
+  if [[ -n "${MINIAPP_TOKEN:-}" ]]; then
+    for arg in "$@"; do
+      if [[ "${arg}" == Authorization:\ Bearer\ * ]]; then
+        auth_args=()
+        curl -fsS "$@" > "${WORK_DIR}/${name}.json"
+        return
+      fi
+    done
+    auth_args=(-H "Authorization: Bearer ${MINIAPP_TOKEN}")
+  fi
+  curl -fsS "$@" "${auth_args[@]}" > "${WORK_DIR}/${name}.json"
 }
 
 request_status() {
   local name="$1"
   shift
-  curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@"
+  local auth_args=()
+  local arg
+  if [[ -n "${MINIAPP_TOKEN:-}" ]]; then
+    for arg in "$@"; do
+      if [[ "${arg}" == Authorization:\ Bearer\ * ]]; then
+        auth_args=()
+        curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@"
+        return
+      fi
+    done
+    auth_args=(-H "Authorization: Bearer ${MINIAPP_TOKEN}")
+  fi
+  curl -sS -o "${WORK_DIR}/${name}.json" -w "%{http_code}" "$@" "${auth_args[@]}"
 }
 
 json_get() {
@@ -121,6 +145,9 @@ SHARE_SLUG="$(json_get banquet_create "data.data.invitation.shareSlug")"
 request invitation_basic_update -X PUT "${BASE_URL}/api/invitations/${INVITATION_ID}/basic" \
   -H 'Content-Type: application/json' \
   -d "{\"title\":\"联调请柬 ${RUN_ID}\",\"hostName\":\"联调主办人\",\"contactPhone\":\"13900000000\",\"coverUrl\":\"https://example.com/cover.jpg\",\"addressDetail\":\"联调酒店三楼宴会厅\",\"scheduleText\":\"17:30 签到\\n18:00 开席\",\"greeting\":\"欢迎参加联调宴席\",\"showGiftEntry\":true,\"showDeviceEntry\":false}"
+
+request banquet_publish -X POST "${BASE_URL}/api/banquets/${BANQUET_ID}/publish"
+assert_json banquet_publish "data.code === 0 && data.data.banquet.status === 'PUBLISHED'" "banquet publish failed"
 
 request public_invitation "${BASE_URL}/api/invitations/public/${SHARE_SLUG}"
 assert_json public_invitation "data.data.banquet.themeCode === '${THEME_CODE}'" "event type default theme did not affect banquet"

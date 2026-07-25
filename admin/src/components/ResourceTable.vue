@@ -144,7 +144,7 @@ onMounted(load);
       </div>
     </header>
 
-    <el-table v-loading="loading" :data="rows" border stripe empty-text="暂无数据">
+    <el-table v-loading="loading" :data="rows" border stripe empty-text="暂无数据" table-layout="fixed">
       <el-table-column v-for="field in fields" :key="field.prop" :prop="field.prop" :label="field.label" min-width="140">
         <template #default="{ row }">
           <el-tag v-if="field.type === 'boolean' || field.prop === 'status' || field.prop.endsWith('Status')" :type="statusType(row[field.prop])">
@@ -204,9 +204,17 @@ onMounted(load);
 
 <style scoped>
 .resource-page {
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
   padding: 24px;
+  overflow: hidden;
   background: #f6f7f9;
+}
+
+.resource-page :deep(.el-table) {
+  width: 100%;
+  max-width: 100%;
 }
 
 .toolbar {
