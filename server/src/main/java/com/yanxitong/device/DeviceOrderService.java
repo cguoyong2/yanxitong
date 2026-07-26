@@ -1,6 +1,8 @@
 package com.yanxitong.device;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.yanxitong.banquet.entity.Banquet;
+import com.yanxitong.banquet.mapper.BanquetMapper;
 import com.yanxitong.common.PageResult;
 import com.yanxitong.device.dto.CreateDeviceOrderRequest;
 import com.yanxitong.device.entity.DeviceConfig;
@@ -30,6 +32,7 @@ public class DeviceOrderService {
 
     private final DeviceConfigMapper deviceConfigMapper;
     private final DeviceOrderMapper deviceOrderMapper;
+    private final BanquetMapper banquetMapper;
     private final OrderNoGenerator orderNoGenerator;
     private final OperationLogService operationLogService;
     private final PlanOrderService planOrderService;
@@ -38,6 +41,7 @@ public class DeviceOrderService {
     public DeviceOrderService(
             DeviceConfigMapper deviceConfigMapper,
             DeviceOrderMapper deviceOrderMapper,
+            BanquetMapper banquetMapper,
             OrderNoGenerator orderNoGenerator,
             OperationLogService operationLogService,
             PlanOrderService planOrderService,
@@ -45,6 +49,7 @@ public class DeviceOrderService {
     ) {
         this.deviceConfigMapper = deviceConfigMapper;
         this.deviceOrderMapper = deviceOrderMapper;
+        this.banquetMapper = banquetMapper;
         this.orderNoGenerator = orderNoGenerator;
         this.operationLogService = operationLogService;
         this.planOrderService = planOrderService;
@@ -79,6 +84,7 @@ public class DeviceOrderService {
         if (!canRentDevice(request.banquetId, request.deviceType)) {
             throw new IllegalArgumentException("Current plan does not include device rental right");
         }
+        validateRentWindow(request);
 
         DeviceConfig config = deviceConfigMapper.selectOne(new QueryWrapper<DeviceConfig>()
                 .eq("device_type", request.deviceType)
@@ -245,6 +251,33 @@ public class DeviceOrderService {
             return true;
         }
         return planOrderService.checkBanquetRight(banquetId, deviceType).allowed();
+    }
+
+    private void validateRentWindow(CreateDeviceOrderRequest request) {
+        if (request.rentStartAt == null || request.rentEndAt == null) {
+            throw new IllegalArgumentException("请选择完整的设备租用时间");
+        }
+        if (!request.rentStartAt.isBefore(request.rentEndAt)) {
+            throw new IllegalArgumentException("设备租用结束时间必须晚于开始时间");
+        }
+
+        Banquet banquet = banquetMapper.selectById(request.banquetId);
+        if (banquet == null) {
+            throw new IllegalArgumentException("宴席不存在");
+        }
+        if (banquet.banquetTime == null) {
+            throw new IllegalArgumentException("宴席时间缺失，请先完善宴席信息");
+        }
+        if (!request.rentStartAt.toLocalDate().equals(banquet.banquetTime.toLocalDate())
+                || !request.rentEndAt.toLocalDate().equals(banquet.banquetTime.toLocalDate())) {
+            throw new IllegalArgumentException("设备租用日期必须与宴席日期一致");
+        }
+        if (request.rentStartAt.isAfter(banquet.banquetTime)) {
+            throw new IllegalArgumentException("设备租用开始时间不能晚于宴席时间");
+        }
+        if (request.rentEndAt.isBefore(banquet.banquetTime)) {
+            throw new IllegalArgumentException("设备租用结束时间不能早于宴席时间");
+        }
     }
 
     private DeviceOrder findExistingOrder(CreateDeviceOrderRequest request) {

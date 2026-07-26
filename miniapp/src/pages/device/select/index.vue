@@ -33,27 +33,44 @@
     </view>
 
     <view class="time-card">
-      <text class="section-title">租用时间</text>
+      <view class="section-head">
+        <view>
+          <text class="section-title">租用时间</text>
+          <text class="section-note">租用时段须覆盖宴席时间</text>
+        </view>
+        <button class="sync-time-button" @tap="syncRentWindowWithBanquet(true)">按宴席时间重置</button>
+      </view>
+      <view class="banquet-time-reference">
+        <text class="reference-label">宴席时间</text>
+        <text class="reference-value">{{ banquetTimeDisplay || '宴席时间待补充' }}</text>
+      </view>
       <view class="time-grid">
-        <picker mode="date" :value="rentDate" @change="rentDate = String($event.detail.value)">
+        <picker
+          mode="date"
+          :value="rentDate"
+          :start="banquetDate || undefined"
+          :end="banquetDate || undefined"
+          @change="onRentDateChange($event)"
+        >
           <view class="time-cell">
             <text class="time-label">租用日期</text>
             <text class="time-value">{{ rentDate }}</text>
           </view>
         </picker>
-        <picker mode="time" :value="rentStartTime" @change="rentStartTime = String($event.detail.value)">
+        <picker mode="time" :value="rentStartTime" @change="onRentStartTimeChange($event)">
           <view class="time-cell">
             <text class="time-label">开始时间</text>
             <text class="time-value">{{ rentStartTime }}</text>
           </view>
         </picker>
-        <picker mode="time" :value="rentEndTime" @change="rentEndTime = String($event.detail.value)">
+        <picker mode="time" :value="rentEndTime" @change="onRentEndTimeChange($event)">
           <view class="time-cell">
             <text class="time-label">结束时间</text>
             <text class="time-value">{{ rentEndTime }}</text>
           </view>
         </picker>
       </view>
+      <text class="time-help">系统已按宴席时间生成建议时段；如需调整，开始时间不得晚于宴席时间，结束时间不得早于宴席时间。</text>
     </view>
 
     <view class="orders-card">
@@ -222,6 +239,13 @@ interface DeviceOrder {
   createdAt?: string;
 }
 
+interface BanquetDetail {
+  banquet: {
+    name?: string;
+    banquetTime?: string;
+  };
+}
+
 const configs = ref<DeviceConfig[]>([]);
 const orders = ref<DeviceOrder[]>([]);
 const banquetId = ref('');
@@ -239,11 +263,15 @@ const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
 const features = ref<RuntimeFeatures>({ mockPaymentEnabled: false });
+const banquetTime = ref('');
 const rentDate = ref('');
-const rentStartTime = ref('10:00');
-const rentEndTime = ref('22:00');
+const rentStartTime = ref('');
+const rentEndTime = ref('');
 const hasDeviceRight = computed(() => Boolean(entitlements.rightValues.DEVICE_RENTAL));
 const paymentDeviceName = computed(() => paymentPanel.order ? deviceTypeLabel(paymentPanel.order.deviceType) : '设备租赁');
+const banquetDate = computed(() => banquetTime.value ? banquetTime.value.slice(0, 10) : '');
+const banquetClock = computed(() => banquetTime.value ? banquetTime.value.slice(11, 16) : '');
+const banquetTimeDisplay = computed(() => banquetTime.value ? formatTime(banquetTime.value) : '');
 
 async function load() {
   const [runtimeFeatures, deviceConfigs] = await Promise.all([
@@ -253,6 +281,20 @@ async function load() {
   features.value = runtimeFeatures;
   configs.value = deviceConfigs;
   await Promise.all([loadEntitlements(), loadOrders()]);
+}
+
+async function loadBanquetSchedule() {
+  if (!banquetId.value) {
+    return;
+  }
+  try {
+    const detail = await request<BanquetDetail>(`/banquets/${banquetId.value}`);
+    banquetTime.value = detail.banquet.banquetTime || '';
+    syncRentWindowWithBanquet();
+  } catch (error) {
+    banquetTime.value = '';
+    uni.showToast({ title: error instanceof Error ? error.message : '宴席时间加载失败', icon: 'none' });
+  }
 }
 
 async function loadEntitlements() {
@@ -410,7 +452,91 @@ function validateRentWindow() {
     uni.showToast({ title: '结束时间需晚于开始时间', icon: 'none' });
     return false;
   }
+  if (!banquetTime.value) {
+    uni.showToast({ title: '宴席时间缺失，请先完善宴席信息', icon: 'none' });
+    return false;
+  }
+  if (rentDate.value !== banquetDate.value) {
+    uni.showToast({ title: '租用日期须与宴席日期一致', icon: 'none' });
+    return false;
+  }
+  if (rentStartTime.value > banquetClock.value) {
+    uni.showToast({ title: '开始时间不能晚于宴席时间', icon: 'none' });
+    return false;
+  }
+  if (rentEndTime.value < banquetClock.value) {
+    uni.showToast({ title: '结束时间不能早于宴席时间', icon: 'none' });
+    return false;
+  }
   return true;
+}
+
+function onRentDateChange(event: { detail: { value: string | number } }) {
+  const selected = String(event.detail.value || '');
+  if (banquetDate.value && selected !== banquetDate.value) {
+    uni.showToast({ title: '租用日期须与宴席日期一致', icon: 'none' });
+    rentDate.value = banquetDate.value;
+    return;
+  }
+  rentDate.value = selected;
+}
+
+function onRentStartTimeChange(event: { detail: { value: string | number } }) {
+  const selected = String(event.detail.value || '');
+  if (banquetClock.value && selected > banquetClock.value) {
+    uni.showToast({ title: '开始时间不能晚于宴席时间', icon: 'none' });
+    rentStartTime.value = suggestedRentClock(-120);
+    return;
+  }
+  if (rentEndTime.value && selected >= rentEndTime.value) {
+    uni.showToast({ title: '开始时间必须早于结束时间', icon: 'none' });
+    rentStartTime.value = suggestedRentClock(-120);
+    return;
+  }
+  rentStartTime.value = selected;
+}
+
+function onRentEndTimeChange(event: { detail: { value: string | number } }) {
+  const selected = String(event.detail.value || '');
+  if (banquetClock.value && selected < banquetClock.value) {
+    uni.showToast({ title: '结束时间不能早于宴席时间', icon: 'none' });
+    rentEndTime.value = suggestedRentClock(240);
+    return;
+  }
+  if (rentStartTime.value && selected <= rentStartTime.value) {
+    uni.showToast({ title: '结束时间必须晚于开始时间', icon: 'none' });
+    rentEndTime.value = suggestedRentClock(240);
+    return;
+  }
+  rentEndTime.value = selected;
+}
+
+function syncRentWindowWithBanquet(showToast = false) {
+  if (!banquetTime.value) {
+    if (showToast) {
+      uni.showToast({ title: '宴席时间缺失，请先完善宴席信息', icon: 'none' });
+    }
+    return;
+  }
+  rentDate.value = banquetDate.value;
+  rentStartTime.value = suggestedRentClock(-120);
+  rentEndTime.value = suggestedRentClock(240);
+  if (showToast) {
+    uni.showToast({ title: '已按宴席时间重置', icon: 'success' });
+  }
+}
+
+function suggestedRentClock(offsetMinutes: number) {
+  if (!banquetClock.value) {
+    return '';
+  }
+  const [hour, minute] = banquetClock.value.split(':').map(Number);
+  const total = Math.min(23 * 60 + 59, Math.max(0, hour * 60 + minute + offsetMinutes));
+  return `${padTime(Math.floor(total / 60))}:${padTime(total % 60)}`;
+}
+
+function padTime(value: number) {
+  return String(value).padStart(2, '0');
 }
 
 function openPlan() {
@@ -481,12 +607,6 @@ function returnBanquetDetail() {
     url: `/pages/banquet/detail/index?id=${banquetId.value}`,
     fail: () => uni.redirectTo({ url: `/pages/banquet/detail/index?id=${banquetId.value}` })
   });
-}
-
-function setDefaultDate() {
-  const now = new Date();
-  const pad = (value: number) => String(value).padStart(2, '0');
-  rentDate.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
 function formatMoney(value: unknown) {
@@ -582,8 +702,8 @@ onMounted(async () => {
     requireBanquetToast();
   } else {
     eventType.value = writeActiveEventType(await fetchBanquetEventType(banquetId.value, request, eventType.value));
+    await loadBanquetSchedule();
   }
-  setDefaultDate();
   await load();
 });
 </script>
@@ -852,6 +972,47 @@ onMounted(async () => {
   padding: 28rpx;
 }
 
+.sync-time-button {
+  height: 58rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  border: 1rpx solid #ead8ca;
+  border-radius: 16rpx;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 58rpx;
+}
+
+.sync-time-button::after {
+  border: 0;
+}
+
+.banquet-time-reference {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid #ead8ca;
+  border-radius: 16rpx;
+  background: linear-gradient(135deg, var(--accent-soft), #fff);
+}
+
+.reference-label {
+  color: #8a7768;
+  font-size: 23rpx;
+  font-weight: 700;
+}
+
+.reference-value {
+  color: var(--accent);
+  font-size: 25rpx;
+  font-weight: 900;
+  text-align: right;
+}
+
 .time-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -883,6 +1044,14 @@ onMounted(async () => {
   color: #171c2a;
   font-size: 25rpx;
   font-weight: 900;
+}
+
+.time-help {
+  display: block;
+  margin-top: 16rpx;
+  color: #8a7768;
+  font-size: 22rpx;
+  line-height: 1.5;
 }
 
 .section-head {

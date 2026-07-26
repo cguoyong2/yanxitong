@@ -10,6 +10,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.yanxitong.banquet.entity.Banquet;
+import com.yanxitong.banquet.mapper.BanquetMapper;
 import com.yanxitong.device.dto.CreateDeviceOrderRequest;
 import com.yanxitong.device.entity.DeviceConfig;
 import com.yanxitong.device.entity.DeviceOrder;
@@ -106,6 +108,55 @@ class DeviceOrderServiceTests {
     }
 
     @Test
+    void createDeviceOrderRequiresRentalDateToMatchBanquetDate() {
+        DeviceOrderMapper orderMapper = mock(DeviceOrderMapper.class);
+        PlanOrderService planOrderService = allowedPlan();
+        CreateDeviceOrderRequest request = request();
+        request.rentStartAt = LocalDateTime.of(2026, 7, 11, 12, 0);
+        request.rentEndAt = LocalDateTime.of(2026, 7, 11, 22, 0);
+        DeviceOrderService service = service(
+                mock(DeviceConfigMapper.class),
+                orderMapper,
+                mock(OrderNoGenerator.class),
+                planOrderService
+        );
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> service.create(request));
+
+        assertEquals("设备租用日期必须与宴席日期一致", ex.getMessage());
+        verify(orderMapper, never()).insert(any(DeviceOrder.class));
+    }
+
+    @Test
+    void createDeviceOrderRequiresRentalWindowToCoverBanquetTime() {
+        DeviceOrderMapper orderMapper = mock(DeviceOrderMapper.class);
+        PlanOrderService planOrderService = allowedPlan();
+        CreateDeviceOrderRequest lateStart = request();
+        lateStart.rentStartAt = LocalDateTime.of(2026, 7, 10, 19, 0);
+        DeviceOrderService service = service(
+                mock(DeviceConfigMapper.class),
+                orderMapper,
+                mock(OrderNoGenerator.class),
+                planOrderService
+        );
+
+        IllegalArgumentException startEx = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(lateStart)
+        );
+        assertEquals("设备租用开始时间不能晚于宴席时间", startEx.getMessage());
+
+        CreateDeviceOrderRequest earlyEnd = request();
+        earlyEnd.rentEndAt = LocalDateTime.of(2026, 7, 10, 17, 0);
+        IllegalArgumentException endEx = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.create(earlyEnd)
+        );
+        assertEquals("设备租用结束时间不能早于宴席时间", endEx.getMessage());
+        verify(orderMapper, never()).insert(any(DeviceOrder.class));
+    }
+
+    @Test
     void mockPaymentSuccessConfirmsDeviceOrder() {
         DeviceOrderMapper orderMapper = mock(DeviceOrderMapper.class);
         DeviceOrder order = new DeviceOrder();
@@ -153,14 +204,27 @@ class DeviceOrderServiceTests {
             OrderNoGenerator orderNoGenerator,
             PlanOrderService planOrderService
     ) {
+        BanquetMapper banquetMapper = mock(BanquetMapper.class);
+        Banquet banquet = new Banquet();
+        banquet.id = 100L;
+        banquet.banquetTime = LocalDateTime.of(2026, 7, 10, 18, 0);
+        when(banquetMapper.selectById(100L)).thenReturn(banquet);
         return new DeviceOrderService(
                 configMapper,
                 orderMapper,
+                banquetMapper,
                 orderNoGenerator,
                 mock(OperationLogService.class),
                 planOrderService,
                 mock(PaymentService.class)
         );
+    }
+
+    private PlanOrderService allowedPlan() {
+        PlanOrderService planOrderService = mock(PlanOrderService.class);
+        when(planOrderService.checkBanquetRight(100L, "DEVICE_RENTAL"))
+                .thenReturn(new RightsCheckResult(true, "DEVICE_RENTAL", "1"));
+        return planOrderService;
     }
 
     private CreateDeviceOrderRequest request() {
