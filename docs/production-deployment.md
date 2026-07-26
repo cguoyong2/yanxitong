@@ -48,6 +48,8 @@ Replace every placeholder value. Real deployments should put secrets in the plat
 Required production safety values:
 
 - `APP_ENV=production`
+- `TZ=Asia/Shanghai`
+- `JAVA_TOOL_OPTIONS=-Duser.timezone=Asia/Shanghai`
 - `PAYMENT_MOCK_SUCCESS_ENABLED=false`
 - non-default `DB_PASSWORD`
 - non-empty `REDIS_PASSWORD`
