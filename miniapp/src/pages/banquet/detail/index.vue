@@ -56,7 +56,7 @@
         </view>
         <view class="summary-line"></view>
         <view class="summary-item">
-          <text class="summary-value">{{ entitlements.currentPlan?.name || '基础版' }}</text>
+          <text class="summary-value">{{ currentPlanName }}</text>
           <text class="summary-label">当前版本</text>
         </view>
       </view>
@@ -150,7 +150,7 @@
         <view class="rights-list">
           <view class="right-row">
             <text class="right-name">当前版本</text>
-            <text class="right-value">{{ entitlements.currentPlan?.name || '基础版' }}</text>
+            <text class="right-value ok">{{ currentPlanName }}</text>
           </view>
           <view class="right-row">
             <text class="right-name">版本订单</text>
@@ -170,7 +170,9 @@
           </view>
         </view>
         <view class="dual-buttons">
-          <button @tap="openPlan()">选择版本</button>
+          <button :class="{ selected: entitlements.paidPlanActive }" @tap="openPlan()">
+            {{ entitlements.paidPlanActive ? `已选：${currentPlanName}` : '选择版本' }}
+          </button>
           <button @tap="openDevice()">设备选择</button>
         </view>
       </view>
@@ -268,6 +270,7 @@ const favorContacts = ref<FavorContact[]>([]);
 const entitlements = reactive<Entitlements>({
   rightValues: {}
 });
+const currentPlanName = computed(() => entitlements.currentPlan?.name || '基础版');
 const activeTheme = computed<EventTheme>(() => eventThemeFor(detail.value?.banquet.eventTypeCode || 'WEDDING'));
 const actionItems = computed(() => [
   { title: '发请柬', desc: '公开页与分享', icon: '✉', tone: 'red', action: 'invite' },
@@ -298,7 +301,7 @@ const progressItems = computed(() => [
   },
   {
     title: '版本与设备',
-    desc: `${entitlements.currentPlan?.name || '基础版'} · ${deviceOrders.value.length ? `${deviceOrders.value.length} 个设备订单` : hasDeviceRight.value ? '可租设备' : '设备未开通'}`,
+    desc: `${currentPlanName.value} · ${deviceOrders.value.length ? `${deviceOrders.value.length} 个设备订单` : hasDeviceRight.value ? '可租设备' : '设备未开通'}`,
     done: Boolean(deviceOrders.value.length),
     action: hasDeviceRight.value ? 'device' : 'plan'
   }
@@ -1520,6 +1523,12 @@ button::after {
   font-size: 23rpx;
   font-weight: 800;
   line-height: 64rpx;
+}
+
+.dual-buttons button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .dual-buttons {

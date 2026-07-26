@@ -135,6 +135,8 @@ const requiredTexts = [
   ['miniapp/src/pages/banquet/detail/index.vue', 'deviceOrders', 'detail page tracks device orders separately from rights'],
   ['miniapp/src/pages/banquet/detail/index.vue', 'safeNavigate', 'detail page uses safe navigation for workflow entries'],
   ['miniapp/src/pages/banquet/detail/index.vue', 'onShow', 'detail page refreshes after returning from child flows'],
+  ['miniapp/src/pages/banquet/detail/index.vue', 'currentPlanName', 'detail page consistently displays the selected plan name'],
+  ['miniapp/src/pages/banquet/detail/index.vue', '已选：${currentPlanName}', 'paid detail page replaces choose-plan copy with the selected plan'],
   ['miniapp/src/pages/banquet/detail/index.vue', 'activeTheme.value.giftRecordLabel', 'detail page gift wording follows event type'],
   ['miniapp/src/pages/banquet/detail/index.vue', '<text>{{ activeTheme.mark }}</text>', 'detail overview cover mark follows event type'],
   ['miniapp/src/pages/banquet/detail/index.vue', '--accent-shadow', 'detail page theme shadows follow event type'],
