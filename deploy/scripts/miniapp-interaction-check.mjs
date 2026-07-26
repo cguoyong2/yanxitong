@@ -144,6 +144,7 @@ const criticalContracts = [
       'async function refreshOrders()',
       'function openPaymentPanel(',
       'async function payOrder(',
+      'waitForDevicePayment',
       '/devices/orders/${order.orderNo}/payment',
       'requestWechatPayment',
       'function returnBanquetDetail()',

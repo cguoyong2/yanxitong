@@ -571,13 +571,24 @@ async function payOrder(order?: DeviceOrder) {
     return;
   }
   payingOrderNo.value = order.orderNo;
+  let syncingPayment = false;
   try {
     const result = await createBusinessPayment(`/devices/orders/${order.orderNo}/payment`);
     await requestWechatPayment(result.payPayload);
+    uni.showLoading({ title: '正在确认支付', mask: true });
+    syncingPayment = true;
+    const paid = await waitForDevicePayment(order.orderNo);
+    uni.hideLoading();
+    syncingPayment = false;
     closePaymentPanel();
-    lastOrderText.value = '支付已提交，微信回调确认后会自动更新设备订单状态。';
-    uni.showToast({ title: '支付已提交', icon: 'success' });
-    await loadOrders();
+    if (paid) {
+      clearCachedOrder(order.orderNo);
+      lastOrderText.value = '设备订单已支付并确认，可返回管理台查看交付进度。';
+      uni.showToast({ title: '设备支付成功', icon: 'success' });
+    } else {
+      lastOrderText.value = '支付成功，设备订单状态正在同步，可点击刷新继续查看。';
+      uni.showToast({ title: '支付成功，状态同步中', icon: 'none' });
+    }
   } catch (error) {
     if (isAlreadyPaidError(error)) {
       closePaymentPanel();
@@ -589,8 +600,36 @@ async function payOrder(order?: DeviceOrder) {
     }
     uni.showToast({ title: normalizePaymentFlowError(error, '设备支付失败'), icon: 'none' });
   } finally {
+    if (syncingPayment) {
+      uni.hideLoading();
+    }
     payingOrderNo.value = '';
   }
+}
+
+async function waitForDevicePayment(orderNo: string) {
+  const maxAttempts = 15;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const remoteOrders = await request<DeviceOrder[]>(`/devices/orders?banquetId=${banquetId.value}`);
+      const mergedOrders = prioritizeHighlightedOrders(mergeOrders(remoteOrders, cachedOrders()));
+      orders.value = mergedOrders;
+      syncCachedOrders(mergedOrders);
+      if (mergedOrders.some((item) => item.orderNo === orderNo && item.payStatus === 'PAID')) {
+        return true;
+      }
+    } catch {
+      // Payment callbacks may briefly race with the order query.
+    }
+    if (attempt < maxAttempts - 1) {
+      await delay(800);
+    }
+  }
+  return false;
+}
+
+function delay(milliseconds: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function isAlreadyPaidError(error: unknown) {
@@ -679,7 +718,7 @@ function deviceOrderTip(order: DeviceOrder) {
   if (order.payStatus !== 'PAID') {
     return features.value.mockPaymentEnabled
       ? '待支付，体验环境可模拟支付确认设备订单。'
-      : '待支付，真实支付上线后会从这里继续完成付款。';
+      : '待支付，请点击去支付完成微信付款。';
   }
   if (order.orderStatus === 'CONFIRMED') {
     return '已确认，运营后台可继续跟进交付方式和现场安排。';

@@ -118,7 +118,9 @@
             <template #default="{ row }">{{ formatMoney(row.price) }}</template>
           </el-table-column>
           <el-table-column prop="priceUnit" label="单位" width="100" />
-          <el-table-column prop="deliveryMethod" label="交付方式" min-width="140" />
+          <el-table-column label="交付方式" min-width="140">
+            <template #default="{ row }">{{ displayLabel(row.deliveryMethod) }}</template>
+          </el-table-column>
           <el-table-column label="支付状态" width="120">
             <template #default="{ row }"><el-tag :type="tagType(row.payStatus)">{{ displayLabel(row.payStatus) }}</el-tag></template>
           </el-table-column>
