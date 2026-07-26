@@ -1,8 +1,8 @@
 package com.yanxitong.payment;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wechat.pay.java.core.notification.Notification;
 import com.wechat.pay.java.core.notification.NotificationParser;
 import com.wechat.pay.java.core.notification.RequestParam;
 import com.wechat.pay.java.service.payments.model.Transaction;
@@ -31,24 +31,29 @@ public class SdkWechatNotificationParserClient implements WechatNotificationPars
                 .signature(requiredHeader(envelope, "Wechatpay-Signature"))
                 .body(envelope.rawBody())
                 .build();
-        Notification notification = parser.parse(requestParam, Notification.class);
-        String plaintext = notification.getPlaintext();
-        if (plaintext == null || plaintext.isBlank()) {
-            throw new IllegalArgumentException("Wechat callback decrypted body is empty");
-        }
         try {
-            Transaction transaction = objectMapper.readValue(plaintext, Transaction.class);
+            Transaction transaction = parser.parse(requestParam, Transaction.class);
+            if (transaction == null) {
+                throw new IllegalArgumentException("Wechat callback decrypted transaction is empty");
+            }
+            JsonNode notification = objectMapper.readTree(envelope.rawBody());
+            String decryptedBody = objectMapper.writeValueAsString(transaction);
             return new WechatCallbackParseResult(
                     transaction,
-                    plaintext,
-                    notification.getId(),
-                    notification.getEventType(),
-                    notification.getResourceType(),
+                    decryptedBody,
+                    text(notification, "id"),
+                    text(notification, "event_type"),
+                    text(notification, "resource_type"),
                     envelope.header("Wechatpay-Serial")
             );
         } catch (JsonProcessingException ex) {
-            throw new IllegalArgumentException("invalid Wechat decrypted transaction payload: " + ex.getMessage(), ex);
+            throw new IllegalArgumentException("invalid Wechat callback payload: " + ex.getMessage(), ex);
         }
+    }
+
+    private String text(JsonNode node, String field) {
+        String value = node.path(field).asText();
+        return value == null || value.isBlank() ? null : value;
     }
 
     private String requiredHeader(PaymentCallbackEnvelope envelope, String name) {

@@ -33,15 +33,20 @@
           <text class="row-icon">☎</text>
           <text class="row-label">联系电话</text>
           <input
-            v-model="displayForm.phone"
+            :value="displayForm.phone"
             class="row-input"
+            :class="{ invalid: phoneBlocked }"
             type="number"
             maxlength="11"
             placeholder="请输入11位手机号"
+            @input="onPhoneInput($event)"
             @blur="validatePhone(true)"
           />
         </view>
-        <view class="form-row picker-row">
+        <view v-if="phoneBlocked" class="phone-error">
+          <text>请输入正确的11位手机号，修正后才能继续填写</text>
+        </view>
+        <view class="form-row picker-row" :class="{ blocked: phoneBlocked }" @tap="showPhoneLockTip()">
           <text class="row-icon">▣</text>
           <text class="row-label">宴席时间</text>
           <view class="datetime-field">
@@ -49,23 +54,24 @@
               <text>{{ compactBanquetTimeDisplay || '请选择日期和时间' }}</text>
             </view>
             <view class="datetime-actions">
-              <picker mode="date" :value="form.banquetDate" :start="dateStart" :end="dateEnd" @change="onDateChange($event)">
+              <picker mode="date" :disabled="phoneBlocked" :value="form.banquetDate" :start="dateStart" :end="dateEnd" @change="onDateChange($event)">
                 <view class="picker-button ghost">选日期</view>
               </picker>
-              <picker mode="time" :value="form.banquetClock" @change="onTimeChange($event)">
+              <picker mode="time" :disabled="phoneBlocked" :value="form.banquetClock" @change="onTimeChange($event)">
                 <view class="picker-button ghost">选时间</view>
               </picker>
               <view class="picker-button strong" @tap="openTimePanel()">手填</view>
             </view>
           </view>
         </view>
-        <view class="form-row location-row" @tap="focusLocationInput()">
+        <view class="form-row location-row" :class="{ blocked: phoneBlocked }" @tap="handleLocationRowTap()">
           <text class="row-icon">⌖</text>
           <text class="row-label">宴席地点</text>
           <view class="location-field">
             <input
               :value="form.location"
               class="location-input-inline"
+              :disabled="phoneBlocked"
               placeholder="请输入酒店、宴会厅或详细地址"
               confirm-type="done"
               @tap.stop
@@ -84,7 +90,7 @@
         <view class="form-row">
           <text class="row-icon">家</text>
           <text class="row-label">账本归属</text>
-          <picker :range="bookOptions" range-key="label" :value="bookIndex" @change="onBookScopeChange($event)">
+          <picker :disabled="phoneBlocked" :range="bookOptions" range-key="label" :value="bookIndex" @change="onBookScopeChange($event)">
             <view class="book-picker">
               <text>{{ bookOptions[bookIndex]?.label || '个人账本' }}</text>
               <text class="book-desc">{{ bookOptions[bookIndex]?.desc || '默认写入我的人情账本' }}</text>
@@ -94,7 +100,7 @@
         </view>
       </view>
 
-      <view class="section-card">
+      <view class="section-card" :class="{ blocked: phoneBlocked }">
         <view class="section-title-line">
           <text class="red-bar"></text>
           <text class="section-title">宴席类型</text>
@@ -113,7 +119,7 @@
         </view>
       </view>
 
-      <view class="section-card cover-card">
+      <view class="section-card cover-card" :class="{ blocked: phoneBlocked }">
         <view class="section-title-line">
           <text class="red-bar"></text>
           <text class="section-title">宴席封面</text>
@@ -125,7 +131,7 @@
         </view>
       </view>
 
-      <view class="section-card template-card" v-if="filteredTemplates.length">
+      <view class="section-card template-card" :class="{ blocked: phoneBlocked }" v-if="filteredTemplates.length">
         <view class="section-head">
           <view class="section-title-line">
             <text class="red-bar"></text>
@@ -325,6 +331,7 @@ const displayForm = reactive({
   hostName: '',
   phone: ''
 });
+const phoneValidationStarted = ref(false);
 const form = reactive({
   name: '',
   eventTypeCode: '',
@@ -382,6 +389,8 @@ const filteredTemplates = computed(() => {
   return (rows.length ? rows : templates.value).slice(0, 8);
 });
 const locationSuggestions = ['幸福大酒店宴会厅', '体验宴会厅', '福泽园宴会厅A厅', '清风园礼仪厅'];
+const phoneIsValid = computed(() => /^1[3-9]\d{9}$/.test(displayForm.phone.trim()));
+const phoneBlocked = computed(() => phoneValidationStarted.value && !phoneIsValid.value);
 const bookOptions = computed(() => [
   { label: '个人账本', desc: '默认写入我的人情账本', scope: 'PERSONAL', familyBookId: undefined as number | undefined },
   ...familyBooks.value.map((item) => ({
@@ -404,6 +413,7 @@ function fillSampleData() {
   form.location = '体验宴会厅';
   displayForm.hostName = '情礼记用户';
   displayForm.phone = '13800000000';
+  phoneValidationStarted.value = false;
 }
 
 function onBookScopeChange(event: { detail: { value: number | string } }) {
@@ -433,6 +443,9 @@ function onTimeInput(event: ValueEvent) {
 }
 
 function onDateChange(event: ValueEvent) {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   const date = readEventValue(event);
   if (!date) {
     uni.showToast({ title: '请选择日期', icon: 'none' });
@@ -443,6 +456,9 @@ function onDateChange(event: ValueEvent) {
 }
 
 function onTimeChange(event: ValueEvent) {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   const time = readEventValue(event);
   if (!time) {
     uni.showToast({ title: '请选择时间', icon: 'none' });
@@ -453,6 +469,9 @@ function onTimeChange(event: ValueEvent) {
 }
 
 function openTimePanel() {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   manualTime.date = form.banquetDate;
   manualTime.time = form.banquetClock;
   showTimePanel.value = true;
@@ -506,19 +525,42 @@ function formatDateInput(date: Date) {
 
 function validatePhone(showToast = false) {
   const phone = displayForm.phone.trim();
-  if (!phone) {
-    return true;
-  }
   if (/^1[3-9]\d{9}$/.test(phone)) {
+    phoneValidationStarted.value = false;
     return true;
   }
+  phoneValidationStarted.value = true;
   if (showToast) {
     uni.showToast({ title: '请输入正确的11位手机号', icon: 'none' });
   }
   return false;
 }
 
+function onPhoneInput(event: ValueEvent) {
+  displayForm.phone = readEventValue(event).replace(/\D/g, '').slice(0, 11);
+  if (phoneIsValid.value) {
+    phoneValidationStarted.value = false;
+  }
+}
+
+function showPhoneLockTip() {
+  if (phoneBlocked.value) {
+    uni.showToast({ title: '请先修正联系电话', icon: 'none' });
+  }
+}
+
+function canContinueAfterPhone() {
+  if (!phoneBlocked.value) {
+    return true;
+  }
+  showPhoneLockTip();
+  return false;
+}
+
 async function chooseBanquetLocation() {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   uni.showLoading({ title: '打开地图' });
   try {
     await requestLocationBeforeChoose();
@@ -555,7 +597,16 @@ function requestLocationBeforeChoose() {
 }
 
 function focusLocationInput() {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   normalizeLocation();
+}
+
+function handleLocationRowTap() {
+  if (canContinueAfterPhone()) {
+    focusLocationInput();
+  }
 }
 
 function onLocationInput(event: ValueEvent) {
@@ -567,6 +618,9 @@ function normalizeLocation() {
 }
 
 function openLocationPanel() {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   manualLocation.value = form.location;
   showLocationPanel.value = true;
 }
@@ -652,12 +706,18 @@ function designFor(eventTypeCode: string) {
 }
 
 function selectEventType(index: number) {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   selectedIndex.value = index;
   form.eventTypeCode = eventTypes.value[selectedIndex.value]?.eventTypeCode || '';
   pickDefaultTemplate();
 }
 
 function selectTemplate(item: InvitationTemplate) {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   form.templateId = item.id;
 }
 
@@ -701,6 +761,9 @@ function templateCoverStyle(item: InvitationTemplate) {
 }
 
 function showUploadTip() {
+  if (!canContinueAfterPhone()) {
+    return;
+  }
   uni.showToast({ title: '当前使用模板封面，自定义上传稍后开放', icon: 'none' });
 }
 
@@ -1066,6 +1129,26 @@ onMounted(() => {
   min-width: 0;
   color: #171923;
   font-size: 26rpx;
+}
+
+.row-input.invalid {
+  color: #d72d2d;
+}
+
+.phone-error {
+  margin: 10rpx 0 14rpx 214rpx;
+  padding: 12rpx 16rpx;
+  border: 1rpx solid #ffc8c2;
+  border-radius: 12rpx;
+  background: #fff2f0;
+  color: #d72d2d;
+  font-size: 21rpx;
+  line-height: 1.4;
+}
+
+.form-row.blocked,
+.section-card.blocked {
+  opacity: 0.48;
 }
 
 .picker-row {
